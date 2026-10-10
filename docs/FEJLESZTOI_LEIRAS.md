@@ -195,14 +195,36 @@ A `base` minden módban érvényes; a `new` / `edit` / `display` kulcs csak az e
 | Szint | Tulajdonság | Érték | Hatás |
 | --- | --- | --- | --- |
 | Form | `accentColor` | hex szín | A form címének és a szekciófejléceknek a színe. |
-| Form | `background` | hex szín | A form törzsének háttere (belső margóval). |
 | Form | `maxWidth` | 320–2400 | A form maximális szélessége képpontban. Alapértelmezés: 960. |
 | Form | `density` | `comfortable` \| `compact` | Térköz a mezők és a szekciók között. |
 | Form | `sectionHeader` | `underline` \| `bar` \| `plain` | Szekciófejléc: aláhúzott, színes sáv vagy egyszerű. |
-| Szekció | `background`, `borderColor` | hex szín | Bármelyik megadásakor a szekció keretes dobozként jelenik meg. |
 | Szekció | `headerColor` | hex szín | A szekció fejlécének színe; hiányában a form `accentColor` értéke. |
-| Mező | `background` | hex szín | Kiemelő háttér a mező mögött. |
 | Mező | `labelColor` | hex szín | A mező címkéjének színe. |
+
+Háttér és keret – a formon, a szekción és a mezőn egyaránt megadható (`IBoxStyle`):
+
+| Tulajdonság | Érték | Hatás |
+| --- | --- | --- |
+| `background` | hex szín | Egyszínű háttér. |
+| `backgroundGradient` | `{ type, angle?, colors }` | Kétszínű színátmenet; ha meg van adva, ez látszik az egyszínű háttér helyett. |
+| `borderColor` | hex szín | Keretszín. |
+| `borderWidth` | 0–8 | Keretvastagság képpontban. Alapértelmezés: 1, ha van keretszín. |
+| `borderRadius` | 0–24 | Lekerekítés képpontban. Alapértelmezés: 4. |
+
+Ha az elemnek látható háttere vagy kerete van, belső margót is kap (form és szekció: 16, mező: 8 képpont).
+
+A színátmenet szerkezete:
+
+```json
+"backgroundGradient": { "type": "linear", "angle": 135, "colors": ["#fff9f5", "#ffe8dc"] }
+```
+
+- `type`: `linear` vagy `radial`. A sugaras átmenet középről indul kifelé.
+- `angle`: csak lineárisnál, 0–360 fok; alapértelmezés 180 (fentről lefelé).
+- `colors`: pontosan két hex szín, kezdő és záró.
+- A CSS értéket a `FormStyle.backgroundCss` rakja össze ezekből az ellenőrzött részekből; kész CSS szöveg nem adható meg.
+- Módonkénti felülírásnál, ha a mód egyszínű hátteret ad meg színátmenet nélkül, az alap színátmenete nem öröklődik.
+- Színátmenetes vagy sötét háttéren a szöveg olvashatóságáról a szerkesztőnek kell gondoskodnia (például a mező `labelColor` értékével).
 
 Szabályok:
 

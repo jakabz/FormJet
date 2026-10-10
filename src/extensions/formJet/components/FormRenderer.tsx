@@ -2,20 +2,21 @@
 
 import * as React from 'react';
 import { Icon } from '@fluentui/react/lib/Icon';
-import { mergeStyles, mergeStyleSets } from '@fluentui/react/lib/Styling';
+import { IStyle, mergeStyles, mergeStyleSets } from '@fluentui/react/lib/Styling';
 
 import * as strings from 'FormJetFormCustomizerStrings';
 
-import { contrastTextColor } from '../engine/FormStyle';
+import { backgroundCss, contrastTextColor, hasBox } from '../engine/FormStyle';
 import { IResolvedField, IResolvedForm, IResolvedSection } from '../engine/LayoutResolver';
 import { FieldErrors, FormValues } from '../models/IFieldSchema';
-import { Density, IFieldStyle, IFormStyle, ISectionStyle } from '../models/IFormConfig';
+import { Density, IBoxStyle, IFieldStyle, IFormStyle, ISectionStyle } from '../models/IFormConfig';
 import { FieldRenderer } from './FieldRenderer';
 import { RelatedItems } from './RelatedItems';
 
 const NARROW_SCREEN: string = '@media (max-width: 640px)';
 
 const DEFAULT_BORDER: string = '#edebe9';
+const DEFAULT_RADIUS: number = 4;
 
 const classes = mergeStyleSets({
   sectionHeader: {
@@ -44,26 +45,26 @@ const classes = mergeStyleSets({
 
 // A stílusból képzett osztályok. A mergeStyles azonos tartalomra ugyanazt az osztályt adja vissza.
 
+/** Háttér és keret. Ha az elemnek látható háttere vagy kerete van, belső margót is kap. */
+function boxStyle(style: IBoxStyle, padding: number): IStyle {
+  if (!hasBox(style)) {
+    return undefined;
+  }
+  const borderWidth: number = style.borderWidth ?? (style.borderColor ? 1 : 0);
+  return {
+    background: backgroundCss(style),
+    border: borderWidth > 0 ? `${borderWidth}px solid ${style.borderColor ?? DEFAULT_BORDER}` : undefined,
+    borderRadius: style.borderRadius ?? DEFAULT_RADIUS,
+    padding
+  };
+}
+
 function formClass(style: IFormStyle): string {
-  return mergeStyles(
-    { maxWidth: style.maxWidth },
-    style.background ? { background: style.background, padding: 16, borderRadius: 4 } : undefined
-  );
+  return mergeStyles({ maxWidth: style.maxWidth }, boxStyle(style, 16));
 }
 
 function sectionClass(style: ISectionStyle, density: Density | undefined): string {
-  const boxed: boolean = !!style.background || !!style.borderColor;
-  return mergeStyles(
-    { marginBottom: density === 'compact' ? 16 : 24 },
-    boxed
-      ? {
-          background: style.background,
-          border: `1px solid ${style.borderColor ?? 'transparent'}`,
-          borderRadius: 4,
-          padding: 16
-        }
-      : undefined
-  );
+  return mergeStyles({ marginBottom: density === 'compact' ? 16 : 24 }, boxStyle(style, 16));
 }
 
 function sectionHeaderClass(form: IFormStyle, section: ISectionStyle): string {
@@ -96,7 +97,7 @@ function cellClass(colSpan: number, style: IFieldStyle): string {
       minWidth: 0,
       selectors: { [NARROW_SCREEN]: { gridColumn: '1 / -1' } }
     },
-    style.background ? { background: style.background, padding: 8, borderRadius: 4 } : undefined,
+    boxStyle(style, 8),
     style.labelColor ? { selectors: { '& .ms-Label': { color: style.labelColor } } } : undefined
   );
 }

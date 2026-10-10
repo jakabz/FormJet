@@ -20,6 +20,7 @@ export interface IEngineStrings {
   InvalidOption: string;
   InvalidListId: string;
   InvalidFieldName: string;
+  InvalidGradientColors: string;
 }
 
 const DEFAULT_STRINGS: IEngineStrings = {
@@ -39,7 +40,8 @@ const DEFAULT_STRINGS: IEngineStrings = {
   InvalidNumber: '{0}: must be a number between {1} and {2}.',
   InvalidOption: '{0}: the allowed values are {1}.',
   InvalidListId: '{0}: must be a list id (GUID).',
-  InvalidFieldName: '{0}: must be the internal name of a field.'
+  InvalidFieldName: '{0}: must be the internal name of a field.',
+  InvalidGradientColors: '{0}: must contain exactly two hex colors.'
 };
 
 let current: IEngineStrings = DEFAULT_STRINGS;

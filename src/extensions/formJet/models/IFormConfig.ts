@@ -43,25 +43,45 @@ export const SECTION_HEADER_STYLES: SectionHeaderStyle[] = ['underline', 'bar', 
 
 // Stílus: a színek hex értékek (#rgb vagy #rrggbb). Szabad CSS szándékosan nem adható meg.
 
-export interface IFormStyle {
+export type GradientType = 'linear' | 'radial';
+export const GRADIENT_TYPES: GradientType[] = ['linear', 'radial'];
+
+/** Kétszínű színátmenet. A sugaras átmenet középről indul kifelé. */
+export interface IGradient {
+  type: GradientType;
+  /** Csak lineárisnál: irány fokban, 0–360. Alapértelmezés: 180 (fentről lefelé). */
+  angle?: number;
+  /** Kezdő és záró szín (hex). */
+  colors: [string, string];
+}
+
+/** Háttér és keret; a formon, a szekción és a mezőn is megadható. */
+export interface IBoxStyle {
+  background?: string;
+  /** Ha meg van adva, ez látszik az egyszínű háttér helyett. */
+  backgroundGradient?: IGradient;
+  borderColor?: string;
+  /** Keretvastagság képpontban, 0–8. Alapértelmezés: 1, ha van keretszín. */
+  borderWidth?: number;
+  /** Lekerekítés képpontban, 0–24. Alapértelmezés: 4. */
+  borderRadius?: number;
+}
+
+export interface IFormStyle extends IBoxStyle {
   /** A form címének és a szekciófejléceknek a színe. */
   accentColor?: string;
-  background?: string;
   /** A form maximális szélessége képpontban. */
   maxWidth?: number;
   density?: Density;
   sectionHeader?: SectionHeaderStyle;
 }
 
-export interface ISectionStyle {
-  background?: string;
-  borderColor?: string;
+export interface ISectionStyle extends IBoxStyle {
   /** Hiányában a form accentColor értéke érvényes. */
   headerColor?: string;
 }
 
-export interface IFieldStyle {
-  background?: string;
+export interface IFieldStyle extends IBoxStyle {
   labelColor?: string;
 }
 

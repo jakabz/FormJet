@@ -121,6 +121,16 @@ define([], function() {
     "StyleInvalidColor": "Hex színt adj meg, pl. #0078d4.",
     "StylePickColor": "Szín választása",
     "StyleClear": "Törlés",
+    "StyleBackgroundType": "Háttér",
+    "StyleBgSolid": "Egyszínű",
+    "StyleBgLinear": "Lineáris színátmenet",
+    "StyleBgRadial": "Sugaras színátmenet",
+    "StyleGradientStart": "Kezdő szín",
+    "StyleGradientEnd": "Záró szín",
+    "StyleGradientAngle": "Irány (fok)",
+    "StyleGradientInherited": "Az alapból színátmenet öröklődik. Itt egyszínű háttér vagy másik színátmenet megadásával cserélhető le.",
+    "StyleBorderWidth": "Keret vastagsága (px)",
+    "StyleBorderRadius": "Lekerekítés (px)",
 
     "RelatedEnable": "Kapcsolódó elemek megjelenítése egy másik listából",
     "RelatedList": "Kapcsolódó lista",
@@ -160,7 +170,8 @@ define([], function() {
       "InvalidNumber": "{0}: {1} és {2} közötti szám kell legyen.",
       "InvalidOption": "{0}: a megengedett értékek: {1}.",
       "InvalidListId": "{0}: listaazonosító (GUID) kell legyen.",
-      "InvalidFieldName": "{0}: egy mező belső neve kell legyen."
+      "InvalidFieldName": "{0}: egy mező belső neve kell legyen.",
+      "InvalidGradientColors": "{0}: pontosan két hex színt kell tartalmaznia."
     }
   }
 });

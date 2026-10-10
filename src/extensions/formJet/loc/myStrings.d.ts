@@ -125,6 +125,16 @@ declare interface IFormJetFormCustomizerStrings {
   StyleInvalidColor: string;
   StylePickColor: string;
   StyleClear: string;
+  StyleBackgroundType: string;
+  StyleBgSolid: string;
+  StyleBgLinear: string;
+  StyleBgRadial: string;
+  StyleGradientStart: string;
+  StyleGradientEnd: string;
+  StyleGradientAngle: string;
+  StyleGradientInherited: string;
+  StyleBorderWidth: string;
+  StyleBorderRadius: string;
 
   // Related items
   RelatedEnable: string;
@@ -167,6 +177,7 @@ declare interface IFormJetFormCustomizerStrings {
     InvalidOption: string;
     InvalidListId: string;
     InvalidFieldName: string;
+    InvalidGradientColors: string;
   };
 }
 

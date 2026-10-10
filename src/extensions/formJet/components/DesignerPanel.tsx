@@ -27,6 +27,7 @@ import {
   IFormConfig,
   ISectionConfig
 } from '../models/IFormConfig';
+import { AccordionCard } from './AccordionCard';
 import { RelatedListEditor } from './RelatedListEditor';
 import { StylePanel } from './StylePanel';
 
@@ -44,9 +45,6 @@ const COLUMN_OPTIONS: IDropdownOption[] = [1, 2, 3, 4].map((n) => ({ key: n, tex
 
 const classes = mergeStyleSets({
   tab: { paddingTop: 12, display: 'flex', flexDirection: 'column', gap: 12 },
-  card: { border: '1px solid #edebe9', borderRadius: 4, padding: 12, display: 'flex', flexDirection: 'column', gap: 8 },
-  cardHeader: { display: 'flex', alignItems: 'center', gap: 4 },
-  cardTitle: { flex: 1, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
   row: { display: 'flex', alignItems: 'center', gap: 4 },
   rowName: { flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'pointer' },
   modes: { display: 'flex', gap: 16, flexWrap: 'wrap' },
@@ -194,6 +192,8 @@ export const DesignerPanel: React.FC<IDesignerPanelProps> = (props) => {
   const { draft, schema, selectedField } = props;
   const [jsonText, setJsonText] = React.useState<string>('');
   const [jsonError, setJsonError] = React.useState<string | undefined>();
+  // Az Elrendezés fülön egyszerre egy szekciókártya van nyitva; alapból az első.
+  const [openSection, setOpenSection] = React.useState<string | undefined>(draft.sections[0]?.id);
 
   React.useEffect(() => {
     setJsonText(JSON.stringify(draft, undefined, 2));
@@ -223,6 +223,7 @@ export const DesignerPanel: React.FC<IDesignerPanelProps> = (props) => {
       ...draft,
       sections: [...draft.sections, { id: `section-${n}`, title: strings.NewSection, columns: 1, fields: [] }]
     });
+    setOpenSection(`section-${n}`);
   };
 
   const updateField = (name: string, patch: Partial<IFieldConfig>): void => {
@@ -237,27 +238,33 @@ export const DesignerPanel: React.FC<IDesignerPanelProps> = (props) => {
   }));
 
   const renderSection = (section: ISectionConfig, index: number): JSX.Element => (
-    <div key={section.id} className={classes.card}>
-      <div className={classes.cardHeader}>
-        <span className={classes.cardTitle}>{section.title || section.id}</span>
-        <IconButton
-          iconProps={{ iconName: 'Up' }}
-          title={strings.SectionMoveUp}
-          disabled={index === 0}
-          onClick={() => props.onChange({ ...draft, sections: move(draft.sections, index, index - 1) })}
-        />
-        <IconButton
-          iconProps={{ iconName: 'Down' }}
-          title={strings.SectionMoveDown}
-          disabled={index === draft.sections.length - 1}
-          onClick={() => props.onChange({ ...draft, sections: move(draft.sections, index, index + 1) })}
-        />
-        <IconButton
-          iconProps={{ iconName: 'Delete' }}
-          title={strings.SectionDelete}
-          onClick={() => props.onChange({ ...draft, sections: draft.sections.filter((_, i) => i !== index) })}
-        />
-      </div>
+    <AccordionCard
+      key={section.id}
+      title={section.title || section.id}
+      open={openSection === section.id}
+      onToggle={() => setOpenSection(openSection === section.id ? undefined : section.id)}
+      actions={
+        <>
+          <IconButton
+            iconProps={{ iconName: 'Up' }}
+            title={strings.SectionMoveUp}
+            disabled={index === 0}
+            onClick={() => props.onChange({ ...draft, sections: move(draft.sections, index, index - 1) })}
+          />
+          <IconButton
+            iconProps={{ iconName: 'Down' }}
+            title={strings.SectionMoveDown}
+            disabled={index === draft.sections.length - 1}
+            onClick={() => props.onChange({ ...draft, sections: move(draft.sections, index, index + 1) })}
+          />
+          <IconButton
+            iconProps={{ iconName: 'Delete' }}
+            title={strings.SectionDelete}
+            onClick={() => props.onChange({ ...draft, sections: draft.sections.filter((_, i) => i !== index) })}
+          />
+        </>
+      }
+    >
       <TextField label={strings.SectionTitle} value={section.title ?? ''} onChange={(_, v) => updateSection(index, { title: v })} />
       <TextField
         label={strings.Description}
@@ -358,7 +365,7 @@ export const DesignerPanel: React.FC<IDesignerPanelProps> = (props) => {
           onChange={(_, option) => option && updatePlacements(index, [...section.fields, { field: String(option.key) }])}
         />
       )}
-    </div>
+    </AccordionCard>
   );
 
   const renderFieldTab = (): JSX.Element => {

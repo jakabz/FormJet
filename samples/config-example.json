@@ -31,7 +31,13 @@
       "collapsible": true,
       "visibleIn": ["edit", "display"],
       "style": {
-        "base": { "background": "#fff9f5", "borderColor": "#f4bfab", "headerColor": "#c43501" }
+        "base": {
+          "backgroundGradient": { "type": "linear", "angle": 135, "colors": ["#fff9f5", "#ffe8dc"] },
+          "borderColor": "#f4bfab",
+          "borderWidth": 2,
+          "borderRadius": 8,
+          "headerColor": "#c43501"
+        }
       },
       "fields": [
         { "field": "Approver" },
@@ -83,7 +89,7 @@
       "visibleWhen": { "field": "Amount", "op": "gt", "value": 500000 },
       "requiredWhen": { "field": "Amount", "op": "gt", "value": 500000 },
       "style": {
-        "edit": { "background": "#fff4ce", "labelColor": "#835b00" }
+        "edit": { "background": "#fff4ce", "borderColor": "#f2c661", "borderRadius": 6, "labelColor": "#835b00" }
       }
     },
     "Approver": {

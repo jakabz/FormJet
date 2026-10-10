@@ -5,6 +5,7 @@ import * as React from 'react';
 import { IconButton } from '@fluentui/react/lib/Button';
 import { Dropdown, IDropdownOption } from '@fluentui/react/lib/Dropdown';
 import { Label } from '@fluentui/react/lib/Label';
+import { Slider } from '@fluentui/react/lib/Slider';
 import { TextField } from '@fluentui/react/lib/TextField';
 import { mergeStyleSets } from '@fluentui/react/lib/Styling';
 
@@ -12,15 +13,28 @@ import * as strings from 'FormJetFormCustomizerStrings';
 
 import { format } from '../engine/EngineStrings';
 import {
+  DEFAULT_GRADIENT_ANGLE,
   isFormWidth,
   isHexColor,
+  MAX_BORDER_RADIUS,
+  MAX_BORDER_WIDTH,
   MAX_FORM_WIDTH,
   MIN_FORM_WIDTH,
   normalizeHexColor,
   StyleScope
 } from '../engine/FormStyle';
 import { IFieldSchema } from '../models/IFieldSchema';
-import { IFieldStyle, IFormConfig, IFormStyle, IModeStyles, ISectionStyle } from '../models/IFormConfig';
+import {
+  GradientType,
+  IBoxStyle,
+  IFieldStyle,
+  IFormConfig,
+  IFormStyle,
+  IGradient,
+  IModeStyles,
+  ISectionStyle
+} from '../models/IFormConfig';
+import { AccordionCard } from './AccordionCard';
 
 const SCOPE_OPTIONS: IDropdownOption[] = [
   { key: 'base', text: strings.StyleScopeBase },
@@ -44,10 +58,17 @@ const SECTION_HEADER_OPTIONS: IDropdownOption[] = [
   { key: 'plain', text: strings.StyleHeaderPlain }
 ];
 
+const BACKGROUND_TYPE_OPTIONS: IDropdownOption[] = [
+  { key: '', text: strings.StyleBgSolid },
+  { key: 'linear', text: strings.StyleBgLinear },
+  { key: 'radial', text: strings.StyleBgRadial }
+];
+
+/** Új színátmenet záró színe, amíg a szerkesztő nem választ mást. */
+const DEFAULT_GRADIENT_END: string = '#c7e0f4';
+
 const classes = mergeStyleSets({
   tab: { paddingTop: 12, display: 'flex', flexDirection: 'column', gap: 12 },
-  card: { border: '1px solid #edebe9', borderRadius: 4, padding: 12, display: 'flex', flexDirection: 'column', gap: 8 },
-  cardTitle: { fontWeight: 600 },
   hint: { fontSize: 12, color: '#605e5c' },
   colorRow: { display: 'flex', alignItems: 'flex-start', gap: 4 },
   swatch: {
@@ -171,6 +192,134 @@ const ColorField: React.FC<IColorFieldProps> = (props) => (
   />
 );
 
+interface INumberFieldProps {
+  label: string;
+  value: number | undefined;
+  inherited?: number;
+  min: number;
+  max: number;
+  onChange: (value: number | undefined) => void;
+}
+
+/** Egész szám adott tartományban. */
+const NumberField: React.FC<INumberFieldProps> = (props) => (
+  <ValidatedField
+    label={props.label}
+    value={props.value === undefined ? '' : String(props.value)}
+    placeholder={props.inherited === undefined ? undefined : `${props.inherited} ${strings.StyleInherited}`}
+    errorMessage={format(strings.StyleMaxWidthError, props.min, props.max)}
+    isValid={(text) => /^\d+$/.test(text) && Number(text) >= props.min && Number(text) <= props.max}
+    onCommit={(text) => props.onChange(text === undefined ? undefined : Number(text))}
+  />
+);
+
+interface IBoxFieldsProps {
+  style: IBoxStyle;
+  /** Az alapból örökölt értékek, ha módonkénti beállítást szerkesztünk. */
+  inherited: IBoxStyle;
+  onChange: (patch: Partial<IBoxStyle>) => void;
+}
+
+/** Háttér (egyszínű vagy színátmenet) és keret; a formnál, a szekciónál és a mezőnél is ugyanez. */
+const BoxFields: React.FC<IBoxFieldsProps> = (props) => {
+  const { style, inherited } = props;
+  const gradient: IGradient | undefined = style.backgroundGradient;
+
+  const setGradientType = (type: GradientType | ''): void => {
+    if (type === '') {
+      props.onChange({ backgroundGradient: undefined });
+      return;
+    }
+    const colors: [string, string] = gradient?.colors ?? [
+      style.background ?? inherited.background ?? '#ffffff',
+      DEFAULT_GRADIENT_END
+    ];
+    props.onChange({
+      backgroundGradient: type === 'linear' ? { type, angle: gradient?.angle ?? DEFAULT_GRADIENT_ANGLE, colors } : { type, colors }
+    });
+  };
+
+  // A színátmenethez mindkét szín kell, ezért a szín törlése itt nem érvényesül.
+  const setGradientColor = (index: 0 | 1, color: string | undefined): void => {
+    if (gradient && color) {
+      const colors: [string, string] = [gradient.colors[0], gradient.colors[1]];
+      colors[index] = color;
+      props.onChange({ backgroundGradient: { ...gradient, colors } });
+    }
+  };
+
+  return (
+    <>
+      <Dropdown
+        label={strings.StyleBackgroundType}
+        options={BACKGROUND_TYPE_OPTIONS}
+        selectedKey={gradient?.type ?? ''}
+        onChange={(_, option) => option && setGradientType(option.key as GradientType | '')}
+      />
+      {gradient ? (
+        <>
+          <ColorField
+            label={strings.StyleGradientStart}
+            value={gradient.colors[0]}
+            onChange={(color) => setGradientColor(0, color)}
+          />
+          <ColorField
+            label={strings.StyleGradientEnd}
+            value={gradient.colors[1]}
+            onChange={(color) => setGradientColor(1, color)}
+          />
+          {gradient.type === 'linear' && (
+            <Slider
+              label={strings.StyleGradientAngle}
+              min={0}
+              max={360}
+              step={5}
+              value={gradient.angle ?? DEFAULT_GRADIENT_ANGLE}
+              onChange={(angle) => props.onChange({ backgroundGradient: { ...gradient, angle } })}
+            />
+          )}
+        </>
+      ) : (
+        <>
+          <ColorField
+            label={strings.StyleBackground}
+            value={style.background}
+            inherited={inherited.background}
+            onChange={(background) => props.onChange({ background })}
+          />
+          {inherited.backgroundGradient && style.background === undefined && (
+            <div className={classes.hint}>{strings.StyleGradientInherited}</div>
+          )}
+        </>
+      )}
+      <ColorField
+        label={strings.StyleBorderColor}
+        value={style.borderColor}
+        inherited={inherited.borderColor}
+        onChange={(borderColor) => props.onChange({ borderColor })}
+      />
+      <NumberField
+        label={strings.StyleBorderWidth}
+        value={style.borderWidth}
+        inherited={inherited.borderWidth}
+        min={0}
+        max={MAX_BORDER_WIDTH}
+        onChange={(borderWidth) => props.onChange({ borderWidth })}
+      />
+      <NumberField
+        label={strings.StyleBorderRadius}
+        value={style.borderRadius}
+        inherited={inherited.borderRadius}
+        min={0}
+        max={MAX_BORDER_RADIUS}
+        onChange={(borderRadius) => props.onChange({ borderRadius })}
+      />
+    </>
+  );
+};
+
+type StyleCard = 'form' | 'section' | 'field';
+
 export interface IStylePanelProps {
   draft: IFormConfig;
   schema: IFieldSchema[];
@@ -182,6 +331,9 @@ export interface IStylePanelProps {
 export const StylePanel: React.FC<IStylePanelProps> = (props) => {
   const { draft, schema, selectedField } = props;
   const [scope, setScope] = React.useState<StyleScope>('base');
+  // Egyszerre egy kártya van nyitva; alapból az első (a form).
+  const [openCard, setOpenCard] = React.useState<StyleCard | undefined>('form');
+  const toggleCard = (card: StyleCard): void => setOpenCard(openCard === card ? undefined : card);
   const [sectionId, setSectionId] = React.useState<string | undefined>(draft.sections[0]?.id);
 
   const sectionIndex: number = draft.sections.reduce((found, s, i) => (s.id === sectionId ? i : found), -1);
@@ -250,20 +402,19 @@ export const StylePanel: React.FC<IStylePanelProps> = (props) => {
       <div className={classes.hint}>{strings.StyleScopeHint}</div>
 
       {/* A key miatt érvényességi kör váltásakor a mezők tiszta állapottal indulnak. */}
-      <div key={`form:${scope}`} className={classes.card}>
-        <span className={classes.cardTitle}>{strings.StyleForm}</span>
+      <AccordionCard
+        key={`form:${scope}`}
+        title={strings.StyleForm}
+        open={openCard === 'form'}
+        onToggle={() => toggleCard('form')}
+      >
         <ColorField
           label={strings.StyleAccentColor}
           value={formStyle.accentColor}
           inherited={formBase.accentColor}
           onChange={(accentColor) => setFormStyle({ accentColor })}
         />
-        <ColorField
-          label={strings.StyleBackground}
-          value={formStyle.background}
-          inherited={formBase.background}
-          onChange={(background) => setFormStyle({ background })}
-        />
+        <BoxFields style={formStyle} inherited={formBase} onChange={setFormStyle} />
         <ValidatedField
           label={strings.StyleMaxWidth}
           value={formStyle.maxWidth === undefined ? '' : String(formStyle.maxWidth)}
@@ -289,11 +440,15 @@ export const StylePanel: React.FC<IStylePanelProps> = (props) => {
             setFormStyle({ sectionHeader: option.key === '' ? undefined : (option.key as IFormStyle['sectionHeader']) })
           }
         />
-      </div>
+      </AccordionCard>
 
       {draft.sections.length > 0 && (
-        <div key={`section:${scope}:${sectionId}`} className={classes.card}>
-          <span className={classes.cardTitle}>{strings.StyleSection}</span>
+        <AccordionCard
+          key={`section:${scope}:${sectionId}`}
+          title={strings.StyleSection}
+          open={openCard === 'section'}
+          onToggle={() => toggleCard('section')}
+        >
           <Dropdown
             ariaLabel={strings.StyleSection}
             options={draft.sections.map((s) => ({ key: s.id, text: s.title || s.id }))}
@@ -302,18 +457,7 @@ export const StylePanel: React.FC<IStylePanelProps> = (props) => {
           />
           {section && (
             <>
-              <ColorField
-                label={strings.StyleBackground}
-                value={sectionStyle.background}
-                inherited={sectionBase.background}
-                onChange={(background) => setSectionStyle({ background })}
-              />
-              <ColorField
-                label={strings.StyleBorderColor}
-                value={sectionStyle.borderColor}
-                inherited={sectionBase.borderColor}
-                onChange={(borderColor) => setSectionStyle({ borderColor })}
-              />
+              <BoxFields style={sectionStyle} inherited={sectionBase} onChange={setSectionStyle} />
               <ColorField
                 label={strings.StyleHeaderColor}
                 value={sectionStyle.headerColor}
@@ -322,11 +466,15 @@ export const StylePanel: React.FC<IStylePanelProps> = (props) => {
               />
             </>
           )}
-        </div>
+        </AccordionCard>
       )}
 
-      <div key={`field:${scope}:${selectedField}`} className={classes.card}>
-        <span className={classes.cardTitle}>{strings.Field}</span>
+      <AccordionCard
+        key={`field:${scope}:${selectedField}`}
+        title={strings.Field}
+        open={openCard === 'field'}
+        onToggle={() => toggleCard('field')}
+      >
         <Dropdown
           ariaLabel={strings.Field}
           placeholder={strings.FieldPickerPlaceholder}
@@ -336,12 +484,7 @@ export const StylePanel: React.FC<IStylePanelProps> = (props) => {
         />
         {fieldSchema && (
           <>
-            <ColorField
-              label={strings.StyleBackground}
-              value={fieldStyle.background}
-              inherited={fieldBase.background}
-              onChange={(background) => setFieldStyle({ background })}
-            />
+            <BoxFields style={fieldStyle} inherited={fieldBase} onChange={setFieldStyle} />
             <ColorField
               label={strings.StyleLabelColor}
               value={fieldStyle.labelColor}
@@ -350,7 +493,7 @@ export const StylePanel: React.FC<IStylePanelProps> = (props) => {
             />
           </>
         )}
-      </div>
+      </AccordionCard>
     </div>
   );
 };

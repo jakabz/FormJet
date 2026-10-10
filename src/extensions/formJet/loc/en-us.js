@@ -121,6 +121,16 @@ define([], function() {
     "StyleInvalidColor": "Enter a hex color, e.g. #0078d4.",
     "StylePickColor": "Pick a color",
     "StyleClear": "Clear",
+    "StyleBackgroundType": "Background",
+    "StyleBgSolid": "Solid color",
+    "StyleBgLinear": "Linear gradient",
+    "StyleBgRadial": "Radial gradient",
+    "StyleGradientStart": "Start color",
+    "StyleGradientEnd": "End color",
+    "StyleGradientAngle": "Direction (degrees)",
+    "StyleGradientInherited": "A gradient is inherited from the base. Set a solid color or another gradient here to replace it.",
+    "StyleBorderWidth": "Border width (px)",
+    "StyleBorderRadius": "Corner radius (px)",
 
     "RelatedEnable": "Show related items from another list",
     "RelatedList": "Related list",
@@ -160,7 +170,8 @@ define([], function() {
       "InvalidNumber": "{0}: must be a number between {1} and {2}.",
       "InvalidOption": "{0}: the allowed values are {1}.",
       "InvalidListId": "{0}: must be a list id (GUID).",
-      "InvalidFieldName": "{0}: must be the internal name of a field."
+      "InvalidFieldName": "{0}: must be the internal name of a field.",
+      "InvalidGradientColors": "{0}: must contain exactly two hex colors."
     }
   }
 });
