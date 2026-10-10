@@ -36,6 +36,7 @@ src/extensions/formJet/
   engine/                    TISZTA LOGIKA, SharePoint és React nélkül
     ConditionEngine.ts       visibleWhen / readOnlyWhen / requiredWhen kiértékelése
     DateFormat.ts            DateTime form-string ↔ Date a web kultúrája szerint
+    FormStyle.ts             stílus: ellenőrzés (csak hex szín, felsorolt értékek) és módonkénti feloldás
     EngineStrings.ts         a motor üzenetei (alapból angol; az onInit a loc `Engine` részét adja át) + format()
     LayoutResolver.ts        séma + konfig + mód + értékek → IResolvedForm; alapértelmezett konfig; parseConfig
   services/                  PnPjs v4 hívások, csak itt van SharePoint kommunikáció
@@ -52,7 +53,8 @@ src/extensions/formJet/
     DateTimeField.tsx        DateTime mező: Fluent DatePicker (+ TimePicker, ha a mező időt is tárol)
     RichTextField.tsx        rich text Note mező: TipTap szerkesztő Fluent eszköztárral (lazy chunk)
     FormContext.ts           React context: a web kultúrája és a felület nyelve
-    DesignerPanel.tsx        admin tervező (Elrendezés / Mező / JSON fülek)
+    DesignerPanel.tsx        admin tervező (Elrendezés / Mező / Stílus / JSON fülek)
+    StylePanel.tsx           a tervező Stílus füle: form, szekció és mező stílusa módonként
 scripts/Provision-FormJet.ps1  konfigurációs lista + tartalomtípus bekötés
 samples/config-example.json    példa konfiguráció
 ```
@@ -72,11 +74,14 @@ Rétegszabályok:
 5. **A konfiguráció kulcsa a mező `InternalName`-je**, nem a címe.
 6. **Konfiguráció nélkül vagy hibás JSON esetén** alapértelmezett elrendezés jelenik meg (`createDefaultConfig`), a form sosem lehet üres.
 
+7. **A stílus strukturált, nem szabad CSS.** A konfiguráció `style` részeibe csak a `FormStyle.ts` specifikációjában szereplő tulajdonság kerülhet; a szín kizárólag hex érték. Szabad CSS mezőt, `url()`-t vagy tetszőleges CSS értéket ne engedj be egyeztetés nélkül.
+
 ## Konfigurációs séma
 
 A típusok forrása: `models/IFormConfig.ts`. Példa: `samples/config-example.json`.
 
 - Séma módosításakor emeld a `schemaVersion`-t, és bővítsd a `parseConfig`-ot migrációval a régi verzióról. A mentett konfigurációk éles listákban vannak, nem törhetnek el.
+- Új stílustulajdonság: típus az `IFormStyle` / `ISectionStyle` / `IFieldStyle`-ban + a `FormStyle.ts` megfelelő `*_STYLE_SPEC`-je + alkalmazás a `FormRenderer`-ben + vezérlő a `StylePanel`-ben + a fejlesztői leírás 6. fejezete. Opcionális mezőként nem kell sémaverziót emelni.
 - Új feltétel-operátor: `ConditionOperator` típus + `ConditionEngine.evalField` + a `DesignerPanel` súgószövege.
 
 ## SharePoint sajátosságok

@@ -1,4 +1,4 @@
-// Admin tervező (Elrendezés / Mező / JSON fülek).
+// Admin tervező (Elrendezés / Mező / Stílus / JSON fülek).
 // Csak a draft konfigurációt módosítja az onChange-en keresztül, immutábilisan.
 // SharePointba nem ír; a mentés a FormHost.saveDesign dolga.
 
@@ -27,8 +27,9 @@ import {
   IFormConfig,
   ISectionConfig
 } from '../models/IFormConfig';
+import { StylePanel } from './StylePanel';
 
-export type DesignerTab = 'layout' | 'field' | 'json';
+export type DesignerTab = 'layout' | 'field' | 'style' | 'json';
 
 const MODE_LABELS: Record<FormMode, string> = {
   new: strings.ModeNew,
@@ -478,6 +479,15 @@ export const DesignerPanel: React.FC<IDesignerPanelProps> = (props) => {
       </PivotItem>
       <PivotItem headerText={strings.TabField} itemKey="field">
         {renderFieldTab()}
+      </PivotItem>
+      <PivotItem headerText={strings.TabStyle} itemKey="style">
+        <StylePanel
+          draft={draft}
+          schema={schema}
+          selectedField={selectedField}
+          onSelectField={props.onSelectField}
+          onChange={props.onChange}
+        />
       </PivotItem>
       <PivotItem headerText={strings.TabJson} itemKey="json">
         <div className={classes.tab}>

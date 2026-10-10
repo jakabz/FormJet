@@ -7,12 +7,16 @@ import {
   FormMode,
   IFieldConfig,
   IFieldPlacement,
+  IFieldStyle,
   IFormConfig,
-  ISectionConfig
+  IFormStyle,
+  ISectionConfig,
+  ISectionStyle
 } from '../models/IFormConfig';
 import { FormValues, IFieldSchema } from '../models/IFieldSchema';
 import { evaluate, joinMultiValue, validateCondition } from './ConditionEngine';
 import { engineStrings, format } from './EngineStrings';
+import { parseFieldStyles, parseFormStyles, parseSectionStyles, resolveModeStyle } from './FormStyle';
 
 /** Mezőtípusok, amelyekhez a FieldRenderer szerkesztő vezérlőt ad. A többi csak olvasható. */
 const EDITABLE_TYPES: string[] = ['Text', 'Note', 'Number', 'Currency', 'Choice', 'MultiChoice', 'Boolean', 'DateTime'];
@@ -33,6 +37,8 @@ export interface IResolvedField {
   visible: boolean;
   readOnly: boolean;
   required: boolean;
+  /** Az aktuális módban érvényes stílus. */
+  style: IFieldStyle;
 }
 
 export interface IResolvedSection {
@@ -43,11 +49,14 @@ export interface IResolvedSection {
   collapsible: boolean;
   collapsed: boolean;
   visible: boolean;
+  style: ISectionStyle;
   fields: IResolvedField[];
 }
 
 export interface IResolvedForm {
+  mode: FormMode;
   title?: string;
+  style: IFormStyle;
   labelPosition: 'top' | 'left';
   sections: IResolvedSection[];
   /** A konfigurációban szereplő, de a sémában nem létező mezők. */
@@ -132,7 +141,8 @@ export function resolveForm(
         colSpan: Math.min(clampColumns(placement.colSpan), columns),
         visible,
         readOnly,
-        required
+        required,
+        style: resolveModeStyle(fieldConfig.style, mode)
       });
     });
 
@@ -144,12 +154,15 @@ export function resolveForm(
       collapsible: !!section.collapsible,
       collapsed: !!section.collapsible && !!section.collapsed,
       visible: sectionVisible,
+      style: resolveModeStyle(section.style, mode),
       fields
     };
   });
 
   return {
+    mode,
     title: config.title,
+    style: resolveModeStyle(config.style, mode),
     labelPosition: config.labelPosition ?? 'top',
     sections,
     missingFields
@@ -271,6 +284,8 @@ function parseSection(input: unknown, index: number): ISectionConfig {
   if (input.collapsed === true) section.collapsed = true;
   if (visibleIn) section.visibleIn = visibleIn;
   if (visibleWhen) section.visibleWhen = visibleWhen;
+  const style = parseSectionStyles(input.style, `${path}.style`);
+  if (style) section.style = style;
   return section;
 }
 
@@ -300,6 +315,8 @@ function parseFieldConfig(input: unknown, name: string): IFieldConfig {
   if (visibleWhen) field.visibleWhen = visibleWhen;
   if (readOnlyWhen) field.readOnlyWhen = readOnlyWhen;
   if (requiredWhen) field.requiredWhen = requiredWhen;
+  const style = parseFieldStyles(input.style, `${path}.style`);
+  if (style) field.style = style;
   return field;
 }
 
@@ -355,6 +372,8 @@ export function parseConfig(raw: string): IParseConfigResult {
     const title: string | undefined = optionalString(input.title);
     if (title !== undefined) config.title = title;
     if (input.labelPosition === 'top' || input.labelPosition === 'left') config.labelPosition = input.labelPosition;
+    const style = parseFormStyles(input.style, 'style');
+    if (style) config.style = style;
     return { config };
   } catch (e) {
     return { error: e instanceof Error ? e.message : String(e) };

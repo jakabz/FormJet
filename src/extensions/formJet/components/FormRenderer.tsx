@@ -6,14 +6,17 @@ import { mergeStyles, mergeStyleSets } from '@fluentui/react/lib/Styling';
 
 import * as strings from 'FormJetFormCustomizerStrings';
 
+import { contrastTextColor } from '../engine/FormStyle';
 import { IResolvedField, IResolvedForm, IResolvedSection } from '../engine/LayoutResolver';
 import { FieldErrors, FormValues } from '../models/IFieldSchema';
+import { Density, IFieldStyle, IFormStyle, ISectionStyle } from '../models/IFormConfig';
 import { FieldRenderer } from './FieldRenderer';
 
 const NARROW_SCREEN: string = '@media (max-width: 640px)';
 
+const DEFAULT_BORDER: string = '#edebe9';
+
 const classes = mergeStyleSets({
-  section: { marginBottom: 24 },
   sectionHeader: {
     display: 'flex',
     alignItems: 'center',
@@ -22,7 +25,6 @@ const classes = mergeStyleSets({
     padding: '0 0 6px',
     margin: '0 0 12px',
     border: 'none',
-    borderBottom: '1px solid #edebe9',
     background: 'none',
     font: 'inherit',
     fontSize: 16,
@@ -38,21 +40,63 @@ const classes = mergeStyleSets({
   selected: { outline: '2px solid #0078d4', outlineOffset: 4, borderRadius: 2 }
 });
 
-function gridClass(columns: number): string {
+// A stílusból képzett osztályok. A mergeStyles azonos tartalomra ugyanazt az osztályt adja vissza.
+
+function formClass(style: IFormStyle): string {
+  return mergeStyles(
+    { maxWidth: style.maxWidth },
+    style.background ? { background: style.background, padding: 16, borderRadius: 4 } : undefined
+  );
+}
+
+function sectionClass(style: ISectionStyle, density: Density | undefined): string {
+  const boxed: boolean = !!style.background || !!style.borderColor;
+  return mergeStyles(
+    { marginBottom: density === 'compact' ? 16 : 24 },
+    boxed
+      ? {
+          background: style.background,
+          border: `1px solid ${style.borderColor ?? 'transparent'}`,
+          borderRadius: 4,
+          padding: 16
+        }
+      : undefined
+  );
+}
+
+function sectionHeaderClass(form: IFormStyle, section: ISectionStyle): string {
+  const color: string | undefined = section.headerColor ?? form.accentColor;
+  switch (form.sectionHeader) {
+    case 'bar': {
+      const background: string = color ?? '#f3f2f1';
+      return mergeStyles({ background, color: contrastTextColor(background), padding: '6px 10px', borderRadius: 2 });
+    }
+    case 'plain':
+      return mergeStyles({ color });
+    default:
+      return mergeStyles({ color, borderBottom: color ? `2px solid ${color}` : `1px solid ${DEFAULT_BORDER}` });
+  }
+}
+
+function gridClass(columns: number, density: Density | undefined): string {
   return mergeStyles({
     display: 'grid',
     gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
-    gap: '12px 20px',
+    gap: density === 'compact' ? '6px 16px' : '12px 20px',
     selectors: { [NARROW_SCREEN]: { gridTemplateColumns: 'minmax(0, 1fr)' } }
   });
 }
 
-function cellClass(colSpan: number): string {
-  return mergeStyles({
-    gridColumn: `span ${colSpan}`,
-    minWidth: 0,
-    selectors: { [NARROW_SCREEN]: { gridColumn: '1 / -1' } }
-  });
+function cellClass(colSpan: number, style: IFieldStyle): string {
+  return mergeStyles(
+    {
+      gridColumn: `span ${colSpan}`,
+      minWidth: 0,
+      selectors: { [NARROW_SCREEN]: { gridColumn: '1 / -1' } }
+    },
+    style.background ? { background: style.background, padding: 8, borderRadius: 4 } : undefined,
+    style.labelColor ? { selectors: { '& .ms-Label': { color: style.labelColor } } } : undefined
+  );
 }
 
 export interface IFormRendererProps {
@@ -77,7 +121,7 @@ export const FormRenderer: React.FC<IFormRendererProps> = (props) => {
     if (!field.visible && !showHidden) {
       return undefined;
     }
-    const classNames: string[] = [cellClass(field.colSpan)];
+    const classNames: string[] = [cellClass(field.colSpan, field.style)];
     // Rejtett szekcióban a szekció már halvány, a mezőt nem halványítjuk még egyszer.
     if (!field.visible && section.visible) {
       classNames.push(classes.hidden);
@@ -88,6 +132,7 @@ export const FormRenderer: React.FC<IFormRendererProps> = (props) => {
     return (
       <div
         key={field.name}
+        data-field={field.name}
         className={classNames.join(' ')}
         onClick={props.onFieldSelect ? () => props.onFieldSelect?.(field.name) : undefined}
       >
@@ -111,12 +156,14 @@ export const FormRenderer: React.FC<IFormRendererProps> = (props) => {
       <span className={classes.hiddenTag}>{strings.HiddenTag}</span>
     );
 
+    const headerClass: string = sectionHeaderClass(form.style, section.style);
+
     let header: JSX.Element | undefined;
     if (section.collapsible) {
       header = (
         <button
           type="button"
-          className={`${classes.sectionHeader} ${classes.sectionHeaderButton}`}
+          className={`${classes.sectionHeader} ${headerClass} ${classes.sectionHeaderButton}`}
           aria-expanded={!collapsed}
           onClick={() => setToggled({ ...toggled, [section.id]: !toggled[section.id] })}
         >
@@ -127,7 +174,7 @@ export const FormRenderer: React.FC<IFormRendererProps> = (props) => {
       );
     } else if (section.title || hiddenTag) {
       header = (
-        <div className={classes.sectionHeader} role="heading" aria-level={2}>
+        <div className={`${classes.sectionHeader} ${headerClass}`} role="heading" aria-level={2}>
           <span>{section.title}</span>
           {hiddenTag}
         </div>
@@ -135,15 +182,26 @@ export const FormRenderer: React.FC<IFormRendererProps> = (props) => {
     }
 
     return (
-      <div key={section.id} className={`${classes.section} ${section.visible ? '' : classes.hidden}`}>
+      <div
+        key={section.id}
+        data-section={section.id}
+        className={`${sectionClass(section.style, form.style.density)} ${section.visible ? '' : classes.hidden}`}
+      >
         {header}
         {!collapsed && section.description && <div className={classes.sectionDescription}>{section.description}</div>}
         {!collapsed && (
-          <div className={gridClass(section.columns)}>{section.fields.map((field) => renderField(section, field))}</div>
+          <div className={gridClass(section.columns, form.style.density)}>
+            {section.fields.map((field) => renderField(section, field))}
+          </div>
         )}
       </div>
     );
   };
 
-  return <div>{form.sections.map(renderSection)}</div>;
+  // A data- attribútumok stabil kapaszkodók (mód, szekció, mező) a későbbi egyedi stílusokhoz.
+  return (
+    <div data-formjet-mode={form.mode} className={formClass(form.style)}>
+      {form.sections.map(renderSection)}
+    </div>
+  );
 };

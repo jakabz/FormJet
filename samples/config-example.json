@@ -4,6 +4,11 @@
   "contentTypeId": "0x0100000000000000000000000000000000",
   "title": "Beszerzési igény",
   "labelPosition": "top",
+  "style": {
+    "base": { "accentColor": "#0f6cbd", "sectionHeader": "underline" },
+    "new": { "accentColor": "#107c10" },
+    "display": { "background": "#faf9f8", "density": "compact", "sectionHeader": "bar" }
+  },
   "sections": [
     {
       "id": "basics",
@@ -25,6 +30,9 @@
       "columns": 2,
       "collapsible": true,
       "visibleIn": ["edit", "display"],
+      "style": {
+        "base": { "background": "#fff9f5", "borderColor": "#f4bfab", "headerColor": "#c43501" }
+      },
       "fields": [
         { "field": "Approver" },
         { "field": "ApprovalStatus" },
@@ -56,7 +64,10 @@
       "label": "Indoklás",
       "description": "500 000 Ft feletti összegnél kötelező.",
       "visibleWhen": { "field": "Amount", "op": "gt", "value": 500000 },
-      "requiredWhen": { "field": "Amount", "op": "gt", "value": 500000 }
+      "requiredWhen": { "field": "Amount", "op": "gt", "value": 500000 },
+      "style": {
+        "edit": { "background": "#fff4ce", "labelColor": "#835b00" }
+      }
     },
     "Approver": {
       "label": "Jóváhagyó",

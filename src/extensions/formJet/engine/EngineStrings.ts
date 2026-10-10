@@ -15,6 +15,9 @@ export interface IEngineStrings {
   UnknownSchemaVersion: string;
   InvalidModes: string;
   DuplicateSectionId: string;
+  InvalidColor: string;
+  InvalidNumber: string;
+  InvalidOption: string;
 }
 
 const DEFAULT_STRINGS: IEngineStrings = {
@@ -29,7 +32,10 @@ const DEFAULT_STRINGS: IEngineStrings = {
   RootMustBeObject: 'The root of the configuration must be an object.',
   UnknownSchemaVersion: 'Unknown schema version: {0}.',
   InvalidModes: '{0}: the allowed values are new, edit, display.',
-  DuplicateSectionId: 'The section id is not unique: {0}.'
+  DuplicateSectionId: 'The section id is not unique: {0}.',
+  InvalidColor: '{0}: must be a hex color (#rgb or #rrggbb).',
+  InvalidNumber: '{0}: must be a number between {1} and {2}.',
+  InvalidOption: '{0}: the allowed values are {1}.'
 };
 
 let current: IEngineStrings = DEFAULT_STRINGS;

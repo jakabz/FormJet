@@ -60,9 +60,11 @@ const PREVIEW_OPTIONS: IDropdownOption[] = [
   { key: 'display', text: strings.ModeDisplay }
 ];
 
+const DEFAULT_FORM_WIDTH: number = 960;
+
 const classes = mergeStyleSets({
   root: { padding: '16px 24px 24px', boxSizing: 'border-box' },
-  narrow: { maxWidth: 960 },
+  narrow: { maxWidth: DEFAULT_FORM_WIDTH },
   header: { display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', marginBottom: 16 },
   title: { flex: 1, margin: 0, fontSize: 24, fontWeight: 600 },
   messages: { display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 },
@@ -376,9 +378,9 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
   );
 
   return (
-    <div className={`${classes.root} ${designing ? '' : classes.narrow}`}>
+    <div className={classes.root} style={designing ? undefined : { maxWidth: resolved.style.maxWidth ?? DEFAULT_FORM_WIDTH }}>
       <div className={classes.header}>
-        <h1 className={classes.title}>{resolved.title || props.listTitle}</h1>
+        <h1 className={classes.title} style={{ color: resolved.style.accentColor }}>{resolved.title || props.listTitle}</h1>
         {isAdmin && (
           <Toggle
             inlineLabel

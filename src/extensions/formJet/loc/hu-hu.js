@@ -97,6 +97,31 @@ define([], function() {
     "ConfigJson": "Konfiguráció JSON",
     "Apply": "Alkalmaz",
 
+    "TabStyle": "Stílus",
+    "StyleScope": "Érvényesség",
+    "StyleScopeBase": "Minden mód (alap)",
+    "StyleScopeHint": "Az alap minden módban érvényes; a módonkénti beállítás felülírja. Az üresen hagyott érték öröklődik. Az egyes módokat az előnézet módváltójával nézheted meg.",
+    "StyleForm": "Form",
+    "StyleSection": "Szekció",
+    "StyleAccentColor": "Kiemelő szín (cím, szekciófejlécek)",
+    "StyleBackground": "Háttérszín",
+    "StyleBorderColor": "Keretszín",
+    "StyleHeaderColor": "Fejléc színe",
+    "StyleLabelColor": "Címke színe",
+    "StyleMaxWidth": "Maximális szélesség (px)",
+    "StyleMaxWidthError": "{0} és {1} közötti számot adj meg.",
+    "StyleDensity": "Térköz",
+    "StyleDensityComfortable": "Szellős",
+    "StyleDensityCompact": "Tömör",
+    "StyleSectionHeader": "Szekciófejléc",
+    "StyleHeaderUnderline": "Aláhúzott",
+    "StyleHeaderBar": "Színes sáv",
+    "StyleHeaderPlain": "Egyszerű",
+    "StyleInherited": "(örökölt)",
+    "StyleInvalidColor": "Hex színt adj meg, pl. #0078d4.",
+    "StylePickColor": "Szín választása",
+    "StyleClear": "Törlés",
+
     "Engine": {
       "ConditionRoot": "feltétel",
       "MustBeObject": "{0}: objektumnak kell lennie.",
@@ -109,7 +134,10 @@ define([], function() {
       "RootMustBeObject": "A konfiguráció gyökere objektum kell legyen.",
       "UnknownSchemaVersion": "Ismeretlen sémaverzió: {0}.",
       "InvalidModes": "{0}: a megengedett értékek: new, edit, display.",
-      "DuplicateSectionId": "A szekció azonosítója nem egyedi: {0}."
+      "DuplicateSectionId": "A szekció azonosítója nem egyedi: {0}.",
+      "InvalidColor": "{0}: hex szín kell legyen (#rgb vagy #rrggbb).",
+      "InvalidNumber": "{0}: {1} és {2} közötti szám kell legyen.",
+      "InvalidOption": "{0}: a megengedett értékek: {1}."
     }
   }
 });

@@ -100,6 +100,32 @@ declare interface IFormJetFormCustomizerStrings {
   ConfigJson: string;
   Apply: string;
 
+  // Designer: style tab
+  TabStyle: string;
+  StyleScope: string;
+  StyleScopeBase: string;
+  StyleScopeHint: string;
+  StyleForm: string;
+  StyleSection: string;
+  StyleAccentColor: string;
+  StyleBackground: string;
+  StyleBorderColor: string;
+  StyleHeaderColor: string;
+  StyleLabelColor: string;
+  StyleMaxWidth: string;
+  StyleMaxWidthError: string;
+  StyleDensity: string;
+  StyleDensityComfortable: string;
+  StyleDensityCompact: string;
+  StyleSectionHeader: string;
+  StyleHeaderUnderline: string;
+  StyleHeaderBar: string;
+  StyleHeaderPlain: string;
+  StyleInherited: string;
+  StyleInvalidColor: string;
+  StylePickColor: string;
+  StyleClear: string;
+
   // Engine messages; must match IEngineStrings (engine/EngineStrings.ts)
   Engine: {
     ConditionRoot: string;
@@ -114,6 +140,9 @@ declare interface IFormJetFormCustomizerStrings {
     UnknownSchemaVersion: string;
     InvalidModes: string;
     DuplicateSectionId: string;
+    InvalidColor: string;
+    InvalidNumber: string;
+    InvalidOption: string;
   };
 }
 

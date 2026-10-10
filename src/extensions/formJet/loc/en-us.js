@@ -97,6 +97,31 @@ define([], function() {
     "ConfigJson": "Configuration JSON",
     "Apply": "Apply",
 
+    "TabStyle": "Style",
+    "StyleScope": "Applies to",
+    "StyleScopeBase": "All modes (base)",
+    "StyleScopeHint": "The base applies in every mode; a mode-specific setting overrides it. Empty values are inherited. Use the preview mode selector to see each mode.",
+    "StyleForm": "Form",
+    "StyleSection": "Section",
+    "StyleAccentColor": "Accent color (title, section headers)",
+    "StyleBackground": "Background color",
+    "StyleBorderColor": "Border color",
+    "StyleHeaderColor": "Header color",
+    "StyleLabelColor": "Label color",
+    "StyleMaxWidth": "Maximum width (px)",
+    "StyleMaxWidthError": "Enter a number between {0} and {1}.",
+    "StyleDensity": "Spacing",
+    "StyleDensityComfortable": "Comfortable",
+    "StyleDensityCompact": "Compact",
+    "StyleSectionHeader": "Section header",
+    "StyleHeaderUnderline": "Underlined",
+    "StyleHeaderBar": "Colored bar",
+    "StyleHeaderPlain": "Plain",
+    "StyleInherited": "(inherited)",
+    "StyleInvalidColor": "Enter a hex color, e.g. #0078d4.",
+    "StylePickColor": "Pick a color",
+    "StyleClear": "Clear",
+
     "Engine": {
       "ConditionRoot": "condition",
       "MustBeObject": "{0}: must be an object.",
@@ -109,7 +134,10 @@ define([], function() {
       "RootMustBeObject": "The root of the configuration must be an object.",
       "UnknownSchemaVersion": "Unknown schema version: {0}.",
       "InvalidModes": "{0}: the allowed values are new, edit, display.",
-      "DuplicateSectionId": "The section id is not unique: {0}."
+      "DuplicateSectionId": "The section id is not unique: {0}.",
+      "InvalidColor": "{0}: must be a hex color (#rgb or #rrggbb).",
+      "InvalidNumber": "{0}: must be a number between {1} and {2}.",
+      "InvalidOption": "{0}: the allowed values are {1}."
     }
   }
 });

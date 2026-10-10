@@ -178,6 +178,42 @@ Forrás: `models/IFormConfig.ts`. Példa: `samples/config-example.json`.
 
 Egy mező akkor látszik, ha a szekciója látszik, **és** a mező `visibleIn`, **és** `visibleWhen` feltétele is teljesül. Ami nincs egyetlen szekcióban sem, az nem jelenik meg.
 
+### Stílus
+
+A form (`IFormConfig.style`), a szekció (`ISectionConfig.style`) és a mező (`IFieldConfig.style`) is kaphat stílust. Mindhárom szerkezete azonos:
+
+```json
+"style": {
+  "base":    { "accentColor": "#0f6cbd" },
+  "new":     { "accentColor": "#107c10" },
+  "display": { "background": "#faf9f8", "density": "compact" }
+}
+```
+
+A `base` minden módban érvényes; a `new` / `edit` / `display` kulcs csak az eltérést tartalmazza, és tulajdonságonként felülírja az alapot. A feloldást az `engine/FormStyle.ts` `resolveModeStyle` függvénye végzi, az eredmény az `IResolvedForm` / `IResolvedSection` / `IResolvedField` `style` mezője.
+
+| Szint | Tulajdonság | Érték | Hatás |
+| --- | --- | --- | --- |
+| Form | `accentColor` | hex szín | A form címének és a szekciófejléceknek a színe. |
+| Form | `background` | hex szín | A form törzsének háttere (belső margóval). |
+| Form | `maxWidth` | 320–2400 | A form maximális szélessége képpontban. Alapértelmezés: 960. |
+| Form | `density` | `comfortable` \| `compact` | Térköz a mezők és a szekciók között. |
+| Form | `sectionHeader` | `underline` \| `bar` \| `plain` | Szekciófejléc: aláhúzott, színes sáv vagy egyszerű. |
+| Szekció | `background`, `borderColor` | hex szín | Bármelyik megadásakor a szekció keretes dobozként jelenik meg. |
+| Szekció | `headerColor` | hex szín | A szekció fejlécének színe; hiányában a form `accentColor` értéke. |
+| Mező | `background` | hex szín | Kiemelő háttér a mező mögött. |
+| Mező | `labelColor` | hex szín | A mező címkéjének színe. |
+
+Szabályok:
+
+- A szín csak `#rgb` vagy `#rrggbb` lehet. Minden más értéket (név, `rgb()`, `url()`) a `parseConfig` hibaként elutasít, így a konfigurációból nem kerülhet tetszőleges CSS a lapra. Az ismeretlen kulcsok kimaradnak.
+- A `style` opcionális; a korábbi, stílus nélküli konfigurációk változatlanul működnek, sémaverzió-emelés nem kellett.
+- A stílus csak megjelenés: láthatóságot, kötelezőséget vagy mentést nem befolyásol.
+- A Fluent vezérlők saját színeit (fókuszkeret, gombok) a stílus nem írja át.
+- A renderelt elemeken stabil kapaszkodók vannak: `data-formjet-mode` a form törzsén, `data-section` a szekciókon, `data-field` a mezőkön.
+
+A tervezőben a **Stílus** fülön szerkeszthető: felül az érvényesség (alap vagy egy mód), alatta a form, a kiválasztott szekció és a kiválasztott mező beállításai. Módonkénti szerkesztésnél az alapból örökölt érték helykitöltőként látszik.
+
 ### Feltételek
 
 ```
