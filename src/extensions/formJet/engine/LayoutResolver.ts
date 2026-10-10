@@ -59,12 +59,9 @@ export interface IParseConfigResult {
   error?: string;
 }
 
-/** Van-e szerkesztő vezérlő a mezőhöz. A rich text Note értéke HTML, ezért csak olvasható. */
+/** Van-e szerkesztő vezérlő a mezőhöz. */
 export function isEditableField(schema: IFieldSchema): boolean {
   if (schema.ReadOnlyField) {
-    return false;
-  }
-  if (schema.TypeAsString === 'Note' && schema.RichText) {
     return false;
   }
   return EDITABLE_TYPES.indexOf(schema.TypeAsString) !== -1;

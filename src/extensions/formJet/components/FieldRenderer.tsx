@@ -4,6 +4,7 @@ import * as React from 'react';
 import { ComboBox, IComboBoxOption } from '@fluentui/react/lib/ComboBox';
 import { Dropdown, IDropdownOption } from '@fluentui/react/lib/Dropdown';
 import { Label } from '@fluentui/react/lib/Label';
+import { Spinner, SpinnerSize } from '@fluentui/react/lib/Spinner';
 import { TextField } from '@fluentui/react/lib/TextField';
 import { Toggle } from '@fluentui/react/lib/Toggle';
 import { mergeStyleSets } from '@fluentui/react/lib/Styling';
@@ -14,6 +15,9 @@ import { joinMultiValue, splitMultiValue } from '../engine/ConditionEngine';
 import { IResolvedField } from '../engine/LayoutResolver';
 import { IFieldSchema } from '../models/IFieldSchema';
 import { DateTimeField } from './DateTimeField';
+
+// A TipTap szerkesztő nagy; csak akkor töltjük le, ha a formon van rich text mező.
+const RichTextField = React.lazy(() => import(/* webpackChunkName: 'formjet-richtext' */ './RichTextField'));
 
 const TEXT_YES: string = strings.Yes;
 const TEXT_NO: string = strings.No;
@@ -76,6 +80,24 @@ export const FieldRenderer: React.FC<IFieldRendererProps> = (props) => {
       )}
     </>
   );
+
+  // Rich text Note: szerkesztve és csak olvashatóként is a TipTap jeleníti meg a HTML-t.
+  if (schema.TypeAsString === 'Note' && schema.RichText && (!field.readOnly || value !== '')) {
+    return (
+      <React.Suspense fallback={<Spinner size={SpinnerSize.small} label={strings.Loading} labelPosition="right" />}>
+        <RichTextField
+          label={label}
+          value={value}
+          required={required}
+          readOnly={field.readOnly}
+          description={description}
+          error={error}
+          lines={schema.NumberOfLines}
+          onChange={set}
+        />
+      </React.Suspense>
+    );
+  }
 
   if (field.readOnly) {
     return (

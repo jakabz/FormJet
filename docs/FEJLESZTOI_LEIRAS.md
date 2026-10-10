@@ -201,7 +201,8 @@ A `validateUpdateListItem` minden mezőtípusra szöveges értéket vár. Új me
 
 | Mezőtípus | Formátum | Példa |
 | --- | --- | --- |
-| Text, Note | Egyszerű szöveg | `Irodaszer` |
+| Text, Note (sima szöveg) | Egyszerű szöveg | `Irodaszer` |
+| Note (rich text) | HTML | `<p>Sürgős <strong>rendelés</strong></p>` |
 | Number, Currency | A web területi beállításai szerinti szám | `1234,5` |
 | Choice | A választás szövege | `Informatika` |
 | MultiChoice | `;#` elválasztás | `;#A;#B;#` |
@@ -213,6 +214,14 @@ A `validateUpdateListItem` minden mezőtípusra szöveges értéket vár. Új me
 | URL | `url, leírás` | `https://contoso.com, Weboldal` |
 
 A DateTime értéket a `DateTimeField` (Fluent `DatePicker`, dátum + idő mezőnél `TimePicker`-rel) szerkeszti. A formátumot az `engine/DateFormat.ts` a web kultúrájából (`pageContext.cultureInfo.currentCultureName`) vezeti le a böngésző `Intl` API-jával, és ugyanezzel olvassa vissza a `FieldValuesForEdit` értékét. Időzóna-átváltás nincs: a kapott "falióra" értéket írjuk vissza. Ha egy tárolt érték nem értelmezhető dátumként, a mező szövegmezőként jelenik meg, hogy az érték ne vesszen el. Új nyelvű (kultúrájú) site-on érdemes egy mentést kipróbálni, mert a szerver .NET-formátuma ritkán eltérhet a böngészőétől.
+
+A rich text Note mezőt a `RichTextField` (TipTap v3) szerkeszti, és csak olvasható módban is ez jeleníti meg. A sima szöveges Note marad többsoros `TextField`, mert abba HTML nem kerülhet. Tudnivalók:
+
+- A HTML-t a TipTap sémája értelmezi, ezért csak az ismert elemek maradnak meg: bekezdés, címsor, listák, idézet, félkövér / dőlt / aláhúzott / áthúzott, hivatkozás, táblázat, kép. **Szerkesztéskor a többi formázás elvész** (betűszín, kiemelés, betűméret, igazítás, a SharePoint burkoló `div`-je). Amíg a felhasználó nem ír a mezőbe, az érték nem változik, és nem is kerül a mentésbe.
+- Üres tartalom (csak sortörés vagy szóköz) üres form-stringként megy ki, így a kötelezőség ellenőrzése működik.
+- Táblázathoz és képhez nincs eszköztár, csak a meglévő tartalom megőrzését szolgálják.
+- A szerkesztő külön csomagrész (`formjet-richtext`), csak akkor töltődik le, ha a formon van rich text mező.
+- Új formázás támogatása: a megfelelő TipTap kiterjesztés felvétele a `RichTextField` `extensions` listájába (a többi `@tiptap/*` csomaggal azonos verzióban), és gomb az eszköztárba.
 
 A LookupMulti és TaxonomyFieldTypeMulti pontos formátumát a bekötéskor a `FieldValuesForEdit` kimenetével kell ellenőrizni; tenant- és verziófüggő eltérések előfordulnak.
 

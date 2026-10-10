@@ -17,6 +17,19 @@ declare interface IFormJetFormCustomizerStrings {
   Time: string;
   InvalidTime: string;
   HiddenTag: string;
+  RteBold: string;
+  RteItalic: string;
+  RteUnderline: string;
+  RteStrike: string;
+  RteHeading: string;
+  RteBulletList: string;
+  RteNumberedList: string;
+  RteLink: string;
+  RteRemoveLink: string;
+  RteClearFormatting: string;
+  RteUndo: string;
+  RteRedo: string;
+  RteLinkUrl: string;
   NoContentType: string;
 
   // Item conflict
