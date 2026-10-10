@@ -18,6 +18,8 @@ export interface IEngineStrings {
   InvalidColor: string;
   InvalidNumber: string;
   InvalidOption: string;
+  InvalidListId: string;
+  InvalidFieldName: string;
 }
 
 const DEFAULT_STRINGS: IEngineStrings = {
@@ -35,7 +37,9 @@ const DEFAULT_STRINGS: IEngineStrings = {
   DuplicateSectionId: 'The section id is not unique: {0}.',
   InvalidColor: '{0}: must be a hex color (#rgb or #rrggbb).',
   InvalidNumber: '{0}: must be a number between {1} and {2}.',
-  InvalidOption: '{0}: the allowed values are {1}.'
+  InvalidOption: '{0}: the allowed values are {1}.',
+  InvalidListId: '{0}: must be a list id (GUID).',
+  InvalidFieldName: '{0}: must be the internal name of a field.'
 };
 
 let current: IEngineStrings = DEFAULT_STRINGS;

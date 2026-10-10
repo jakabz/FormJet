@@ -38,6 +38,23 @@
         { "field": "ApprovalStatus" },
         { "field": "ApprovalComment", "colSpan": 2 }
       ]
+    },
+    {
+      "id": "invoices",
+      "title": "Kapcsolódó számlák",
+      "columns": 1,
+      "collapsible": true,
+      "related": {
+        "listId": "11111111-1111-1111-1111-111111111111",
+        "matchField": "RequestNumber",
+        "sourceField": "Title",
+        "columns": ["Title", "InvoiceDate", "Amount"],
+        "sortField": "InvoiceDate",
+        "sortAscending": false,
+        "rowLimit": 20,
+        "showNewButton": true
+      },
+      "fields": []
     }
   ],
   "fields": {

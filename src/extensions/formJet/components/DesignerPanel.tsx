@@ -27,6 +27,7 @@ import {
   IFormConfig,
   ISectionConfig
 } from '../models/IFormConfig';
+import { RelatedListEditor } from './RelatedListEditor';
 import { StylePanel } from './StylePanel';
 
 export type DesignerTab = 'layout' | 'field' | 'style' | 'json';
@@ -294,6 +295,11 @@ export const DesignerPanel: React.FC<IDesignerPanelProps> = (props) => {
         label={strings.VisibleWhen}
         value={section.visibleWhen}
         onChange={(visibleWhen) => updateSection(index, { visibleWhen })}
+      />
+      <RelatedListEditor
+        value={section.related}
+        schema={schema}
+        onChange={(related) => updateSection(index, { related })}
       />
 
       <Label>{strings.Fields}</Label>

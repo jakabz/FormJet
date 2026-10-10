@@ -126,6 +126,28 @@ declare interface IFormJetFormCustomizerStrings {
   StylePickColor: string;
   StyleClear: string;
 
+  // Related items
+  RelatedEnable: string;
+  RelatedList: string;
+  RelatedMatchField: string;
+  RelatedSourceField: string;
+  RelatedSourceId: string;
+  RelatedMatchHint: string;
+  RelatedColumns: string;
+  RelatedSortField: string;
+  RelatedSortDescending: string;
+  RelatedRowLimit: string;
+  RelatedShowNewButton: string;
+  RelatedNewItem: string;
+  RelatedRefresh: string;
+  RelatedEmpty: string;
+  RelatedMore: string;
+  RelatedLoadFailed: string;
+  RelatedListsFailed: string;
+  RelatedMatchFieldError: string;
+  RelatedIncomplete: string;
+  RelatedNeedsItem: string;
+
   // Engine messages; must match IEngineStrings (engine/EngineStrings.ts)
   Engine: {
     ConditionRoot: string;
@@ -143,6 +165,8 @@ declare interface IFormJetFormCustomizerStrings {
     InvalidColor: string;
     InvalidNumber: string;
     InvalidOption: string;
+    InvalidListId: string;
+    InvalidFieldName: string;
   };
 }
 

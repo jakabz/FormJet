@@ -122,6 +122,27 @@ define([], function() {
     "StylePickColor": "Szín választása",
     "StyleClear": "Törlés",
 
+    "RelatedEnable": "Kapcsolódó elemek megjelenítése egy másik listából",
+    "RelatedList": "Kapcsolódó lista",
+    "RelatedMatchField": "Párosító mező a kapcsolódó listában",
+    "RelatedSourceField": "Ennek az elemnek ezzel a mezőjével egyezik",
+    "RelatedSourceId": "Az elem azonosítója (ID)",
+    "RelatedMatchHint": "Azok az elemek jelennek meg, ahol a két érték megegyezik. A párosítás az elem mentett értékével történik, ezért új elem formon a felsorolás nem látszik.",
+    "RelatedColumns": "Oszlopok",
+    "RelatedSortField": "Rendezés",
+    "RelatedSortDescending": "Csökkenő sorrend",
+    "RelatedRowLimit": "Sorok maximális száma",
+    "RelatedShowNewButton": "„Új elem” gomb megjelenítése",
+    "RelatedNewItem": "Új elem",
+    "RelatedRefresh": "Frissítés",
+    "RelatedEmpty": "Nincs kapcsolódó elem.",
+    "RelatedMore": "Csak az első {0} elem látható.",
+    "RelatedLoadFailed": "A kapcsolódó lista nem tölthető be. Lehet, hogy törölték, vagy nincs hozzáférésed.",
+    "RelatedListsFailed": "A webhely listái nem tölthetők be.",
+    "RelatedMatchFieldError": "A párosító mező ({0}) nem létezik a kapcsolódó listában, vagy a típusa szerint nem lehet párosítani.",
+    "RelatedIncomplete": "Kapcsolódó elemek: válaszd ki a listát, a párosító mezőt és legalább egy oszlopot.",
+    "RelatedNeedsItem": "A kapcsolódó elemek csak mentett elemnél jelennek meg.",
+
     "Engine": {
       "ConditionRoot": "feltétel",
       "MustBeObject": "{0}: objektumnak kell lennie.",
@@ -137,7 +158,9 @@ define([], function() {
       "DuplicateSectionId": "A szekció azonosítója nem egyedi: {0}.",
       "InvalidColor": "{0}: hex szín kell legyen (#rgb vagy #rrggbb).",
       "InvalidNumber": "{0}: {1} és {2} közötti szám kell legyen.",
-      "InvalidOption": "{0}: a megengedett értékek: {1}."
+      "InvalidOption": "{0}: a megengedett értékek: {1}.",
+      "InvalidListId": "{0}: listaazonosító (GUID) kell legyen.",
+      "InvalidFieldName": "{0}: egy mező belső neve kell legyen."
     }
   }
 });

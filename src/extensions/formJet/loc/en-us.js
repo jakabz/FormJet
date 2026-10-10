@@ -122,6 +122,27 @@ define([], function() {
     "StylePickColor": "Pick a color",
     "StyleClear": "Clear",
 
+    "RelatedEnable": "Show related items from another list",
+    "RelatedList": "Related list",
+    "RelatedMatchField": "Matching field in the related list",
+    "RelatedSourceField": "Matches this field of the current item",
+    "RelatedSourceId": "Item ID",
+    "RelatedMatchHint": "Items are listed where the two values are equal. Matching uses the saved value of the item, so the list is not shown on the new item form.",
+    "RelatedColumns": "Columns",
+    "RelatedSortField": "Sort by",
+    "RelatedSortDescending": "Descending order",
+    "RelatedRowLimit": "Maximum number of rows",
+    "RelatedShowNewButton": "Show the \"New item\" button",
+    "RelatedNewItem": "New item",
+    "RelatedRefresh": "Refresh",
+    "RelatedEmpty": "There are no related items.",
+    "RelatedMore": "Only the first {0} items are shown.",
+    "RelatedLoadFailed": "The related list could not be loaded. It may have been deleted, or you may not have access to it.",
+    "RelatedListsFailed": "The lists of the site could not be loaded.",
+    "RelatedMatchFieldError": "The matching field ({0}) does not exist in the related list, or its type cannot be used for matching.",
+    "RelatedIncomplete": "Related items: choose the list, the matching field and at least one column.",
+    "RelatedNeedsItem": "Related items are shown only for a saved item.",
+
     "Engine": {
       "ConditionRoot": "condition",
       "MustBeObject": "{0}: must be an object.",
@@ -137,7 +158,9 @@ define([], function() {
       "DuplicateSectionId": "The section id is not unique: {0}.",
       "InvalidColor": "{0}: must be a hex color (#rgb or #rrggbb).",
       "InvalidNumber": "{0}: must be a number between {1} and {2}.",
-      "InvalidOption": "{0}: the allowed values are {1}."
+      "InvalidOption": "{0}: the allowed values are {1}.",
+      "InvalidListId": "{0}: must be a list id (GUID).",
+      "InvalidFieldName": "{0}: must be the internal name of a field."
     }
   }
 });

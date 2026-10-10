@@ -61,6 +61,7 @@ const PREVIEW_OPTIONS: IDropdownOption[] = [
 ];
 
 const DEFAULT_FORM_WIDTH: number = 960;
+const DESIGNER_MIN_HEIGHT: number = 480;
 
 const classes = mergeStyleSets({
   root: { padding: '16px 24px 24px', boxSizing: 'border-box' },
@@ -68,9 +69,30 @@ const classes = mergeStyleSets({
   header: { display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', marginBottom: 16 },
   title: { flex: 1, margin: 0, fontSize: 24, fontWeight: 600 },
   messages: { display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 },
-  designLayout: { display: 'flex', gap: 24, alignItems: 'flex-start', flexWrap: 'wrap' },
+  // Tervező mód: a sor (és így az oldal) magasságát az előnézet adja. A tervező panel tartalma
+  // abszolút pozícionált, ezért nem növeli a sort, hanem a form magasságához igazodva görgethető.
+  designLayout: { display: 'flex', gap: 24, alignItems: 'stretch', flexWrap: 'wrap' },
   preview: { flex: '1 1 480px', minWidth: 0 },
-  panel: { flex: '0 1 400px', minWidth: 300, borderLeft: '1px solid #edebe9', paddingLeft: 24 },
+  panel: {
+    flex: '0 1 400px',
+    minWidth: 300,
+    // Rövid formnál (vagy keskeny képernyőn, a form alá tördelve) is maradjon használható magasság.
+    minHeight: DESIGNER_MIN_HEIGHT,
+    position: 'relative',
+    borderLeft: '1px solid #edebe9'
+  },
+  panelInner: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    display: 'flex',
+    flexDirection: 'column',
+    paddingLeft: 24
+  },
+  panelScroll: { flex: 1, minHeight: 0, overflowY: 'auto', paddingRight: 8 },
+  panelActions: { display: 'flex', gap: 8, paddingTop: 12, borderTop: '1px solid #edebe9' },
   actions: { display: 'flex', gap: 8, marginTop: 8 }
 });
 
@@ -197,8 +219,13 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
   }, [loaded, values]);
 
   const formContext: IFormContext = React.useMemo(
-    () => ({ cultureName: props.cultureName, uiCultureName: props.uiCultureName }),
-    [props.cultureName, props.uiCultureName]
+    () => ({
+      cultureName: props.cultureName,
+      uiCultureName: props.uiCultureName,
+      itemId: mode === 'new' ? undefined : itemId,
+      sourceValues: loaded?.original ?? {}
+    }),
+    [props.cultureName, props.uiCultureName, mode, itemId, loaded]
   );
 
   const onFieldChange = React.useCallback((name: string, value: string): void => {
@@ -424,18 +451,26 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
             {renderer}
           </div>
           <div className={classes.panel}>
-            <DesignerPanel
-              draft={draft}
-              schema={loaded.schema}
-              tab={designerTab}
-              onTabChange={setDesignerTab}
-              selectedField={selectedField}
-              onSelectField={setSelectedField}
-              onChange={setDraft}
-            />
-            <div className={classes.actions}>
-              <PrimaryButton text={TEXT.designerSave} disabled={saving} onClick={() => saveDesign().catch(() => undefined)} />
-              <DefaultButton text={TEXT.cancel} disabled={saving} onClick={cancelDesign} />
+            <div className={classes.panelInner}>
+              <div className={classes.panelScroll}>
+                <DesignerPanel
+                  draft={draft}
+                  schema={loaded.schema}
+                  tab={designerTab}
+                  onTabChange={setDesignerTab}
+                  selectedField={selectedField}
+                  onSelectField={setSelectedField}
+                  onChange={setDraft}
+                />
+              </div>
+              <div className={classes.panelActions}>
+                <PrimaryButton
+                  text={TEXT.designerSave}
+                  disabled={saving}
+                  onClick={() => saveDesign().catch(() => undefined)}
+                />
+                <DefaultButton text={TEXT.cancel} disabled={saving} onClick={cancelDesign} />
+              </div>
             </div>
           </div>
         </div>

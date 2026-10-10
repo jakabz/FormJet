@@ -73,6 +73,29 @@ export interface IModeStyles<T> {
   display?: T;
 }
 
+/**
+ * Kapcsolódó elemek: egy másik (azonos webhelyen lévő) lista azon elemei, amelyek `matchField` mezője
+ * megegyezik a szülő elem `sourceField` értékével. Csak olvasható felsorolás.
+ */
+export interface IRelatedListConfig {
+  /** A kapcsolódó lista GUID-ja. Üres, amíg a tervezőben nincs kiválasztva. */
+  listId: string;
+  /** A kapcsolódó lista mezőjének InternalName-je. */
+  matchField: string;
+  /** Ennek a listának a mezője (InternalName), vagy `ID` a szülő elem azonosítójához. */
+  sourceField: string;
+  /** A megjelenített oszlopok (a kapcsolódó lista mezőinek InternalName-je), sorrendben. */
+  columns: string[];
+  /** Hiányában azonosító szerint rendez. */
+  sortField?: string;
+  /** Alapértelmezés: növekvő. */
+  sortAscending?: boolean;
+  /** 1–500; alapértelmezés: 30. */
+  rowLimit?: number;
+  /** „Új elem” gomb, amely a kapcsolódó lista új elem formját nyitja meg. */
+  showNewButton?: boolean;
+}
+
 export interface IFieldPlacement {
   /** A mező InternalName-je. */
   field: string;
@@ -91,6 +114,8 @@ export interface ISectionConfig {
   visibleIn?: FormMode[];
   visibleWhen?: Condition;
   style?: IModeStyles<ISectionStyle>;
+  /** A mezők alatt egy másik lista kapcsolódó elemei jelennek meg. New módban nem látszik. */
+  related?: IRelatedListConfig;
   fields: IFieldPlacement[];
 }
 

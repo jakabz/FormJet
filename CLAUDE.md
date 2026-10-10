@@ -37,6 +37,7 @@ src/extensions/formJet/
     ConditionEngine.ts       visibleWhen / readOnlyWhen / requiredWhen kiértékelése
     DateFormat.ts            DateTime form-string ↔ Date a web kultúrája szerint
     FormStyle.ts             stílus: ellenőrzés (csak hex szín, felsorolt értékek) és módonkénti feloldás
+    RelatedList.ts           kapcsolódó elemek: beállítás ellenőrzése, párosító érték, CAML lekérdezés
     EngineStrings.ts         a motor üzenetei (alapból angol; az onInit a loc `Engine` részét adja át) + format()
     LayoutResolver.ts        séma + konfig + mód + értékek → IResolvedForm; alapértelmezett konfig; parseConfig
   services/                  PnPjs v4 hívások, csak itt van SharePoint kommunikáció
@@ -44,6 +45,7 @@ src/extensions/formJet/
     PermissionService.ts     admin-e (site admin vagy Manage Web)
     SchemaService.ts         tartalomtípus mezői, tartalomtípus feloldása New módban
     ConfigService.ts         konfiguráció olvasása / mentése ETag-gel (412 → ConfigConflictError)
+    RelatedListService.ts    a webhely listái, egy lista mezői, kapcsolódó elemek lekérdezése (renderListDataAsStream)
     ItemService.ts           elem olvasása (FieldValuesForEdit / FieldValuesAsText), mentése (validateUpdateListItem)
   loc/                       en-us.js, hu-hu.js, myStrings.d.ts – minden felhasználói szöveg
   components/                React + Fluent UI v8
@@ -52,7 +54,9 @@ src/extensions/formJet/
     FieldRenderer.tsx        mezőtípus → vezérlő
     DateTimeField.tsx        DateTime mező: Fluent DatePicker (+ TimePicker, ha a mező időt is tárol)
     RichTextField.tsx        rich text Note mező: TipTap szerkesztő Fluent eszköztárral (lazy chunk)
-    FormContext.ts           React context: a web kultúrája és a felület nyelve
+    RelatedItems.tsx         kapcsolódó elemek szekció: csak olvasható táblázat egy másik listából
+    RelatedListEditor.tsx    a tervező szekciókártyájának „Kapcsolódó elemek” beállításai
+    FormContext.ts           React context: a web kultúrája, a felület nyelve, az elem azonosítója és mentett értékei
     DesignerPanel.tsx        admin tervező (Elrendezés / Mező / Stílus / JSON fülek)
     StylePanel.tsx           a tervező Stílus füle: form, szekció és mező stílusa módonként
 scripts/Provision-FormJet.ps1  konfigurációs lista + tartalomtípus bekötés
@@ -75,6 +79,7 @@ Rétegszabályok:
 6. **Konfiguráció nélkül vagy hibás JSON esetén** alapértelmezett elrendezés jelenik meg (`createDefaultConfig`), a form sosem lehet üres.
 
 7. **A stílus strukturált, nem szabad CSS.** A konfiguráció `style` részeibe csak a `FormStyle.ts` specifikációjában szereplő tulajdonság kerülhet; a szín kizárólag hex érték. Szabad CSS mezőt, `url()`-t vagy tetszőleges CSS értéket ne engedj be egyeztetés nélkül.
+8. **A kapcsolódó elemek csak olvashatók.** A `related` szekció egy másik lista elemeit listázza, de nem ír bele; a kapcsolódó elemek formon belüli szerkesztése vagy mentése egyeztetést igényel. A CAML lekérdezésbe kerülő mezőnevek csak belső névnek megfelelő értékek lehetnek (`RelatedList.ts`).
 
 ## Konfigurációs séma
 

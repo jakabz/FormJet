@@ -10,12 +10,14 @@ import {
   IFieldStyle,
   IFormConfig,
   IFormStyle,
+  IRelatedListConfig,
   ISectionConfig,
   ISectionStyle
 } from '../models/IFormConfig';
 import { FormValues, IFieldSchema } from '../models/IFieldSchema';
 import { evaluate, joinMultiValue, validateCondition } from './ConditionEngine';
 import { engineStrings, format } from './EngineStrings';
+import { isRelatedComplete, parseRelated } from './RelatedList';
 import { parseFieldStyles, parseFormStyles, parseSectionStyles, resolveModeStyle } from './FormStyle';
 
 /** Mezőtípusok, amelyekhez a FieldRenderer szerkesztő vezérlőt ad. A többi csak olvasható. */
@@ -50,6 +52,8 @@ export interface IResolvedSection {
   collapsed: boolean;
   visible: boolean;
   style: ISectionStyle;
+  /** Kapcsolódó elemek beállítása; New módban nincs (a szülő elem még nem létezik). */
+  related?: IRelatedListConfig;
   fields: IResolvedField[];
 }
 
@@ -101,7 +105,12 @@ export function resolveForm(
 
   const sections: IResolvedSection[] = config.sections.map((section) => {
     const columns: number = clampColumns(section.columns);
-    const sectionVisible: boolean = inMode(section.visibleIn, mode, true) && evaluate(section.visibleWhen, values);
+    const related: IRelatedListConfig | undefined = mode === 'new' ? undefined : section.related;
+    // Ha a szekcióban csak kapcsolódó elemek lennének, de azok nem jeleníthetők meg, a szekció sem látszik.
+    const nothingToShow: boolean =
+      section.fields.length === 0 && section.related !== undefined && !isRelatedComplete(related);
+    const sectionVisible: boolean =
+      !nothingToShow && inMode(section.visibleIn, mode, true) && evaluate(section.visibleWhen, values);
     const fields: IResolvedField[] = [];
 
     section.fields.forEach((placement) => {
@@ -155,6 +164,7 @@ export function resolveForm(
       collapsed: !!section.collapsible && !!section.collapsed,
       visible: sectionVisible,
       style: resolveModeStyle(section.style, mode),
+      related,
       fields
     };
   });
@@ -286,6 +296,8 @@ function parseSection(input: unknown, index: number): ISectionConfig {
   if (visibleWhen) section.visibleWhen = visibleWhen;
   const style = parseSectionStyles(input.style, `${path}.style`);
   if (style) section.style = style;
+  const related = parseRelated(input.related, `${path}.related`);
+  if (related) section.related = related;
   return section;
 }
 

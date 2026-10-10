@@ -214,6 +214,45 @@ Szabályok:
 
 A tervezőben a **Stílus** fülön szerkeszthető: felül az érvényesség (alap vagy egy mód), alatta a form, a kiválasztott szekció és a kiválasztott mező beállításai. Módonkénti szerkesztésnél az alapból örökölt érték helykitöltőként látszik.
 
+### Kapcsolódó elemek (`ISectionConfig.related`)
+
+Egy szekció a mezői alatt egy másik, **azonos webhelyen lévő** lista elemeit is felsorolhatja, csak olvasható táblázatban. Azok az elemek jelennek meg, amelyek `matchField` mezője megegyezik a megnyitott elem `sourceField` értékével.
+
+```json
+"related": {
+  "listId": "11111111-1111-1111-1111-111111111111",
+  "matchField": "RequestNumber",
+  "sourceField": "Title",
+  "columns": ["Title", "InvoiceDate", "Amount"],
+  "sortField": "InvoiceDate",
+  "sortAscending": false,
+  "rowLimit": 20,
+  "showNewButton": true
+}
+```
+
+| Tulajdonság | Típus | Alapértelmezés | Jelentés |
+| --- | --- | --- | --- |
+| `listId` | GUID | – | A kapcsolódó lista azonosítója. |
+| `matchField` | InternalName | – | A kapcsolódó lista párosító mezője. |
+| `sourceField` | InternalName vagy `ID` | `ID` | Ennek a listának a mezője, amelynek értékével párosítunk. |
+| `columns` | InternalName[] | – | A megjelenített oszlopok, sorrendben. Az első oszlop a kapcsolódó elem megtekintő formjára mutat (új lapon). |
+| `sortField`, `sortAscending` | InternalName, boolean | `ID`, növekvő | Rendezés. |
+| `rowLimit` | 1–500 | 30 | Sorok maximális száma; ha több elem van, a táblázat alatt jelzés látszik. |
+| `showNewButton` | boolean | false | „Új elem” gomb, amely a kapcsolódó lista új elem formját nyitja meg új lapon. |
+
+Tudnivalók:
+
+- **Párosítható típusok** (mindkét oldalon): Text, Choice, Number, Currency, Integer, Counter (`ID`), Lookup. A lekérdezés módját a kapcsolódó lista párosító mezőjének típusa dönti el: szövegnél pontos egyezés, számnál a form-string számmá alakítva, keresőmezőnél a hivatkozott elem azonosítója szerint.
+- **A párosítás a mentett értékkel történik**, nem a formon éppen szerkesztett értékkel. Ezért **New módban a felsorolás nem jelenik meg**; ha a szekcióban nincs mező, az egész szekció rejtve marad.
+- A lekérdezés a felhasználó nevében fut (`renderListDataAsStream`), így csak azok az elemek látszanak, amelyekhez joga van. Az értékek a SharePoint megjelenítési formátumában érkeznek.
+- **Nagy listánál** (5000 elem felett) a párosító mezőt indexelni kell, különben a lekérdezés hibát ad, és a szekcióban figyelmeztetés jelenik meg.
+- Az „Új elem” gomb nem tölti ki előre a párosító mezőt, és a táblázat nem frissül magától; erre a szekció Frissítés gombja szolgál.
+- A tervezőben félkész beállítás is menthető (például még nincs oszlop kiválasztva); ilyenkor a felsorolás nem jelenik meg.
+- A mezőnevek a CAML lekérdezésbe kerülnek, ezért a `parseConfig` csak belső névnek megfelelő értéket fogad el, a `listId` pedig csak GUID lehet.
+
+A logika az `engine/RelatedList.ts`-ben (ellenőrzés, `buildRelatedViewXml`), a lekérdezés a `services/RelatedListService.ts`-ben, a megjelenítés a `components/RelatedItems.tsx`-ben van. A tervezőben a szekció kártyáján, a „Kapcsolódó elemek megjelenítése egy másik listából” jelölővel állítható be.
+
 ### Feltételek
 
 ```
