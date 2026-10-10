@@ -1,0 +1,33 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/spfx-build/spfx-serve.schema.json",
+  "port": 4321,
+  "https": true,
+  "serveConfigurations": {
+    "default": {
+      "pageUrl": "https://46pcjx.sharepoint.com/sites/formjet-dev/_layouts/15/SPListForm.aspx",
+      "formCustomizer": {
+        "componentId": "89262798-3b9c-4299-9d5b-754a7e8ac6d8",
+        "PageType": 8,
+        "RootFolder": "/sites/formjet-dev/Lists/ForrasFeladatok"
+      }
+    },
+    "edit": {
+      "pageUrl": "https://46pcjx.sharepoint.com/sites/formjet-dev/_layouts/15/SPListForm.aspx",
+      "formCustomizer": {
+        "componentId": "89262798-3b9c-4299-9d5b-754a7e8ac6d8",
+        "PageType": 6,
+        "RootFolder": "/sites/formjet-dev/Lists/ForrasFeladatok",
+        "ID": 1
+      }
+    },
+    "display": {
+      "pageUrl": "https://46pcjx.sharepoint.com/sites/formjet-dev/_layouts/15/SPListForm.aspx",
+      "formCustomizer": {
+        "componentId": "89262798-3b9c-4299-9d5b-754a7e8ac6d8",
+        "PageType": 4,
+        "RootFolder": "/sites/formjet-dev/Lists/ForrasFeladatok",
+        "ID": 1
+      }
+    }
+  }
+}

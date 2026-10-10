@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "listId": "00000000-0000-0000-0000-000000000000",
+  "contentTypeId": "0x0100000000000000000000000000000000",
+  "title": "Beszerzési igény",
+  "labelPosition": "top",
+  "sections": [
+    {
+      "id": "basics",
+      "title": "Alapadatok",
+      "columns": 2,
+      "fields": [
+        { "field": "Title", "colSpan": 2 },
+        { "field": "Category" },
+        { "field": "Amount" },
+        { "field": "NeededBy" },
+        { "field": "Urgent" },
+        { "field": "Justification", "colSpan": 2 }
+      ]
+    },
+    {
+      "id": "approval",
+      "title": "Jóváhagyás",
+      "description": "A jóváhagyó tölti ki.",
+      "columns": 2,
+      "collapsible": true,
+      "visibleIn": ["edit", "display"],
+      "fields": [
+        { "field": "Approver" },
+        { "field": "ApprovalStatus" },
+        { "field": "ApprovalComment", "colSpan": 2 }
+      ]
+    }
+  ],
+  "fields": {
+    "Title": {
+      "label": "Megnevezés",
+      "placeholder": "Mit szeretnél beszerezni?"
+    },
+    "Category": {
+      "label": "Kategória",
+      "defaultValue": "Irodaszer"
+    },
+    "Amount": {
+      "label": "Összeg (Ft)",
+      "requiredIn": ["new", "edit"]
+    },
+    "NeededBy": {
+      "label": "Szükséges időpont"
+    },
+    "Urgent": {
+      "label": "Sürgős",
+      "defaultValue": "0"
+    },
+    "Justification": {
+      "label": "Indoklás",
+      "description": "500 000 Ft feletti összegnél kötelező.",
+      "visibleWhen": { "field": "Amount", "op": "gt", "value": 500000 },
+      "requiredWhen": { "field": "Amount", "op": "gt", "value": 500000 }
+    },
+    "Approver": {
+      "label": "Jóváhagyó",
+      "readOnlyIn": ["edit"]
+    },
+    "ApprovalStatus": {
+      "label": "Állapot"
+    },
+    "ApprovalComment": {
+      "label": "Megjegyzés",
+      "visibleWhen": {
+        "any": [
+          { "field": "ApprovalStatus", "op": "in", "value": ["Elutasítva", "Visszaküldve"] },
+          { "field": "ApprovalComment", "op": "notEmpty" }
+        ]
+      }
+    }
+  }
+}
