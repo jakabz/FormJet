@@ -4,7 +4,10 @@ import * as ReactDOM from 'react-dom';
 import { FormDisplayMode } from '@microsoft/sp-core-library';
 import { BaseFormCustomizer } from '@microsoft/sp-listview-extensibility';
 
+import * as strings from 'FormJetFormCustomizerStrings';
+
 import { FormHost, IFormHostProps } from './components/FormHost';
+import { setEngineStrings } from './engine/EngineStrings';
 import { FormMode } from './models/IFormConfig';
 import { getSP } from './services/sp';
 
@@ -25,6 +28,7 @@ function toFormMode(displayMode: FormDisplayMode): FormMode {
 export default class FormJetFormCustomizer extends BaseFormCustomizer<IFormJetFormCustomizerProperties> {
   public onInit(): Promise<void> {
     getSP(this.context);
+    setEngineStrings(strings.Engine);
     return Promise.resolve();
   }
 

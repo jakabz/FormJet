@@ -12,7 +12,10 @@ import { Pivot, PivotItem } from '@fluentui/react/lib/Pivot';
 import { TextField } from '@fluentui/react/lib/TextField';
 import { mergeStyleSets } from '@fluentui/react/lib/Styling';
 
+import * as strings from 'FormJetFormCustomizerStrings';
+
 import { validateCondition } from '../engine/ConditionEngine';
+import { format } from '../engine/EngineStrings';
 import { parseConfig, unplacedFields } from '../engine/LayoutResolver';
 import { IFieldSchema } from '../models/IFieldSchema';
 import {
@@ -27,13 +30,13 @@ import {
 
 export type DesignerTab = 'layout' | 'field' | 'json';
 
-const MODE_LABELS: Record<FormMode, string> = { new: 'Új', edit: 'Szerkesztés', display: 'Megtekintés' };
+const MODE_LABELS: Record<FormMode, string> = {
+  new: strings.ModeNew,
+  edit: strings.ModeEdit,
+  display: strings.ModeDisplay
+};
 
-const CONDITION_HELP: string =
-  'JSON feltétel, például: { "field": "Amount", "op": "gt", "value": 500000 }. ' +
-  'Operátorok: eq, ne (egyenlő / nem egyenlő), gt, lt (nagyobb / kisebb), contains (tartalmazza), ' +
-  'in (benne van a "value" tömbben), empty, notEmpty (üres / nem üres). ' +
-  'Csoportosítás: { "all": [...] }, { "any": [...] }, { "not": {...} }. A "field" a mező belső neve.';
+const CONDITION_HELP: string = strings.ConditionHelp;
 
 const COLUMN_OPTIONS: IDropdownOption[] = [1, 2, 3, 4].map((n) => ({ key: n, text: String(n) }));
 
@@ -160,7 +163,7 @@ const ConditionEditor: React.FC<IConditionEditorProps> = (props) => {
     try {
       parsed = JSON.parse(next);
     } catch {
-      setError('Hibás JSON.');
+      setError(strings.InvalidJsonShort);
       return;
     }
     const validationError: string | undefined = validateCondition(parsed);
@@ -197,7 +200,7 @@ export const DesignerPanel: React.FC<IDesignerPanelProps> = (props) => {
 
   const titleOf = (name: string): string => {
     const field: IFieldSchema | undefined = schema.find((f) => f.InternalName === name);
-    return field ? `${field.Title} (${name})` : `${name} – nem létező mező`;
+    return field ? `${field.Title} (${name})` : format(strings.NonexistentField, name);
   };
 
   const updateSection = (index: number, patch: Partial<ISectionConfig>): void => {
@@ -216,7 +219,7 @@ export const DesignerPanel: React.FC<IDesignerPanelProps> = (props) => {
     }
     props.onChange({
       ...draft,
-      sections: [...draft.sections, { id: `section-${n}`, title: 'Új szekció', columns: 1, fields: [] }]
+      sections: [...draft.sections, { id: `section-${n}`, title: strings.NewSection, columns: 1, fields: [] }]
     });
   };
 
@@ -237,68 +240,68 @@ export const DesignerPanel: React.FC<IDesignerPanelProps> = (props) => {
         <span className={classes.cardTitle}>{section.title || section.id}</span>
         <IconButton
           iconProps={{ iconName: 'Up' }}
-          title="Szekció feljebb"
+          title={strings.SectionMoveUp}
           disabled={index === 0}
           onClick={() => props.onChange({ ...draft, sections: move(draft.sections, index, index - 1) })}
         />
         <IconButton
           iconProps={{ iconName: 'Down' }}
-          title="Szekció lejjebb"
+          title={strings.SectionMoveDown}
           disabled={index === draft.sections.length - 1}
           onClick={() => props.onChange({ ...draft, sections: move(draft.sections, index, index + 1) })}
         />
         <IconButton
           iconProps={{ iconName: 'Delete' }}
-          title="Szekció törlése (a mezői a nem elhelyezettek közé kerülnek)"
+          title={strings.SectionDelete}
           onClick={() => props.onChange({ ...draft, sections: draft.sections.filter((_, i) => i !== index) })}
         />
       </div>
-      <TextField label="Cím" value={section.title ?? ''} onChange={(_, v) => updateSection(index, { title: v })} />
+      <TextField label={strings.SectionTitle} value={section.title ?? ''} onChange={(_, v) => updateSection(index, { title: v })} />
       <TextField
-        label="Leírás"
+        label={strings.Description}
         value={section.description ?? ''}
         onChange={(_, v) => updateSection(index, { description: v })}
       />
       <Dropdown
-        label="Oszlopok száma"
+        label={strings.ColumnCount}
         options={COLUMN_OPTIONS}
         selectedKey={section.columns}
         onChange={(_, option) => option && updateSection(index, { columns: Number(option.key) })}
       />
       <div className={classes.modes}>
         <Checkbox
-          label="Becsukható"
+          label={strings.Collapsible}
           checked={!!section.collapsible}
           onChange={(_, checked) =>
             updateSection(index, { collapsible: checked || undefined, collapsed: checked ? section.collapsed : undefined })
           }
         />
         <Checkbox
-          label="Alapból csukva"
+          label={strings.CollapsedByDefault}
           disabled={!section.collapsible}
           checked={!!section.collapsed}
           onChange={(_, checked) => updateSection(index, { collapsed: checked || undefined })}
         />
       </div>
       <ModeCheckboxes
-        label="Látható ezekben a módokban"
+        label={strings.VisibleInModes}
         value={section.visibleIn}
         missingMeansAll
         onChange={(visibleIn) => updateSection(index, { visibleIn })}
       />
       <ConditionEditor
-        label="Látható, ha"
+        label={strings.VisibleWhen}
         value={section.visibleWhen}
         onChange={(visibleWhen) => updateSection(index, { visibleWhen })}
       />
 
-      <Label>Mezők</Label>
-      {section.fields.length === 0 && <div className={classes.hint}>A szekció üres.</div>}
+      <Label>{strings.Fields}</Label>
+      {section.fields.length === 0 && <div className={classes.hint}>{strings.SectionEmpty}</div>}
       {section.fields.map((placement, i) => (
         <div key={placement.field} className={classes.row}>
           <span
             className={classes.rowName}
-            title="Mező beállításai"
+            title={strings.FieldSettings}
             onClick={() => {
               props.onSelectField(placement.field);
               props.onTabChange('field');
@@ -308,8 +311,8 @@ export const DesignerPanel: React.FC<IDesignerPanelProps> = (props) => {
           </span>
           <Dropdown
             className={classes.spanDropdown}
-            title="Szélesség (oszlop)"
-            ariaLabel="Szélesség (oszlop)"
+            title={strings.FieldWidth}
+            ariaLabel={strings.FieldWidth}
             options={COLUMN_OPTIONS.slice(0, section.columns)}
             selectedKey={Math.min(placement.colSpan ?? 1, section.columns)}
             onChange={(_, option) =>
@@ -322,27 +325,27 @@ export const DesignerPanel: React.FC<IDesignerPanelProps> = (props) => {
           />
           <IconButton
             iconProps={{ iconName: 'Up' }}
-            title="Mező feljebb"
+            title={strings.FieldMoveUp}
             disabled={i === 0}
             onClick={() => updatePlacements(index, move(section.fields, i, i - 1))}
           />
           <IconButton
             iconProps={{ iconName: 'Down' }}
-            title="Mező lejjebb"
+            title={strings.FieldMoveDown}
             disabled={i === section.fields.length - 1}
             onClick={() => updatePlacements(index, move(section.fields, i, i + 1))}
           />
           <IconButton
             iconProps={{ iconName: 'Cancel' }}
-            title="Eltávolítás a szekcióból"
+            title={strings.FieldRemove}
             onClick={() => updatePlacements(index, section.fields.filter((_, j) => j !== i))}
           />
         </div>
       ))}
       {unplacedOptions.length > 0 && (
         <Dropdown
-          placeholder="Mező hozzáadása…"
-          ariaLabel="Mező hozzáadása"
+          placeholder={strings.AddField}
+          ariaLabel={strings.AddField}
           options={unplacedOptions}
           selectedKey={null}
           onChange={(_, option) => option && updatePlacements(index, [...section.fields, { field: String(option.key) }])}
@@ -361,8 +364,8 @@ export const DesignerPanel: React.FC<IDesignerPanelProps> = (props) => {
     return (
       <div className={classes.tab}>
         <Dropdown
-          label="Mező"
-          placeholder="Válassz mezőt, vagy kattints rá az előnézetben"
+          label={strings.Field}
+          placeholder={strings.FieldPickerPlaceholder}
           options={fieldOptions}
           selectedKey={selectedField ?? null}
           onChange={(_, option) => props.onSelectField(option ? String(option.key) : undefined)}
@@ -370,66 +373,66 @@ export const DesignerPanel: React.FC<IDesignerPanelProps> = (props) => {
         {selectedField && fieldSchema && (
           <>
             <div className={classes.hint}>
-              Típus: {fieldSchema.TypeAsString}
-              {fieldSchema.Required ? ' · a SharePoint szerint kötelező' : ''}
-              {fieldSchema.ReadOnlyField ? ' · a SharePoint szerint csak olvasható' : ''}
+              {format(strings.FieldType, fieldSchema.TypeAsString)}
+              {fieldSchema.Required ? ' · ' + strings.SpRequired : ''}
+              {fieldSchema.ReadOnlyField ? ' · ' + strings.SpReadOnly : ''}
             </div>
             <TextField
-              label="Címke"
+              label={strings.FieldLabel}
               placeholder={fieldSchema.Title}
               value={config.label ?? ''}
               onChange={(_, v) => updateField(selectedField, { label: v })}
             />
             <TextField
-              label="Leírás"
+              label={strings.Description}
               placeholder={fieldSchema.Description}
               value={config.description ?? ''}
               onChange={(_, v) => updateField(selectedField, { description: v })}
             />
             <TextField
-              label="Helykitöltő szöveg"
+              label={strings.PlaceholderText}
               value={config.placeholder ?? ''}
               onChange={(_, v) => updateField(selectedField, { placeholder: v })}
             />
             <TextField
-              label="Kezdőérték új elemnél"
-              description="Form-string formátumban, pl. több választásnál: ;#A;#B;#, igen/nem mezőnél: 1 vagy 0."
+              label={strings.DefaultValue}
+              description={strings.DefaultValueHint}
               value={config.defaultValue ?? ''}
               onChange={(_, v) => updateField(selectedField, { defaultValue: v })}
             />
             <ModeCheckboxes
-              label="Látható ezekben a módokban"
+              label={strings.VisibleInModes}
               value={config.visibleIn}
               missingMeansAll
               onChange={(visibleIn) => updateField(selectedField, { visibleIn })}
             />
             <ModeCheckboxes
-              label="Csak olvasható ezekben a módokban"
+              label={strings.ReadOnlyInModes}
               value={config.readOnlyIn}
               missingMeansAll={false}
               onChange={(readOnlyIn) => updateField(selectedField, { readOnlyIn })}
             />
             <ModeCheckboxes
-              label="Kötelező ezekben a módokban"
+              label={strings.RequiredInModes}
               value={config.requiredIn}
               missingMeansAll={false}
               onChange={(requiredIn) => updateField(selectedField, { requiredIn })}
             />
             <div className={classes.hint}>
-              A kötelezőség csak szigorítható: a SharePoint szerint kötelező mező itt nem tehető opcionálissá.
+              {strings.RequiredOnlyStricter}
             </div>
             <ConditionEditor
-              label="Látható, ha"
+              label={strings.VisibleWhen}
               value={config.visibleWhen}
               onChange={(visibleWhen) => updateField(selectedField, { visibleWhen })}
             />
             <ConditionEditor
-              label="Csak olvasható, ha"
+              label={strings.ReadOnlyWhen}
               value={config.readOnlyWhen}
               onChange={(readOnlyWhen) => updateField(selectedField, { readOnlyWhen })}
             />
             <ConditionEditor
-              label="Kötelező, ha"
+              label={strings.RequiredWhen}
               value={config.requiredWhen}
               onChange={(requiredWhen) => updateField(selectedField, { requiredWhen })}
             />
@@ -454,40 +457,40 @@ export const DesignerPanel: React.FC<IDesignerPanelProps> = (props) => {
       selectedKey={props.tab}
       onLinkClick={(item) => item?.props.itemKey && props.onTabChange(item.props.itemKey as DesignerTab)}
     >
-      <PivotItem headerText="Elrendezés" itemKey="layout">
+      <PivotItem headerText={strings.TabLayout} itemKey="layout">
         <div className={classes.tab}>
           <TextField
-            label="A form címe"
+            label={strings.FormTitle}
             value={draft.title ?? ''}
             onChange={(_, v) => props.onChange(compact({ ...draft, title: v }))}
           />
           {draft.sections.map(renderSection)}
-          <DefaultButton iconProps={{ iconName: 'Add' }} text="Új szekció" onClick={addSection} />
+          <DefaultButton iconProps={{ iconName: 'Add' }} text={strings.NewSection} onClick={addSection} />
           <div>
-            <Label>Nem elhelyezett mezők</Label>
+            <Label>{strings.UnplacedFields}</Label>
             <div className={classes.hint}>
               {unplaced.length === 0
-                ? 'Minden mező el van helyezve.'
-                : 'Ezek a mezők nem jelennek meg a formon: ' + unplaced.map((f) => f.Title).join(', ')}
+                ? strings.AllFieldsPlaced
+                : format(strings.UnplacedFieldsList, unplaced.map((f) => f.Title).join(', '))}
             </div>
           </div>
         </div>
       </PivotItem>
-      <PivotItem headerText="Mező" itemKey="field">
+      <PivotItem headerText={strings.TabField} itemKey="field">
         {renderFieldTab()}
       </PivotItem>
-      <PivotItem headerText="JSON" itemKey="json">
+      <PivotItem headerText={strings.TabJson} itemKey="json">
         <div className={classes.tab}>
           {jsonError && <MessageBar messageBarType={MessageBarType.error}>{jsonError}</MessageBar>}
           <TextField
-            ariaLabel="Konfiguráció JSON"
+            ariaLabel={strings.ConfigJson}
             multiline
             rows={24}
             value={jsonText}
             styles={{ field: { fontFamily: 'Consolas, Menlo, monospace', fontSize: 12 } }}
             onChange={(_, v) => setJsonText(v ?? '')}
           />
-          <PrimaryButton text="Alkalmaz" onClick={applyJson} />
+          <PrimaryButton text={strings.Apply} onClick={applyJson} />
         </div>
       </PivotItem>
     </Pivot>

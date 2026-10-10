@@ -1,5 +1,8 @@
 // Konfiguráció olvasása / mentése a FormConfigurations listában, ETag-gel.
 
+import * as strings from 'FormJetFormCustomizerStrings';
+
+import { format } from '../engine/EngineStrings';
 import { parseConfig } from '../engine/LayoutResolver';
 import { IFormConfig } from '../models/IFormConfig';
 import { getHttpStatus, getSP } from './sp';
@@ -13,7 +16,7 @@ const FIELD_CONFIG: string = 'FormJetConfig';
 /** Más közben mentette a konfigurációt (HTTP 412). */
 export class ConfigConflictError extends Error {
   public constructor() {
-    super('A konfigurációt időközben más módosította.');
+    super('The configuration was modified by someone else.');
     Object.setPrototypeOf(this, ConfigConflictError.prototype);
   }
 }
@@ -21,7 +24,7 @@ export class ConfigConflictError extends Error {
 /** A felhasználónak nincs írási joga a FormConfigurations listán (HTTP 403). */
 export class ConfigAccessDeniedError extends Error {
   public constructor() {
-    super('Nincs jogosultsága a konfiguráció mentéséhez.');
+    super('Access denied to the configuration list.');
     Object.setPrototypeOf(this, ConfigAccessDeniedError.prototype);
   }
 }
@@ -57,7 +60,7 @@ export async function load(listId: string, contentTypeId: string): Promise<IConf
       .filter(`${FIELD_LIST_ID} eq ${quote(listId)} and ${FIELD_CONTENT_TYPE_ID} eq ${quote(contentTypeId)}`)
       .top(1)()) as IConfigItem[];
   } catch {
-    return { warning: `A ${CONFIG_LIST_TITLE} lista nem érhető el. Az alapértelmezett elrendezés látható.` };
+    return { warning: format(strings.ConfigListUnavailable, CONFIG_LIST_TITLE) };
   }
 
   const item: IConfigItem | undefined = items[0];
@@ -69,7 +72,7 @@ export async function load(listId: string, contentTypeId: string): Promise<IConf
   if (!parsed.config) {
     return {
       ...ref,
-      warning: `A mentett konfiguráció hibás, az alapértelmezett elrendezés látható. (${parsed.error})`
+      warning: format(strings.ConfigInvalid, parsed.error ?? '')
     };
   }
   return { ...ref, config: parsed.config };

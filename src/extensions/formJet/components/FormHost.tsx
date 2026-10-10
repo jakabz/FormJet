@@ -9,7 +9,10 @@ import { Spinner, SpinnerSize } from '@fluentui/react/lib/Spinner';
 import { Toggle } from '@fluentui/react/lib/Toggle';
 import { mergeStyleSets } from '@fluentui/react/lib/Styling';
 
+import * as strings from 'FormJetFormCustomizerStrings';
+
 import { isEmptyValue } from '../engine/ConditionEngine';
+import { format } from '../engine/EngineStrings';
 import {
   createDefaultConfig,
   flattenFields,
@@ -28,34 +31,32 @@ import { DesignerPanel, DesignerTab } from './DesignerPanel';
 import { FormRenderer } from './FormRenderer';
 
 const TEXT = {
-  loading: 'Betöltés…',
-  loadFailed: 'A form betöltése nem sikerült.',
-  save: 'Mentés',
-  saving: 'Mentés…',
-  cancel: 'Mégse',
-  close: 'Bezárás',
-  required: 'A mező kitöltése kötelező.',
-  saveFailed: 'A mentés nem sikerült.',
-  designer: 'Tervező',
-  designerSave: 'Elrendezés mentése',
-  designerNotice: 'Tervező mód: az előnézet a még nem mentett elrendezést mutatja, a rejtett elemek halványan látszanak.',
-  previewMode: 'Előnézet módja',
-  missingFields: 'A konfiguráció nem létező mezőkre hivatkozik: ',
-  configConflict:
-    'A konfigurációt időközben más admin módosította. Töltsd újra az oldalt, majd végezd el újra a módosításokat.',
-  configDenied: 'Nincs jogosultságod a konfiguráció mentéséhez (FormConfigurations lista).',
-  configSaveFailed: 'A konfiguráció mentése nem sikerült.',
-  conflictTitle: 'Az elemet időközben módosították',
-  conflictText:
-    'Valaki más mentette az elemet, mióta megnyitottad. Felülírhatod a saját módosításaiddal, vagy újratöltheted az elemet (ekkor a módosításaid elvesznek).',
-  overwrite: 'Felülírás',
-  reload: 'Újratöltés'
+  loading: strings.Loading,
+  loadFailed: strings.LoadFailed,
+  save: strings.Save,
+  saving: strings.Saving,
+  cancel: strings.Cancel,
+  close: strings.Close,
+  required: strings.RequiredField,
+  saveFailed: strings.SaveFailed,
+  designer: strings.Designer,
+  designerSave: strings.DesignerSave,
+  designerNotice: strings.DesignerNotice,
+  previewMode: strings.PreviewMode,
+  missingFields: strings.MissingFields,
+  configConflict: strings.ConfigConflict,
+  configDenied: strings.ConfigDenied,
+  configSaveFailed: strings.ConfigSaveFailed,
+  conflictTitle: strings.ConflictTitle,
+  conflictText: strings.ConflictText,
+  overwrite: strings.Overwrite,
+  reload: strings.Reload
 };
 
 const PREVIEW_OPTIONS: IDropdownOption[] = [
-  { key: 'new', text: 'Új elem' },
-  { key: 'edit', text: 'Szerkesztés' },
-  { key: 'display', text: 'Megtekintés' }
+  { key: 'new', text: strings.ModeNew },
+  { key: 'edit', text: strings.ModeEdit },
+  { key: 'display', text: strings.ModeDisplay }
 ];
 
 const classes = mergeStyleSets({
@@ -384,7 +385,7 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
         )}
         {isAdmin && resolved.missingFields.length > 0 && (
           <MessageBar messageBarType={MessageBarType.warning}>
-            {TEXT.missingFields + resolved.missingFields.join(', ')}
+            {format(TEXT.missingFields, resolved.missingFields.join(', '))}
           </MessageBar>
         )}
         {topErrors.map((message) => (

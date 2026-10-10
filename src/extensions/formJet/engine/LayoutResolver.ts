@@ -12,6 +12,7 @@ import {
 } from '../models/IFormConfig';
 import { FormValues, IFieldSchema } from '../models/IFieldSchema';
 import { evaluate, joinMultiValue, validateCondition } from './ConditionEngine';
+import { engineStrings, format } from './EngineStrings';
 
 /** Mezőtípusok, amelyekhez a FieldRenderer szerkesztő vezérlőt ad. A többi csak olvasható. */
 const EDITABLE_TYPES: string[] = ['Text', 'Note', 'Number', 'Currency', 'Choice', 'MultiChoice', 'Boolean', 'DateTime'];
@@ -223,7 +224,7 @@ function parseModes(value: unknown, path: string): FormMode[] | undefined {
     return undefined;
   }
   if (!Array.isArray(value) || value.some((mode) => (FORM_MODES as unknown[]).indexOf(mode) === -1)) {
-    throw new Error(`${path}: a megengedett értékek: new, edit, display.`);
+    throw new Error(format(engineStrings().InvalidModes, path));
   }
   return value as FormMode[];
 }
@@ -242,14 +243,14 @@ function parseCondition<T>(value: unknown, path: string): T | undefined {
 function parseSection(input: unknown, index: number): ISectionConfig {
   const path: string = `sections[${index}]`;
   if (!isRecord(input)) {
-    throw new Error(`${path}: objektumnak kell lennie.`);
+    throw new Error(format(engineStrings().MustBeObject, path));
   }
   if (!Array.isArray(input.fields)) {
-    throw new Error(`${path}.fields: tömbnek kell lennie.`);
+    throw new Error(format(engineStrings().MustBeArray, `${path}.fields`));
   }
   const fields: IFieldPlacement[] = input.fields.map((placement: unknown, i: number) => {
     if (!isRecord(placement) || typeof placement.field !== 'string' || placement.field === '') {
-      throw new Error(`${path}.fields[${i}]: hiányzik a "field" (a mező InternalName-je).`);
+      throw new Error(format(engineStrings().MissingField, `${path}.fields[${i}]`));
     }
     const result: IFieldPlacement = { field: placement.field };
     if (typeof placement.colSpan === 'number') {
@@ -279,7 +280,7 @@ function parseSection(input: unknown, index: number): ISectionConfig {
 function parseFieldConfig(input: unknown, name: string): IFieldConfig {
   const path: string = `fields.${name}`;
   if (!isRecord(input)) {
-    throw new Error(`${path}: objektumnak kell lennie.`);
+    throw new Error(format(engineStrings().MustBeObject, path));
   }
   const field: IFieldConfig = {};
   const label: string | undefined = optionalString(input.label);
@@ -314,29 +315,29 @@ export function parseConfig(raw: string): IParseConfigResult {
   try {
     input = JSON.parse(raw);
   } catch (e) {
-    return { error: `Hibás JSON: ${e instanceof Error ? e.message : String(e)}` };
+    return { error: format(engineStrings().InvalidJson, e instanceof Error ? e.message : String(e)) };
   }
   if (!isRecord(input)) {
-    return { error: 'A konfiguráció gyökere objektum kell legyen.' };
+    return { error: engineStrings().RootMustBeObject };
   }
 
   // Migráció: régebbi schemaVersion esetén itt kell az `input`-ot az aktuális szerkezetre alakítani.
   if (input.schemaVersion !== CONFIG_SCHEMA_VERSION) {
-    return { error: `Ismeretlen sémaverzió: ${String(input.schemaVersion)}.` };
+    return { error: format(engineStrings().UnknownSchemaVersion, String(input.schemaVersion)) };
   }
 
   try {
     if (!Array.isArray(input.sections)) {
-      throw new Error('sections: tömbnek kell lennie.');
+      throw new Error(format(engineStrings().MustBeArray, 'sections'));
     }
     if (input.fields !== undefined && !isRecord(input.fields)) {
-      throw new Error('fields: objektumnak kell lennie.');
+      throw new Error(format(engineStrings().MustBeObject, 'fields'));
     }
     const sections: ISectionConfig[] = input.sections.map(parseSection);
     const usedIds: Record<string, boolean> = {};
     sections.forEach((section) => {
       if (usedIds[section.id]) {
-        throw new Error(`A szekció azonosítója nem egyedi: ${section.id}.`);
+        throw new Error(format(engineStrings().DuplicateSectionId, section.id));
       }
       usedIds[section.id] = true;
     });

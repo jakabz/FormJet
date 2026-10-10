@@ -4,8 +4,8 @@ SPFx Form Customizer, amely a SharePoint lista gyári New / Edit / Display formj
 Az elrendezést a `FormConfigurations` listában tárolt JSON határozza meg. A site adminok a formon
 belüli tervezővel szerkesztik, a többi felhasználó a mentett elrendezéssel tölti ki a formot.
 
-A felhasználóval magyarul kommunikálj. A kódkommentek és a felhasználói szövegek magyarok;
-az azonosítók (változók, függvények, típusok) angolok.
+A felhasználóval magyarul kommunikálj. A kódkommentek magyarok, az azonosítók (változók, függvények,
+típusok) angolok. A felhasználói szövegek a `loc/` fájlokból jönnek (angol és magyar).
 
 Részletes fejlesztői leírás: `docs/FEJLESZTOI_LEIRAS.md` (séma referencia, form-string formátumok,
 receptek új mezőtípushoz és operátorhoz, tesztmátrix). Ha a sémát, egy operátort vagy egy mezőtípus
@@ -35,6 +35,7 @@ src/extensions/formJet/
   models/                    IFormConfig (konfigurációs séma), IFieldSchema (mezőséma, FormValues, FieldErrors)
   engine/                    TISZTA LOGIKA, SharePoint és React nélkül
     ConditionEngine.ts       visibleWhen / readOnlyWhen / requiredWhen kiértékelése
+    EngineStrings.ts         a motor üzenetei (alapból angol; az onInit a loc `Engine` részét adja át) + format()
     LayoutResolver.ts        séma + konfig + mód + értékek → IResolvedForm; alapértelmezett konfig; parseConfig
   services/                  PnPjs v4 hívások, csak itt van SharePoint kommunikáció
     sp.ts                    getSP() – a PnPjs példány; getSP(context) az onInit-ben
@@ -42,6 +43,7 @@ src/extensions/formJet/
     SchemaService.ts         tartalomtípus mezői, tartalomtípus feloldása New módban
     ConfigService.ts         konfiguráció olvasása / mentése ETag-gel (412 → ConfigConflictError)
     ItemService.ts           elem olvasása (FieldValuesForEdit / FieldValuesAsText), mentése (validateUpdateListItem)
+  loc/                       en-us.js, hu-hu.js, myStrings.d.ts – minden felhasználói szöveg
   components/                React + Fluent UI v8
     FormHost.tsx             állapot, betöltés, mentés, ütközéskezelés, tervező mód kapcsoló
     FormRenderer.tsx         szekciók és rács; a tervező előnézete is ezt használja
@@ -87,7 +89,8 @@ A típusok forrása: `models/IFormConfig.ts`. Példa: `samples/config-example.js
 - React függvénykomponensek és hookok, osztálykomponenst ne írj. Fluent UI v8 (`@fluentui/react`), ne keverd v9-cel.
 - PnPjs v4: a lekérdezés hívható (`list.items.getById(id).select(...)()`), az `items.add` közvetlenül az adatot adja vissza.
 - React 17 (`ReactDOM.render`). React 18-ra váltás csak az SPFx verzióval együtt.
-- Felhasználónak szóló szöveg magyarul. A lokalizáció (`loc/`) még nincs bekötve; új szöveget egyelőre a komponensben helyezz el, de legyen könnyen kiemelhető.
+- Felhasználónak szóló szöveget ne írj a kódba. Új szöveg: kulcs a `loc/myStrings.d.ts`-be, és **mindkét** nyelvi fájlba (`en-us.js`, `hu-hu.js`); használat: `import * as strings from 'FormJetFormCustomizerStrings'`. Paraméterezés `{0}` helyőrzővel és a `format()` függvénnyel.
+- Az `engine/` nem importálhatja a lokalizációs modult; a motor üzenetei az `IEngineStrings`-be és a loc fájlok `Engine` részébe kerülnek.
 
 ## Ellenőrzés munka után
 
@@ -101,4 +104,4 @@ A típusok forrása: `models/IFormConfig.ts`. Példa: `samples/config-example.js
 - DatePicker és dátumformázás a web területi beállításai szerint.
 - Mellékletek feltöltése mentés után (`FormHost.save` TODO).
 - Drag & drop a tervezőben (`@dnd-kit/core`, `@dnd-kit/sortable`), vizuális feltételszerkesztő.
-- Jest egységtesztek az `engine/` modulokra; lokalizáció a `loc/` mappába.
+- Jest egységtesztek az `engine/` modulokra.

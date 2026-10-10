@@ -8,6 +8,7 @@ import {
   IFieldCondition
 } from '../models/IFormConfig';
 import { FormValues } from '../models/IFieldSchema';
+import { engineStrings, format, IEngineStrings } from './EngineStrings';
 
 const MULTI_SEPARATOR: string = ';#';
 
@@ -148,9 +149,11 @@ function isScalar(value: unknown): boolean {
 }
 
 /** Ellenőrzi egy ismeretlen (JSON-ból jövő) érték feltétel-szerkezetét. Hiba esetén üzenet, egyébként undefined. */
-export function validateCondition(input: unknown, path: string = 'feltétel'): string | undefined {
+export function validateCondition(input: unknown, rootPath?: string): string | undefined {
+  const strings: IEngineStrings = engineStrings();
+  const path: string = rootPath ?? strings.ConditionRoot;
   if (typeof input !== 'object' || input === null || Array.isArray(input)) {
-    return `${path}: objektumnak kell lennie.`;
+    return format(strings.MustBeObject, path);
   }
   const record = input as Record<string, unknown>;
 
@@ -158,7 +161,7 @@ export function validateCondition(input: unknown, path: string = 'feltétel'): s
   if (groupKey) {
     const children: unknown = record[groupKey];
     if (!Array.isArray(children)) {
-      return `${path}.${groupKey}: tömbnek kell lennie.`;
+      return format(strings.MustBeArray, `${path}.${groupKey}`);
     }
     for (let i: number = 0; i < children.length; i++) {
       const error: string | undefined = validateCondition(children[i], `${path}.${groupKey}[${i}]`);
@@ -173,11 +176,11 @@ export function validateCondition(input: unknown, path: string = 'feltétel'): s
   }
 
   if (typeof record.field !== 'string' || record.field === '') {
-    return `${path}: hiányzik a "field" (a mező InternalName-je).`;
+    return format(strings.MissingField, path);
   }
   const op: unknown = record.op;
   if (typeof op !== 'string' || (CONDITION_OPERATORS as string[]).indexOf(op) === -1) {
-    return `${path}: ismeretlen operátor (${String(op)}).`;
+    return format(strings.UnknownOperator, path, String(op));
   }
   if (op === 'empty' || op === 'notEmpty') {
     return undefined;
@@ -185,7 +188,7 @@ export function validateCondition(input: unknown, path: string = 'feltétel'): s
   if (op === 'in') {
     return Array.isArray(record.value) && record.value.every(isScalar)
       ? undefined
-      : `${path}: az "in" operátor "value" értéke tömb kell legyen.`;
+      : format(strings.InNeedsArray, path);
   }
-  return isScalar(record.value) ? undefined : `${path}: a "value" szöveg, szám vagy logikai érték kell legyen.`;
+  return isScalar(record.value) ? undefined : format(strings.ValueMustBeScalar, path);
 }

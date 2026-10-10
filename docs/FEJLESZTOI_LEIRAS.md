@@ -255,6 +255,16 @@ Példa: People mező a PnP `PeoplePicker`-rel.
 3. A tervező `ConditionEditor` súgószövegének frissítése.
 4. Ennek a leírásnak a 6. fejezete.
 
+### Új felhasználói szöveg (lokalizáció)
+
+A felület angolul és magyarul érhető el; a nyelvet az SPFx a felhasználó SharePoint megjelenítési nyelve alapján választja, ismeretlen nyelvnél az angol (`en-us`) az alapértelmezés.
+
+1. Új kulcs a `loc/myStrings.d.ts`-ben.
+2. A szöveg **mindkét** fájlban: `loc/en-us.js` és `loc/hu-hu.js`. Paraméter: `{0}`, `{1}`.
+3. Használat: `import * as strings from 'FormJetFormCustomizerStrings'`, paraméterezve `format(strings.Kulcs, érték)` (`engine/EngineStrings.ts`).
+4. A motor (`engine/`) nem importálhatja a lokalizációs modult. A motor üzeneteit az `IEngineStrings` interfészbe, annak angol alapértelmezésébe és a loc fájlok `Engine` részébe kell felvenni; a `FormJetFormCustomizer.onInit` adja át őket a `setEngineStrings`-szel.
+5. Új nyelv: új `loc/<locale>.js` fájl ugyanazokkal a kulcsokkal; a `config/config.json` `{locale}` mintája automatikusan felveszi.
+
 ### A konfigurációs séma bővítése
 
 - **Visszafelé kompatibilis bővítés** (új opcionális mező): nem kell verzióemelés. A `LayoutResolver`-ben legyen alapértelmezés a hiányzó értékre.

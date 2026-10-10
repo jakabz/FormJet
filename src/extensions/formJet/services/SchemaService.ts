@@ -1,5 +1,7 @@
 // A tartalomtípus mezői, és a tartalomtípus feloldása New módban.
 
+import * as strings from 'FormJetFormCustomizerStrings';
+
 import { IFieldSchema } from '../models/IFieldSchema';
 import { getSP } from './sp';
 
@@ -42,7 +44,7 @@ export async function resolveContentTypeId(listId: string, contentTypeId: string
   }>;
   const first = contentTypes.find((ct) => ct.StringId.indexOf(FOLDER_CONTENT_TYPE_PREFIX) !== 0);
   if (!first) {
-    throw new Error('A listának nincs használható tartalomtípusa.');
+    throw new Error(strings.NoContentType);
   }
   return first.StringId;
 }

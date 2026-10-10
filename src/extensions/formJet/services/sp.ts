@@ -17,7 +17,7 @@ export function getSP(context?: FormCustomizerContext): SPFI {
     sp = spfi().using(SPFx(context));
   }
   if (!sp) {
-    throw new Error('A PnPjs nincs inicializálva: az onInit-ben hívd meg a getSP(context)-et.');
+    throw new Error('PnPjs is not initialized: call getSP(context) in onInit.');
   }
   return sp;
 }

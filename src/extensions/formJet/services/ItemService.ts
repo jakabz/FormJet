@@ -2,6 +2,8 @@
 // Minden érték form-string formátumú; ne válts típusonkénti REST payloadra.
 
 import { IListItemFormUpdateValue } from '@pnp/sp/lists';
+import * as strings from 'FormJetFormCustomizerStrings';
+
 import { FieldErrors, FormValues } from '../models/IFieldSchema';
 import { getSP } from './sp';
 
@@ -91,7 +93,7 @@ export async function save(target: ISaveTarget, changed: FormValues): Promise<IS
   let itemId: number | undefined = target.itemId;
   results.forEach((result) => {
     if (result.HasException && result.FieldName) {
-      errors[result.FieldName] = result.ErrorMessage || 'Ismeretlen hiba.';
+      errors[result.FieldName] = result.ErrorMessage || strings.UnknownError;
     }
     if (itemId === undefined) {
       if (result.ItemId) {

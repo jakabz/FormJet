@@ -4,6 +4,8 @@ import * as React from 'react';
 import { Icon } from '@fluentui/react/lib/Icon';
 import { mergeStyles, mergeStyleSets } from '@fluentui/react/lib/Styling';
 
+import * as strings from 'FormJetFormCustomizerStrings';
+
 import { IResolvedField, IResolvedForm, IResolvedSection } from '../engine/LayoutResolver';
 import { FieldErrors, FormValues } from '../models/IFieldSchema';
 import { FieldRenderer } from './FieldRenderer';
@@ -106,7 +108,7 @@ export const FormRenderer: React.FC<IFormRendererProps> = (props) => {
     }
     const collapsed: boolean = section.collapsible && (toggled[section.id] ? !section.collapsed : section.collapsed);
     const hiddenTag: JSX.Element | undefined = section.visible ? undefined : (
-      <span className={classes.hiddenTag}>(rejtett)</span>
+      <span className={classes.hiddenTag}>{strings.HiddenTag}</span>
     );
 
     let header: JSX.Element | undefined;
