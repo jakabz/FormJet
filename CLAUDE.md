@@ -35,6 +35,7 @@ src/extensions/formJet/
   models/                    IFormConfig (konfigurációs séma), IFieldSchema (mezőséma, FormValues, FieldErrors)
   engine/                    TISZTA LOGIKA, SharePoint és React nélkül
     ConditionEngine.ts       visibleWhen / readOnlyWhen / requiredWhen kiértékelése
+    DateFormat.ts            DateTime form-string ↔ Date a web kultúrája szerint
     EngineStrings.ts         a motor üzenetei (alapból angol; az onInit a loc `Engine` részét adja át) + format()
     LayoutResolver.ts        séma + konfig + mód + értékek → IResolvedForm; alapértelmezett konfig; parseConfig
   services/                  PnPjs v4 hívások, csak itt van SharePoint kommunikáció
@@ -48,6 +49,8 @@ src/extensions/formJet/
     FormHost.tsx             állapot, betöltés, mentés, ütközéskezelés, tervező mód kapcsoló
     FormRenderer.tsx         szekciók és rács; a tervező előnézete is ezt használja
     FieldRenderer.tsx        mezőtípus → vezérlő
+    DateTimeField.tsx        DateTime mező: Fluent DatePicker (+ TimePicker, ha a mező időt is tárol)
+    FormContext.ts           React context: a web kultúrája és a felület nyelve
     DesignerPanel.tsx        admin tervező (Elrendezés / Mező / JSON fülek)
 scripts/Provision-FormJet.ps1  konfigurációs lista + tartalomtípus bekötés
 samples/config-example.json    példa konfiguráció
@@ -79,7 +82,7 @@ A típusok forrása: `models/IFormConfig.ts`. Példa: `samples/config-example.js
 
 - A `FieldValuesForEdit` / `FieldValuesAsText` kulcsaiban az `_` karakter `_x005f_`-ként jön; a `decodeKeys` alakítja vissza.
 - MultiChoice form-string: `;#A;#B;#`. Boolean: `"1"` / `"0"`.
-- Dátum: a `validateUpdateListItem` a **web területi beállításai** szerinti formátumot várja (magyar site-on pl. `2026. 10. 10.`), nem ISO-t.
+- Dátum: a `validateUpdateListItem` a **web területi beállításai** szerinti formátumot várja (magyar site-on pl. `2026. 10. 10.`), nem ISO-t. A formátumot az `engine/DateFormat.ts` állítja elő a `pageContext.cultureInfo.currentCultureName` alapján; az időt mindig 24 órás `HH:mm` alakban írjuk. A dátumok a web időzónája szerinti "falióra" értékek, időzóna-átváltás nincs.
 - A `Choices` mező REST verziótól függően tömb vagy `{ results: [] }`; a `SchemaService.normalizeChoices` kezeli.
 - A customizer a tartalomtípusra van kötve (`New/Edit/DisplayFormClientSideComponentId`). Grid nézetben és quick edit esetén a gyári felület fut.
 
@@ -88,6 +91,7 @@ A típusok forrása: `models/IFormConfig.ts`. Példa: `samples/config-example.js
 - TypeScript `strict`. Ne használj `any`-t; ha a könyvtár típusa hiányos, szűk `as { ... }` cast a megoldás.
 - React függvénykomponensek és hookok, osztálykomponenst ne írj. Fluent UI v8 (`@fluentui/react`), ne keverd v9-cel.
 - PnPjs v4: a lekérdezés hívható (`list.items.getById(id).select(...)()`), az `items.add` közvetlenül az adatot adja vissza.
+- Dátumválasztó: Fluent UI v8 `DatePicker` és `TimePicker` (`components/DateTimeField.tsx`); ne vezess be külön dátumkönyvtárat. A naptár nevei a felület nyelvét követik (`engine/DateFormat.ts`, `Intl`), új nyelvhez nem kell külön import.
 - React 17 (`ReactDOM.render`). React 18-ra váltás csak az SPFx verzióval együtt.
 - Felhasználónak szóló szöveget ne írj a kódba. Új szöveg: kulcs a `loc/myStrings.d.ts`-be, és **mindkét** nyelvi fájlba (`en-us.js`, `hu-hu.js`); használat: `import * as strings from 'FormJetFormCustomizerStrings'`. Paraméterezés `{0}` helyőrzővel és a `format()` függvénnyel.
 - Az `engine/` nem importálhatja a lokalizációs modult; a motor üzenetei az `IEngineStrings`-be és a loc fájlok `Engine` részébe kerülnek.
@@ -101,7 +105,6 @@ A típusok forrása: `models/IFormConfig.ts`. Példa: `samples/config-example.js
 ## Nyitott feladatok
 
 - People / Lookup / Managed metadata / URL / Location / Image mezők bekötése (`@pnp/spfx-controls-react`) a `FieldRenderer`-ben.
-- DatePicker és dátumformázás a web területi beállításai szerint.
 - Mellékletek feltöltése mentés után (`FormHost.save` TODO).
 - Drag & drop a tervezőben (`@dnd-kit/core`, `@dnd-kit/sortable`), vizuális feltételszerkesztő.
 - Jest egységtesztek az `engine/` modulokra.

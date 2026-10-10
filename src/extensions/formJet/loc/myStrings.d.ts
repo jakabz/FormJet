@@ -12,6 +12,10 @@ declare interface IFormJetFormCustomizerStrings {
   Yes: string;
   No: string;
   DateHint: string;
+  GoToToday: string;
+  InvalidDate: string;
+  Time: string;
+  InvalidTime: string;
   HiddenTag: string;
   NoContentType: string;
 

@@ -14,6 +14,8 @@ export interface IFieldSchema {
   MaxLength?: number;
   RichText?: boolean;
   NumberOfLines?: number;
+  /** DateTime mezőnél: csak dátum (true) vagy dátum és idő (false). */
+  DateOnly?: boolean;
 }
 
 /** Mezőértékek form-string formátumban, InternalName szerint. */

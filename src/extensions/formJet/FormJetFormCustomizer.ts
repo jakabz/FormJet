@@ -34,6 +34,7 @@ export default class FormJetFormCustomizer extends BaseFormCustomizer<IFormJetFo
 
   public render(): void {
     const list = this.context.list;
+    const cultureInfo = this.context.pageContext.cultureInfo;
     const props: IFormHostProps = {
       mode: toFormMode(this.displayMode),
       listId: list.guid.toString(),
@@ -42,6 +43,8 @@ export default class FormJetFormCustomizer extends BaseFormCustomizer<IFormJetFo
       folderPath: this.context.folderInfo?.folderPath || list.serverRelativeUrl,
       itemId: this.context.itemId,
       contentTypeId: this.context.contentType?.id,
+      cultureName: cultureInfo.currentCultureName,
+      uiCultureName: cultureInfo.currentUICultureName,
       onSaved: this._onSaved,
       onClosed: this._onClosed
     };

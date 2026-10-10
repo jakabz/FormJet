@@ -28,6 +28,7 @@ import * as ItemService from '../services/ItemService';
 import * as PermissionService from '../services/PermissionService';
 import * as SchemaService from '../services/SchemaService';
 import { DesignerPanel, DesignerTab } from './DesignerPanel';
+import { FormContext, IFormContext } from './FormContext';
 import { FormRenderer } from './FormRenderer';
 
 const TEXT = {
@@ -79,6 +80,10 @@ export interface IFormHostProps {
   folderPath: string;
   itemId?: number;
   contentTypeId?: string;
+  /** A web területi beállításainak kultúrája (dátumformátum). */
+  cultureName: string;
+  /** A felület nyelve. */
+  uiCultureName: string;
   onSaved: () => void;
   onClosed: () => void;
 }
@@ -188,6 +193,11 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
     }
     return result;
   }, [loaded, values]);
+
+  const formContext: IFormContext = React.useMemo(
+    () => ({ cultureName: props.cultureName, uiCultureName: props.uiCultureName }),
+    [props.cultureName, props.uiCultureName]
+  );
 
   const onFieldChange = React.useCallback((name: string, value: string): void => {
     setValues((current) => ({ ...current, [name]: value }));
@@ -344,23 +354,25 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
   const designing: boolean = draft !== undefined;
 
   const renderer: JSX.Element = (
-    <FormRenderer
-      form={resolved}
-      values={values}
-      displayValues={displayValues}
-      errors={errors}
-      onChange={onFieldChange}
-      showHidden={designing}
-      selectedField={designing ? selectedField : undefined}
-      onFieldSelect={
-        designing
-          ? (name) => {
-              setSelectedField(name);
-              setDesignerTab('field');
-            }
-          : undefined
-      }
-    />
+    <FormContext.Provider value={formContext}>
+      <FormRenderer
+        form={resolved}
+        values={values}
+        displayValues={displayValues}
+        errors={errors}
+        onChange={onFieldChange}
+        showHidden={designing}
+        selectedField={designing ? selectedField : undefined}
+        onFieldSelect={
+          designing
+            ? (name) => {
+                setSelectedField(name);
+                setDesignerTab('field');
+              }
+            : undefined
+        }
+      />
+    </FormContext.Provider>
   );
 
   return (

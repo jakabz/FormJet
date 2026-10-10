@@ -24,6 +24,8 @@ interface IRawField {
   MaxLength?: number;
   RichText?: boolean;
   NumberOfLines?: number;
+  /** DateTime mezőnél: 0 = csak dátum, 1 = dátum és idő. */
+  DisplayFormat?: number;
 }
 
 /** A `Choices` REST verziótól függően tömb vagy `{ results: [] }`. */
@@ -69,6 +71,7 @@ export async function getFields(listId: string, contentTypeId: string): Promise<
       FillInChoice: field.FillInChoice,
       MaxLength: field.MaxLength,
       RichText: field.RichText,
-      NumberOfLines: field.NumberOfLines
+      NumberOfLines: field.NumberOfLines,
+      DateOnly: field.TypeAsString === 'DateTime' ? field.DisplayFormat !== 1 : undefined
     }));
 }

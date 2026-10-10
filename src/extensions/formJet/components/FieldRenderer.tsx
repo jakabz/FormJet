@@ -13,11 +13,11 @@ import * as strings from 'FormJetFormCustomizerStrings';
 import { joinMultiValue, splitMultiValue } from '../engine/ConditionEngine';
 import { IResolvedField } from '../engine/LayoutResolver';
 import { IFieldSchema } from '../models/IFieldSchema';
+import { DateTimeField } from './DateTimeField';
 
 const TEXT_YES: string = strings.Yes;
 const TEXT_NO: string = strings.No;
 const TEXT_EMPTY: string = '–';
-const TEXT_DATE_HINT: string = strings.DateHint;
 
 const classes = mergeStyleSets({
   readOnlyValue: { padding: '6px 0', minHeight: 20, whiteSpace: 'pre-wrap', wordBreak: 'break-word' },
@@ -175,17 +175,11 @@ export const FieldRenderer: React.FC<IFieldRendererProps> = (props) => {
       );
 
     case 'DateTime':
-      // TODO: DatePicker és dátumformázás a web területi beállításai szerint.
       return (
-        <TextField
-          label={label}
-          required={required}
-          value={value}
-          placeholder={placeholder}
-          description={description || TEXT_DATE_HINT}
-          errorMessage={error}
-          onChange={(_, next) => set(next ?? '')}
-        />
+        <div>
+          <DateTimeField field={field} value={value} error={error} onChange={set} />
+          {description && <div className={classes.description}>{description}</div>}
+        </div>
       );
 
     // Text, Number, Currency

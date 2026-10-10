@@ -11,7 +11,11 @@ define([], function() {
     "UnknownError": "Ismeretlen hiba.",
     "Yes": "Igen",
     "No": "Nem",
-    "DateHint": "A dátumot a webhely területi beállításai szerinti formátumban add meg.",
+    "DateHint": "A tárolt érték nem értelmezhető dátumként. A dátumot a webhely területi beállításai szerinti formátumban add meg.",
+    "GoToToday": "Ugrás a mai napra",
+    "InvalidDate": "Érvénytelen dátum.",
+    "Time": "Idő",
+    "InvalidTime": "Érvénytelen idő (ÓÓ:pp).",
     "HiddenTag": "(rejtett)",
     "NoContentType": "A listának nincs használható tartalomtípusa.",
 

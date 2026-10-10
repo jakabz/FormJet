@@ -206,11 +206,13 @@ A `validateUpdateListItem` minden mezőtípusra szöveges értéket vár. Új me
 | Choice | A választás szövege | `Informatika` |
 | MultiChoice | `;#` elválasztás | `;#A;#B;#` |
 | Boolean | `1` vagy `0` | `1` |
-| DateTime | A web területi beállításai szerinti dátum | magyar site-on pl. `2026. 10. 10.` |
+| DateTime | A web területi beállításai szerinti dátum; idővel együtt 24 órás `HH:mm` | magyar site-on pl. `2026. 10. 10.`, illetve `2026. 10. 10. 14:30` |
 | User, UserMulti | JSON tömb claims kulccsal | `[{"Key":"i:0#.f\|membership\|anna@contoso.com"}]` |
 | Lookup | Az elem azonosítója | `5` |
 | TaxonomyFieldType | `Címke\|TermGuid` | `Budapest\|3f2a…` |
 | URL | `url, leírás` | `https://contoso.com, Weboldal` |
+
+A DateTime értéket a `DateTimeField` (Fluent `DatePicker`, dátum + idő mezőnél `TimePicker`-rel) szerkeszti. A formátumot az `engine/DateFormat.ts` a web kultúrájából (`pageContext.cultureInfo.currentCultureName`) vezeti le a böngésző `Intl` API-jával, és ugyanezzel olvassa vissza a `FieldValuesForEdit` értékét. Időzóna-átváltás nincs: a kapott "falióra" értéket írjuk vissza. Ha egy tárolt érték nem értelmezhető dátumként, a mező szövegmezőként jelenik meg, hogy az érték ne vesszen el. Új nyelvű (kultúrájú) site-on érdemes egy mentést kipróbálni, mert a szerver .NET-formátuma ritkán eltérhet a böngészőétől.
 
 A LookupMulti és TaxonomyFieldTypeMulti pontos formátumát a bekötéskor a `FieldValuesForEdit` kimenetével kell ellenőrizni; tenant- és verziófüggő eltérések előfordulnak.
 

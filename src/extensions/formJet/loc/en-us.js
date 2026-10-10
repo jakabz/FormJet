@@ -11,7 +11,11 @@ define([], function() {
     "UnknownError": "Unknown error.",
     "Yes": "Yes",
     "No": "No",
-    "DateHint": "Enter the date in the format of the site's regional settings.",
+    "DateHint": "The stored value could not be read as a date. Enter the date in the format of the site's regional settings.",
+    "GoToToday": "Go to today",
+    "InvalidDate": "Invalid date.",
+    "Time": "Time",
+    "InvalidTime": "Invalid time (HH:mm).",
     "HiddenTag": "(hidden)",
     "NoContentType": "The list has no usable content type.",
 
