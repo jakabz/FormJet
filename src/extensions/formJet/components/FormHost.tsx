@@ -11,6 +11,7 @@ import { mergeStyleSets } from '@fluentui/react/lib/Styling';
 
 import * as strings from 'FormJetFormCustomizerStrings';
 
+import { ATTACHMENTS_FIELD } from '../engine/Attachments';
 import { isEmptyValue } from '../engine/ConditionEngine';
 import { format } from '../engine/EngineStrings';
 import {
@@ -23,12 +24,13 @@ import {
 } from '../engine/LayoutResolver';
 import { FieldErrors, FormValues, IFieldSchema } from '../models/IFieldSchema';
 import { FormMode, IFormConfig } from '../models/IFormConfig';
+import * as AttachmentService from '../services/AttachmentService';
 import * as ConfigService from '../services/ConfigService';
 import * as ItemService from '../services/ItemService';
 import * as PermissionService from '../services/PermissionService';
 import * as SchemaService from '../services/SchemaService';
 import { DesignerPanel, DesignerTab } from './DesignerPanel';
-import { FormContext, IFormContext } from './FormContext';
+import { EMPTY_ATTACHMENTS, FormContext, IAttachmentsState, IFormContext } from './FormContext';
 import { FormRenderer } from './FormRenderer';
 
 const TEXT = {
@@ -140,6 +142,9 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
   const [topErrors, setTopErrors] = React.useState<string[]>([]);
   const [saving, setSaving] = React.useState<boolean>(false);
   const [conflict, setConflict] = React.useState<boolean>(false);
+  const [attachments, setAttachments] = React.useState<IAttachmentsState>(EMPTY_ATTACHMENTS);
+  // Az elem mentése sikerült, de egyes mellékletek művelete nem: a Mentés már csak a mellékleteket próbálja újra.
+  const [attachmentRetryId, setAttachmentRetryId] = React.useState<number | undefined>();
 
   // Tervező: a draft a konfiguráció mély másolata; a mégse egyszerűen eldobja.
   const [draft, setDraft] = React.useState<IFormConfig | undefined>();
@@ -192,6 +197,14 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
         original = { ...original, ...(await ItemService.loadUrlValues(listId, itemId, urlFields)) };
       }
 
+      const hasAttachments: boolean = schema.some((field) => field.TypeAsString === ATTACHMENTS_FIELD);
+      const existing: AttachmentService.IAttachmentFile[] =
+        item && itemId !== undefined && hasAttachments
+          ? await AttachmentService.list(listId, itemId).catch(() => [])
+          : [];
+      setAttachments({ existing, added: [], removed: [] });
+      setAttachmentRetryId(undefined);
+
       setValues(item ? original : getInitialValues(schema, config, props.cultureName));
       setLoaded({
         schema,
@@ -242,9 +255,11 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
       cultureName: props.cultureName,
       uiCultureName: props.uiCultureName,
       itemId: mode === 'new' ? undefined : itemId,
-      sourceValues: loaded?.original ?? {}
+      sourceValues: loaded?.original ?? {},
+      attachments,
+      setAttachments
     }),
-    [props.cultureName, props.uiCultureName, mode, itemId, loaded]
+    [props.cultureName, props.uiCultureName, mode, itemId, loaded, attachments]
   );
 
   const onFieldChange = React.useCallback((name: string, value: string): void => {
@@ -259,8 +274,44 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
     });
   }, []);
 
+  /** A mellékletek törlése és feltöltése a mentett elemhez. Hamis, ha valamelyik művelet nem sikerült. */
+  const syncAttachments = async (targetId: number): Promise<boolean> => {
+    if (attachments.added.length === 0 && attachments.removed.length === 0) {
+      return true;
+    }
+    const result = await AttachmentService.sync(listId, targetId, attachments.removed, attachments.added);
+    const uploadedNames: string[] = result.uploaded.map((file) => file.name);
+    // A sikeres műveletek kikerülnek a függőben lévők közül, így újrapróbálásnál csak a sikertelenek futnak.
+    setAttachments({
+      existing: attachments.existing.filter((file) => result.deleted.indexOf(file.name) === -1).concat(result.uploaded),
+      added: attachments.added.filter((file) => uploadedNames.indexOf(file.name) === -1),
+      removed: attachments.removed.filter((name) => result.deleted.indexOf(name) === -1)
+    });
+    if (result.failed.length > 0) {
+      setAttachmentRetryId(targetId);
+      setTopErrors([format(strings.AttachmentsFailed, result.failed.join(', '))]);
+      return false;
+    }
+    return true;
+  };
+
   const save = async (overwrite: boolean): Promise<void> => {
     if (!loaded || !resolved || mode === 'display') {
+      return;
+    }
+    // Az elem már mentve van, csak a sikertelen mellékleteket próbáljuk újra (új elemnél így nem jön létre másolat).
+    if (attachmentRetryId !== undefined) {
+      setSaving(true);
+      setTopErrors([]);
+      try {
+        if (await syncAttachments(attachmentRetryId)) {
+          props.onSaved();
+        }
+      } catch (e) {
+        setTopErrors([errorText(e, TEXT.saveFailed)]);
+      } finally {
+        setSaving(false);
+      }
       return;
     }
     const visibleFields: IResolvedField[] = flattenFields(resolved).filter((field) => field.visible);
@@ -269,7 +320,11 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
     // 1. Kliens oldali ellenőrzés: a látható, kötelező mezők nem lehetnek üresek.
     const validationErrors: FieldErrors = {};
     editableFields.forEach((field) => {
-      if (field.required && isEmptyValue(values[field.name])) {
+      const empty: boolean =
+        field.schema.TypeAsString === ATTACHMENTS_FIELD
+          ? attachments.existing.length - attachments.removed.length + attachments.added.length === 0
+          : isEmptyValue(values[field.name]);
+      if (field.required && empty) {
         validationErrors[field.name] = TEXT.required;
       }
     });
@@ -282,13 +337,21 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
     // 2. Csak a látható, szerkeszthető és módosult mezők kerülnek a mentésbe.
     //    Rejtett mező értékét soha nem küldjük el, mert felülírná a szerveroldali értéket.
     const changed: FormValues = {};
+    //    A mellékletek nem mezőérték: külön, az elem mentése után kerülnek fel.
     editableFields.forEach((field) => {
+      if (field.schema.TypeAsString === ATTACHMENTS_FIELD) {
+        return;
+      }
       const current: string = values[field.name] ?? '';
       if (current !== (loaded.original[field.name] ?? '')) {
         changed[field.name] = current;
       }
     });
-    if (mode === 'edit' && Object.keys(changed).length === 0) {
+    const attachmentsEditable: boolean = editableFields.some((field) => field.schema.TypeAsString === ATTACHMENTS_FIELD);
+    const attachmentsChanged: boolean =
+      attachmentsEditable && (attachments.added.length > 0 || attachments.removed.length > 0);
+    const fieldsChanged: boolean = Object.keys(changed).length > 0;
+    if (mode === 'edit' && !fieldsChanged && !attachmentsChanged) {
       props.onClosed();
       return;
     }
@@ -296,7 +359,7 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
     setSaving(true);
     try {
       // 3. Ütközésvizsgálat Edit módban.
-      if (mode === 'edit' && itemId !== undefined && !overwrite) {
+      if (mode === 'edit' && itemId !== undefined && !overwrite && fieldsChanged) {
         const currentModified: string = await ItemService.getModified(listId, itemId);
         if (currentModified !== loaded.modified) {
           setConflict(true);
@@ -304,16 +367,19 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
         }
       }
 
-      // 4. Mentés.
-      const result: ItemService.ISaveResult = await ItemService.save(
-        {
-          listId,
-          itemId: mode === 'edit' ? itemId : undefined,
-          contentTypeId: loaded.contentTypeId,
-          folderPath: props.folderPath
-        },
-        changed
-      );
+      // 4. Mentés. Szerkesztésnél, ha csak a mellékletek változtak, az elemet nem írjuk.
+      const result: ItemService.ISaveResult =
+        mode === 'edit' && !fieldsChanged
+          ? { itemId, errors: {} }
+          : await ItemService.save(
+              {
+                listId,
+                itemId: mode === 'edit' ? itemId : undefined,
+                contentTypeId: loaded.contentTypeId,
+                folderPath: props.folderPath
+              },
+              changed
+            );
 
       // 5. Mezőnkénti hibák a mezők alá, a nem látható mezők hibái a felső üzenetsávba.
       const failed: string[] = Object.keys(result.errors);
@@ -332,7 +398,16 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
         return;
       }
 
-      // 6. TODO: mellékletek feltöltése (result.itemId) a formSaved() előtt.
+      // 6. Mellékletek a mentett elemhez. Hiba esetén a form nyitva marad, és a Mentés csak ezt próbálja újra.
+      if (attachmentsChanged) {
+        if (result.itemId === undefined) {
+          setTopErrors([format(strings.AttachmentsFailed, attachments.added.map((file) => file.name).join(', '))]);
+          return;
+        }
+        if (!(await syncAttachments(result.itemId))) {
+          return;
+        }
+      }
       props.onSaved();
     } catch (e) {
       setTopErrors([errorText(e, TEXT.saveFailed)]);
@@ -507,7 +582,8 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
             <DefaultButton
               text={mode === 'display' ? TEXT.close : TEXT.cancel}
               disabled={saving}
-              onClick={props.onClosed}
+              // Ha az elem már mentve van (csak a mellékletek hibáztak), a bezárás mentettként jelez vissza.
+              onClick={attachmentRetryId !== undefined ? props.onSaved : props.onClosed}
             />
           </div>
         </>

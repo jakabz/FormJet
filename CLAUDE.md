@@ -35,6 +35,7 @@ src/extensions/formJet/
   FormJetFormCustomizer.ts   SPFx belépési pont: mód, lista, elem → FormHost; formSaved()/formClosed()
   models/                    IFormConfig (konfigurációs séma), IFieldSchema (mezőséma, FormValues, FieldErrors)
   engine/                    TISZTA LOGIKA, SharePoint és React nélkül
+    Attachments.ts           mellékletek: a pszeudo-mező neve, fájlnevek ellenőrzése
     ConditionEngine.ts       visibleWhen / readOnlyWhen / requiredWhen kiértékelése
     DateFormat.ts            DateTime form-string ↔ Date a web kultúrája szerint
     FormStyle.ts             stílus: ellenőrzés (hex szín, színátmenet, számtartomány, felsorolt értékek), módonkénti feloldás, háttér CSS
@@ -48,7 +49,8 @@ src/extensions/formJet/
   services/                  PnPjs v4 hívások, csak itt van SharePoint kommunikáció
     sp.ts                    getSP() – a PnPjs példány; getSP(context) az onInit-ben
     PermissionService.ts     admin-e (site admin vagy Manage Web)
-    SchemaService.ts         tartalomtípus mezői (rejtett és Computed mezők nélkül), tartalomtípus feloldása New módban
+    SchemaService.ts         tartalomtípus mezői (rejtett és Computed mezők nélkül, + `Attachments` pszeudo-mező), tartalomtípus feloldása New módban
+    AttachmentService.ts     mellékletek listázása, feltöltése és törlése (lomtárba), egymás után futtatva
     ConfigService.ts         konfiguráció olvasása / mentése ETag-gel (412 → ConfigConflictError)
     LookupService.ts         a keresőmező választható elemei a hivatkozott listából (gyorsítótárazva)
     PeopleService.ts         személyek és csoportok keresése (clientPeoplePickerSearchUser)
@@ -59,6 +61,7 @@ src/extensions/formJet/
     FormHost.tsx             állapot, betöltés, mentés, ütközéskezelés, tervező mód kapcsoló
     FormRenderer.tsx         szekciók és rács; a tervező előnézete is ezt használja
     FieldRenderer.tsx        mezőtípus → vezérlő
+    AttachmentsField.tsx     mellékletek: fájlok listája, hozzáadás, törlés; a változások mentéskor hajtódnak végre
     DateTimeField.tsx        DateTime mező: Fluent DatePicker (+ TimePicker, ha a mező időt is tárol)
     LookupField.tsx          Lookup mező: Fluent Dropdown; LookupMulti: jelölőnégyzetes lista vagy lenyíló lista (`lookupDisplay`)
     PeopleField.tsx          User / UserMulti mező: Fluent NormalPeoplePicker a SharePoint névkeresőjével
@@ -66,7 +69,7 @@ src/extensions/formJet/
     RichTextField.tsx        rich text Note mező: TipTap szerkesztő Fluent eszköztárral (lazy chunk)
     RelatedItems.tsx         kapcsolódó elemek szekció: csak olvasható táblázat egy másik listából
     RelatedListEditor.tsx    a tervező szekciókártyájának „Kapcsolódó elemek” beállításai
-    FormContext.ts           React context: a web kultúrája, a felület nyelve, az elem azonosítója és mentett értékei
+    FormContext.ts           React context: a web kultúrája, a felület nyelve, az elem azonosítója, mentett értékei és a mellékletek állapota
     DesignerPanel.tsx        admin tervező (Elrendezés / Mező / Stílus / JSON fülek)
     StylePanel.tsx           a tervező Stílus füle: form, szekció és mező stílusa módonként
 scripts/Provision-FormJet.ps1  konfigurációs lista + tartalomtípus bekötés
@@ -90,6 +93,7 @@ Rétegszabályok:
 
 7. **A stílus strukturált, nem szabad CSS.** A konfiguráció `style` részeibe csak a `FormStyle.ts` specifikációjában szereplő tulajdonság kerülhet; a szín kizárólag hex érték, a színátmenet ellenőrzött részekből (típus, szög, két hex szín) áll össze a `backgroundCss`-ben. Szabad CSS mezőt, `url()`-t vagy tetszőleges CSS értéket ne engedj be egyeztetés nélkül.
 8. **A kapcsolódó elemek csak olvashatók.** A `related` szekció egy másik lista elemeit listázza, de nem ír bele; a kapcsolódó elemek formon belüli szerkesztése vagy mentése egyeztetést igényel. A CAML lekérdezésbe kerülő mezőnevek csak belső névnek megfelelő értékek lehetnek (`RelatedList.ts`).
+9. **A mellékletek pszeudo-mezőként működnek, és az elem mentése után kerülnek fel.** Az `Attachments` a sémában mezőként szerepel (ha a listán engedélyezve van), így bármelyik szekcióba elhelyezhető, de értéke nem form-string, és soha nem kerül a `changed` objektumba. Ha az elem mentése sikerült, de egy melléklet művelete nem, a form nyitva marad, és a Mentés már csak a mellékleteket próbálja újra (`attachmentRetryId`) – új elemnél így nem jön létre másolat. Ezt a sorrendet ne változtasd meg egyeztetés nélkül.
 
 ## Konfigurációs séma
 
@@ -132,6 +136,5 @@ A típusok forrása: `models/IFormConfig.ts`. Példa: `samples/config-example.js
 ## Nyitott feladatok
 
 - Managed metadata / Location / Image mezők bekötése a `FieldRenderer`-ben.
-- Mellékletek feltöltése mentés után (`FormHost.save` TODO).
 - Drag & drop a tervezőben (`@dnd-kit/core`, `@dnd-kit/sortable`), vizuális feltételszerkesztő.
 - Jest egységtesztek az `engine/` modulokra.

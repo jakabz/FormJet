@@ -3,6 +3,19 @@
 import * as React from 'react';
 
 import { FormValues } from '../models/IFieldSchema';
+import { IAttachmentFile } from '../services/AttachmentService';
+
+/** A mellékletek állapota a formon; a változások a form mentésekor hajtódnak végre. */
+export interface IAttachmentsState {
+  /** Az elemhez már feltöltött fájlok. */
+  existing: IAttachmentFile[];
+  /** Hozzáadásra váró fájlok. */
+  added: File[];
+  /** A meglévők közül törlésre jelölt fájlok neve. */
+  removed: string[];
+}
+
+export const EMPTY_ATTACHMENTS: IAttachmentsState = { existing: [], added: [], removed: [] };
 
 export interface IFormContext {
   /** A web területi beállításainak kultúrája (pl. hu-HU): a dátum form-string formátumát határozza meg. */
@@ -13,10 +26,14 @@ export interface IFormContext {
   itemId?: number;
   /** Az elem betöltéskori (mentett) form-string értékei: a kapcsolódó elemek párosításának alapja. */
   sourceValues: FormValues;
+  attachments: IAttachmentsState;
+  setAttachments: (next: IAttachmentsState) => void;
 }
 
 export const FormContext: React.Context<IFormContext> = React.createContext<IFormContext>({
   cultureName: 'en-US',
   uiCultureName: 'en-US',
-  sourceValues: {}
+  sourceValues: {},
+  attachments: EMPTY_ATTACHMENTS,
+  setAttachments: () => undefined
 });

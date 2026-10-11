@@ -130,7 +130,8 @@ A generált `config/serve.json` Form Customizer konfigurációját állítsd a t
 3. Edit módban ütközésvizsgálat: ha a `Modified` megváltozott, a felhasználó felülírhat vagy újratölthet.
 4. `ItemService.save`: Edit módban `validateUpdateListItem`, New módban `addValidateUpdateItemUsingPath` a tartalomtípussal.
 5. Mezőnkénti hibák a mezők alá kerülnek; a nem látható mezők hibái a felső üzenetsávba.
-6. Siker esetén `formSaved()`. A mellékletek feltöltése ide fog kerülni (TODO).
+6. A mellékletek törlése és feltöltése a mentett elemhez (`AttachmentService.sync`); részleges hibánál a form nyitva marad.
+7. Siker esetén `formSaved()`.
 
 ### Tervező
 
@@ -178,6 +179,7 @@ A tartalomtípus mezői közül a rejtett és a számított megjelenítő (`Comp
 | `requiredIn` | `FormMode[]` | egyik sem | Kötelezőség módonként. **Csak szigorít.** |
 | `visibleWhen`, `readOnlyWhen`, `requiredWhen` | `Condition` | – | Feltételes változatok. |
 | `defaultValue` | string | – | Kezdőérték New módban, form-string formátumban. Dátum mezőnél `[today]`, ISO dátum vagy a web formátuma szerinti dátum is megadható. |
+| `attachmentsDisplay` | `'list'` \| `'compact'` | `list` | A mellékletek megjelenítése: soronként egy fájl, vagy tömören, egymás mellett. Csak az `Attachments` mezőnél. |
 | `lookupDisplay` | `'auto'` \| `'checklist'` \| `'dropdown'` | `auto` | Többértékű keresőmező megjelenítése: mindig nyitott jelölőnégyzetes lista vagy lenyíló lista. `auto`: legfeljebb 8 választható elemnél jelölőnégyzetes lista, efelett lenyíló. |
 
 Egy mező akkor látszik, ha a szekciója látszik, **és** a mező `visibleIn`, **és** `visibleWhen` feltétele is teljesül. Ami nincs egyetlen szekcióban sem, az nem jelenik meg.
@@ -278,6 +280,19 @@ Tudnivalók:
 - A mezőnevek a CAML lekérdezésbe kerülnek, ezért a `parseConfig` csak belső névnek megfelelő értéket fogad el, a `listId` pedig csak GUID lehet.
 
 A logika az `engine/RelatedList.ts`-ben (ellenőrzés, `buildRelatedViewXml`), a lekérdezés a `services/RelatedListService.ts`-ben, a megjelenítés a `components/RelatedItems.tsx`-ben van. A tervezőben a szekció kártyáján, a „Kapcsolódó elemek megjelenítése egy másik listából” jelölővel állítható be.
+
+### Mellékletek
+
+Ha a listán engedélyezve vannak a mellékletek, a séma végére egy `Attachments` nevű és típusú pszeudo-mező kerül (`SchemaService.getFields`). Mezőként viselkedik: a tervezőben bármelyik szekcióba elhelyezhető, kaphat címkét, leírást, szélességet, stílust, módonkénti láthatóságot, csak olvasható és kötelező beállítást, feltételeket.
+
+- **Megjelenítés:** a mező `attachmentsDisplay` beállítása szerint lista vagy tömör (egymás melletti) elrendezés. A meglévő fájlok hivatkozásként új lapon nyílnak.
+- **Állapot:** a hozzáadott és törlésre jelölt fájlokat a `FormHost` tartja (`IAttachmentsState`), a vezérlő a `FormContext`-en keresztül éri el. A SharePointba csak a form mentésekor kerülnek.
+- **Mentés sorrendje:** előbb az elem (`ItemService.save`), utána a mellékletek (`AttachmentService.sync`): törlések, majd feltöltések, egymás után. Szerkesztésnél, ha csak a mellékletek változtak, az elem nem íródik, és ütközésvizsgálat sincs.
+- **Részleges hiba:** ha az elem mentése sikerült, de egy melléklet művelete nem, a form nyitva marad a hibás fájlok nevével. A Mentés ilyenkor csak a sikertelen mellékleteket próbálja újra (új elemnél nem hoz létre másolatot), a Mégse a formot mentettként zárja be.
+- **Törlés:** a fájl a webhely lomtárába kerül.
+- **Kötelezőség:** kötelezőnek állítva legalább egy mellékletnek lennie kell (a törlésre jelöltek nem számítanak).
+- **Ellenőrzés hozzáadáskor** (`engine/Attachments.ts`): nem megengedett karakter a névben, már létező név, üres fájl.
+- **A korábban mentett elrendezésekben** a mellékletek nem jelennek meg maguktól: a tervező „nem elhelyezett mezők” között találhatók, és onnan kell szekcióba tenni. Az alapértelmezett (mentetlen) elrendezés végén automatikusan szerepelnek.
 
 ### Feltételek
 

@@ -26,6 +26,18 @@ declare interface IFormJetFormCustomizerStrings {
   UrlAddressPlaceholder: string;
   UrlDescription: string;
   UrlInvalid: string;
+  Attachments: string;
+  AttachmentsNone: string;
+  AttachmentAdd: string;
+  AttachmentRemove: string;
+  AttachmentPending: string;
+  AttachmentDuplicate: string;
+  AttachmentInvalidName: string;
+  AttachmentEmpty: string;
+  AttachmentsFailed: string;
+  AttachmentsDisplay: string;
+  AttachmentsDisplayList: string;
+  AttachmentsDisplayCompact: string;
   RteBold: string;
   RteItalic: string;
   RteUnderline: string;

@@ -11,11 +11,13 @@ import { mergeStyleSets } from '@fluentui/react/lib/Styling';
 
 import * as strings from 'FormJetFormCustomizerStrings';
 
+import { ATTACHMENTS_FIELD } from '../engine/Attachments';
 import { joinMultiValue, splitMultiValue } from '../engine/ConditionEngine';
 import { IResolvedField } from '../engine/LayoutResolver';
 import { getCurrencyAffix, ICurrencyAffix } from '../engine/NumberFormat';
 import { formatUserValue } from '../engine/UserValue';
 import { IFieldSchema } from '../models/IFieldSchema';
+import { AttachmentsField } from './AttachmentsField';
 import { DateTimeField } from './DateTimeField';
 import { LookupField } from './LookupField';
 import { PeopleField } from './PeopleField';
@@ -123,6 +125,16 @@ export const FieldRenderer: React.FC<IFieldRendererProps> = (props) => {
       <div>
         <LookupField field={field} value={value} onChange={set} />
         {footer}
+      </div>
+    );
+  }
+
+  // Mellékletek: nem form-string érték; szerkesztve és csak olvashatóként is a saját vezérlője jeleníti meg.
+  if (schema.TypeAsString === ATTACHMENTS_FIELD) {
+    return (
+      <div>
+        <AttachmentsField field={field} error={error} />
+        {description && <div className={classes.description}>{description}</div>}
       </div>
     );
   }

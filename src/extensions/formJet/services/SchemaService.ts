@@ -2,12 +2,14 @@
 
 import * as strings from 'FormJetFormCustomizerStrings';
 
+import { ATTACHMENTS_FIELD } from '../engine/Attachments';
 import { normalizeLookupListId } from '../engine/LookupValue';
 import { IFieldSchema } from '../models/IFieldSchema';
+import * as AttachmentService from './AttachmentService';
 import { getSP } from './sp';
 
 /** Mezők, amelyeket a form nem kezel mezőként. */
-const EXCLUDED_FIELDS: string[] = ['ContentType', 'Attachments'];
+const EXCLUDED_FIELDS: string[] = ['ContentType', ATTACHMENTS_FIELD];
 
 /** Számított megjelenítő mezők (pl. LinkTitle): nem szerkeszthetők, és saját értékük sincs. */
 const EXCLUDED_TYPES: string[] = ['Computed'];
@@ -71,12 +73,14 @@ export async function resolveContentTypeId(listId: string, contentTypeId: string
 }
 
 export async function getFields(listId: string, contentTypeId: string): Promise<IFieldSchema[]> {
-  const raw = (await getSP()
-    .web.lists.getById(listId)
-    .contentTypes.getById(contentTypeId)
-    .fields.filter('Hidden eq false')()) as IRawField[];
+  const [raw, attachmentsEnabled] = await Promise.all([
+    getSP().web.lists.getById(listId).contentTypes.getById(contentTypeId).fields.filter('Hidden eq false')() as Promise<
+      IRawField[]
+    >,
+    AttachmentService.isEnabled(listId).catch(() => false)
+  ]);
 
-  return raw
+  const fields: IFieldSchema[] = raw
     .filter(
       (field) =>
         !field.Hidden &&
@@ -105,4 +109,17 @@ export async function getFields(listId: string, contentTypeId: string): Promise<
       CurrencyLocaleId: field.TypeAsString === 'Currency' ? field.CurrencyLocaleId : undefined,
       UrlImage: field.TypeAsString === 'URL' && field.DisplayFormat === 1 ? true : undefined
     }));
+
+  // A mellékletek pszeudo-mezőként szerepelnek a sémában, így a tervezőben bármelyik szekcióba elhelyezhetők.
+  if (attachmentsEnabled) {
+    const rawAttachments: IRawField | undefined = raw.filter((field) => field.InternalName === ATTACHMENTS_FIELD)[0];
+    fields.push({
+      InternalName: ATTACHMENTS_FIELD,
+      Title: rawAttachments?.Title || strings.Attachments,
+      TypeAsString: ATTACHMENTS_FIELD,
+      Required: false,
+      ReadOnlyField: false
+    });
+  }
+  return fields;
 }

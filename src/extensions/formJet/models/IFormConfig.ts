@@ -44,6 +44,10 @@ export const LOOKUP_DISPLAYS: LookupDisplay[] = ['auto', 'checklist', 'dropdown'
 /** `auto` módban eddig az elemszámig jelenik meg jelölőnégyzetes lista. */
 export const LOOKUP_CHECKLIST_MAX: number = 8;
 
+/** A mellékletek megjelenítése: soronként egy fájl, vagy tömören, egymás mellett. */
+export type AttachmentsDisplay = 'list' | 'compact';
+export const ATTACHMENTS_DISPLAYS: AttachmentsDisplay[] = ['list', 'compact'];
+
 export type Density = 'comfortable' | 'compact';
 export const DENSITIES: Density[] = ['comfortable', 'compact'];
 
@@ -164,6 +168,8 @@ export interface IFieldConfig {
   defaultValue?: string;
   /** Többértékű keresőmező megjelenítése. Hiányában `auto`. */
   lookupDisplay?: LookupDisplay;
+  /** A mellékletek megjelenítése. Hiányában `list`. */
+  attachmentsDisplay?: AttachmentsDisplay;
   style?: IModeStyles<IFieldStyle>;
 }
 

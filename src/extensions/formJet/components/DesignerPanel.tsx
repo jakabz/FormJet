@@ -14,11 +14,13 @@ import { mergeStyleSets } from '@fluentui/react/lib/Styling';
 
 import * as strings from 'FormJetFormCustomizerStrings';
 
+import { ATTACHMENTS_FIELD } from '../engine/Attachments';
 import { validateCondition } from '../engine/ConditionEngine';
 import { format } from '../engine/EngineStrings';
 import { parseConfig, unplacedFields } from '../engine/LayoutResolver';
 import { IFieldSchema } from '../models/IFieldSchema';
 import {
+  AttachmentsDisplay,
   Condition,
   FORM_MODES,
   FormMode,
@@ -426,6 +428,22 @@ export const DesignerPanel: React.FC<IDesignerPanelProps> = (props) => {
               value={config.defaultValue ?? ''}
               onChange={(_, v) => updateField(selectedField, { defaultValue: v })}
             />
+            {fieldSchema.TypeAsString === ATTACHMENTS_FIELD && (
+              <Dropdown
+                label={strings.AttachmentsDisplay}
+                options={[
+                  { key: 'list', text: strings.AttachmentsDisplayList },
+                  { key: 'compact', text: strings.AttachmentsDisplayCompact }
+                ]}
+                selectedKey={config.attachmentsDisplay ?? 'list'}
+                onChange={(_, option) =>
+                  option &&
+                  updateField(selectedField, {
+                    attachmentsDisplay: option.key === 'list' ? undefined : (option.key as AttachmentsDisplay)
+                  })
+                }
+              />
+            )}
             {fieldSchema.TypeAsString === 'LookupMulti' && (
               <Dropdown
                 label={strings.LookupDisplay}

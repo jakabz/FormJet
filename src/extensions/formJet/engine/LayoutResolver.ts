@@ -2,6 +2,8 @@
 // Tiszta logika: nem importálhat services/-ből, components/-ből, @pnp/*-ból vagy @microsoft/*-ból.
 
 import {
+  ATTACHMENTS_DISPLAYS,
+  AttachmentsDisplay,
   CONFIG_SCHEMA_VERSION,
   FORM_MODES,
   FormMode,
@@ -25,7 +27,7 @@ import { isRelatedComplete, parseRelated } from './RelatedList';
 import { parseFieldStyles, parseFormStyles, parseSectionStyles, resolveModeStyle } from './FormStyle';
 
 /** Mezőtípusok, amelyekhez a FieldRenderer szerkesztő vezérlőt ad. A többi csak olvasható. */
-const EDITABLE_TYPES: string[] = ['Text', 'Note', 'Number', 'Currency', 'Choice', 'MultiChoice', 'Boolean', 'DateTime', 'User', 'UserMulti', 'URL'];
+const EDITABLE_TYPES: string[] = ['Text', 'Note', 'Number', 'Currency', 'Choice', 'MultiChoice', 'Boolean', 'DateTime', 'User', 'UserMulti', 'URL', 'Attachments'];
 
 /** Típusok, amelyeknél a séma DefaultValue-ja New módban kezdőértékként használható. */
 const SCHEMA_DEFAULT_TYPES: string[] = ['Text', 'Note', 'Number', 'Currency', 'Choice', 'MultiChoice', 'Boolean'];
@@ -40,6 +42,8 @@ export interface IResolvedField {
   placeholder?: string;
   /** Többértékű keresőmező megjelenítése. */
   lookupDisplay: LookupDisplay;
+  /** A mellékletek megjelenítése. */
+  attachmentsDisplay: AttachmentsDisplay;
   colSpan: number;
   /** A szekció láthatóságát is tartalmazza. */
   visible: boolean;
@@ -158,6 +162,7 @@ export function resolveForm(
         description: fieldConfig.description ?? fieldSchema.Description,
         placeholder: fieldConfig.placeholder,
         lookupDisplay: fieldConfig.lookupDisplay ?? 'auto',
+        attachmentsDisplay: fieldConfig.attachmentsDisplay ?? 'list',
         colSpan: Math.min(clampColumns(placement.colSpan), columns),
         visible,
         readOnly,
@@ -371,6 +376,14 @@ function parseFieldConfig(input: unknown, name: string): IFieldConfig {
   if (description !== undefined) field.description = description;
   if (placeholder !== undefined) field.placeholder = placeholder;
   if (defaultValue !== undefined) field.defaultValue = defaultValue;
+  if (input.attachmentsDisplay !== undefined) {
+    if (ATTACHMENTS_DISPLAYS.indexOf(input.attachmentsDisplay as AttachmentsDisplay) === -1) {
+      throw new Error(
+        format(engineStrings().InvalidOption, `${path}.attachmentsDisplay`, ATTACHMENTS_DISPLAYS.join(', '))
+      );
+    }
+    if (input.attachmentsDisplay !== 'list') field.attachmentsDisplay = input.attachmentsDisplay as AttachmentsDisplay;
+  }
   if (input.lookupDisplay !== undefined) {
     if (LOOKUP_DISPLAYS.indexOf(input.lookupDisplay as LookupDisplay) === -1) {
       throw new Error(format(engineStrings().InvalidOption, `${path}.lookupDisplay`, LOOKUP_DISPLAYS.join(', ')));
