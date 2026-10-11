@@ -37,7 +37,7 @@ src/extensions/formJet/
   FormJetFormCustomizer.ts   SPFx belépési pont: mód, lista, elem → FormHost; formSaved()/formClosed()
   models/                    IFormConfig (konfigurációs séma), IFieldSchema (mezőséma, FormValues, FieldErrors)
   engine/                    TISZTA LOGIKA, SharePoint és React nélkül
-    Attachments.ts           mellékletek: a pszeudo-mező neve, fájlnevek ellenőrzése
+    Attachments.ts           mellékletek: a pszeudo-mező neve, fájlnevek ellenőrzése, képfájl felismerése, fájlméret formázása
     ConditionEngine.ts       visibleWhen / readOnlyWhen / requiredWhen kiértékelése
     DateFormat.ts            DateTime form-string ↔ Date a web kultúrája szerint
     FormStyle.ts             stílus: ellenőrzés (hex szín, színátmenet, számtartomány, felsorolt értékek), módonkénti feloldás, háttér CSS
@@ -50,13 +50,14 @@ src/extensions/formJet/
     UrlValue.ts              URL mező form-string (`cím, leírás`) értelmezése és előállítása; biztonságos cím ellenőrzése
     UserValue.ts             User / UserMulti form-string (JSON tömb `Key`-jel) értelmezése és előállítása
     EngineStrings.ts         a motor üzenetei (alapból angol; az onInit a loc `Engine` részét adja át) + format()
+    LayoutMoves.ts           a tervező húzd-és-ejtsd műveletei: szekció és mező áthelyezése, új mező felvétele a konfiguráción
     LayoutResolver.ts        séma + konfig + mód + értékek → IResolvedForm; alapértelmezett konfig; parseConfig
     tests/                   Jest egységtesztek a motor moduljaira (`*.test.ts`) + `helpers.ts`
   services/                  PnPjs v4 hívások, csak itt van SharePoint és egyéb hálózati kommunikáció
     sp.ts                    getSP() – a PnPjs példány; getSP(context) az onInit-ben; getAadToken() nem SharePoint hívásokhoz
     PermissionService.ts     admin-e (site admin vagy Manage Web)
     SchemaService.ts         tartalomtípus mezői (rejtett és Computed mezők nélkül, + `Attachments` pszeudo-mező), tartalomtípus feloldása New módban
-    AttachmentService.ts     mellékletek listázása, feltöltése és törlése (lomtárba), egymás után futtatva
+    AttachmentService.ts     mellékletek listázása (mérettel), feltöltése és törlése (lomtárba), egymás után futtatva
     ConfigService.ts         konfiguráció olvasása / mentése ETag-gel (412 → ConfigConflictError)
     LocationService.ts       helykeresés a Microsoft 365 helykeresőjével (Outlook végpont, AAD tokennel – nem PnPjs)
     LookupService.ts         a keresőmező választható elemei a hivatkozott listából (gyorsítótárazva)
@@ -68,9 +69,10 @@ src/extensions/formJet/
   loc/                       en-us.js, hu-hu.js, myStrings.d.ts – minden felhasználói szöveg
   components/                React + Fluent UI v8
     FormHost.tsx             állapot, betöltés, mentés, ütközéskezelés, tervező mód kapcsoló
-    FormRenderer.tsx         szekciók és rács; a tervező előnézete is ezt használja
+    FormRenderer.tsx         szekciók és rács; a tervező előnézete is ezt használja (a `slots` propon át becsomagolva)
+    DesignCanvas.tsx         a tervező húzd-és-ejtsd felülete: áthelyezhető előnézet + a nem elhelyezett mezők behúzható listája (dnd-kit, lazy chunk)
     FieldRenderer.tsx        mezőtípus → vezérlő
-    AttachmentsField.tsx     mellékletek: fájlok listája, hozzáadás, törlés; a változások mentéskor hajtódnak végre
+    AttachmentsField.tsx     mellékletek: fájlok listája miniatűrrel és mérettel, hozzáadás (fájlválasztó vagy ráhúzás), törlés; a változások mentéskor hajtódnak végre
     DateTimeField.tsx        DateTime mező: Fluent DatePicker (+ TimePicker, ha a mező időt is tárol)
     ImageField.tsx           kép (Thumbnail) mező: előnézet, kiválasztás, csere, törlés; a feltöltés mentéskor történik
     LocationField.tsx        Location mező: Fluent TagPicker helykereséssel; a beírt szöveg egyéni helyként is menthető
@@ -92,7 +94,7 @@ Rétegszabályok:
 
 - Az `engine/` nem importálhat `services/`-ből, `components/`-ből, `@pnp/*`-ból vagy `@microsoft/*`-ból.
 - A `components/` közvetlenül nem hív PnPjs-t, csak `services/`-en keresztül.
-- A tervező és a felhasználói form **ugyanazt** a `FormRenderer`-t használja. Ne készíts külön előnézeti renderelőt.
+- A tervező és a felhasználói form **ugyanazt** a `FormRenderer`-t használja. Ne készíts külön előnézeti renderelőt. A húzd-és-ejtsd a `FormRenderer` `slots` propján keresztül csomagolja be a szekciókat és a cellákat (`DesignCanvas`); a `FormRenderer` maga nem importálhatja a dnd-kitet.
 
 ## Kulcsdöntések – ezeket ne írd felül egyeztetés nélkül
 
@@ -137,6 +139,7 @@ A típusok forrása: `models/IFormConfig.ts`. Példa: `samples/config-example.js
 - PnPjs v4: a lekérdezés hívható (`list.items.getById(id).select(...)()`), az `items.add` közvetlenül az adatot adja vissza.
 - Dátumválasztó: Fluent UI v8 `DatePicker` és `TimePicker` (`components/DateTimeField.tsx`); ne vezess be külön dátumkönyvtárat. A naptár nevei a felület nyelvét követik (`engine/DateFormat.ts`, `Intl`), új nyelvhez nem kell külön import.
 - Személyválasztó: Fluent UI v8 `NormalPeoplePicker` + `PeopleService` (`components/PeopleField.tsx`). A `@pnp/spfx-controls-react` csomagot ne vezesd be egyeztetés nélkül: nagy, és saját Fluent verziót hoz.
+- Húzd-és-ejtsd: `@dnd-kit/core` + `@dnd-kit/sortable`, csak a `DesignCanvas.tsx`-ben, amelyet a `FormHost` `React.lazy`-vel tölt be (a dnd-kit ne kerüljön a fő csomagba). A `DesignerPanel` sem importálhatja: a behúzható mezőlistát a `DesignCanvas` adja át neki kész elemként (`unplacedPalette`). Az áthelyezés logikája tiszta függvényekben van (`engine/LayoutMoves.ts`), tesztekkel.
 - Rich text szerkesztő: TipTap v3 (`components/RichTextField.tsx`), csak a rich text Note mezőknél; a sima szöveges Note `TextField` marad. A `FieldRenderer` `React.lazy`-vel tölti be, a TipTap ne kerüljön a fő csomagba. A HTML-t mindig a TipTap sémája értelmezze, `dangerouslySetInnerHTML`-t ne használj. A `@tiptap/*` csomagok verziója legyen azonos.
 - React 17 (`ReactDOM.render`). React 18-ra váltás csak az SPFx verzióval együtt.
 - Felhasználónak szóló szöveget ne írj a kódba. Új szöveg: kulcs a `loc/myStrings.d.ts`-be, és **mindkét** nyelvi fájlba (`en-us.js`, `hu-hu.js`); használat: `import * as strings from 'FormJetFormCustomizerStrings'`. Paraméterezés `{0}` helyőrzővel és a `format()` függvénnyel.
@@ -150,4 +153,4 @@ A típusok forrása: `models/IFormConfig.ts`. Példa: `samples/config-example.js
 
 ## Nyitott feladatok
 
-- Drag & drop a tervezőben (`@dnd-kit/core`, `@dnd-kit/sortable`), vizuális feltételszerkesztő.
+- Vizuális feltételszerkesztő a tervezőben (a feltételek ma JSON-ként szerkeszthetők).

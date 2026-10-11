@@ -32,7 +32,10 @@ import * as PermissionService from '../services/PermissionService';
 import * as SchemaService from '../services/SchemaService';
 import { DesignerPanel, DesignerTab } from './DesignerPanel';
 import { EMPTY_ATTACHMENTS, FormContext, IAttachmentsState, IFormContext } from './FormContext';
-import { FormRenderer } from './FormRenderer';
+import { FormRenderer, IFormRendererProps } from './FormRenderer';
+
+// A húzd-és-ejtsd előnézet csak a tervezőben kell; külön csomagrészként töltődik be.
+const DesignCanvas = React.lazy(() => import(/* webpackChunkName: 'formjet-designer' */ './DesignCanvas'));
 
 const TEXT = {
   loading: strings.Loading,
@@ -543,25 +546,68 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
 
   const designing: boolean = draft !== undefined;
 
+  const rendererProps: IFormRendererProps = {
+    form: resolved,
+    values,
+    displayValues,
+    errors,
+    onChange: onFieldChange,
+    showHidden: designing,
+    selectedField: designing ? selectedField : undefined,
+    onFieldSelect: designing
+      ? (name) => {
+          setSelectedField(name);
+          setDesignerTab('field');
+        }
+      : undefined
+  };
+  /** A tervező elrendezése: balra az előnézet, jobbra a tervező panel. */
+  const renderDesignLayout = (
+    activeDraft: IFormConfig,
+    preview: JSX.Element,
+    unplacedPalette: React.ReactNode
+  ): JSX.Element => (
+    <div className={classes.designLayout}>
+      <div className={classes.preview}>
+        <Dropdown
+          label={TEXT.previewMode}
+          options={PREVIEW_OPTIONS}
+          selectedKey={previewMode}
+          styles={{ root: { maxWidth: 240, marginBottom: 16 } }}
+          onChange={(_, option) => option && setPreviewMode(option.key as FormMode)}
+        />
+        {preview}
+      </div>
+      <div className={classes.panel}>
+        <div className={classes.panelInner}>
+          <div className={classes.panelScroll}>
+            <DesignerPanel
+              draft={activeDraft}
+              schema={loaded.schema}
+              tab={designerTab}
+              onTabChange={setDesignerTab}
+              selectedField={selectedField}
+              onSelectField={setSelectedField}
+              onChange={setDraft}
+              unplacedPalette={unplacedPalette}
+            />
+          </div>
+          <div className={classes.panelActions}>
+            <PrimaryButton
+              text={TEXT.designerSave}
+              disabled={saving}
+              onClick={() => saveDesign().catch(() => undefined)}
+            />
+            <DefaultButton text={TEXT.cancel} disabled={saving} onClick={cancelDesign} />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   const renderer: JSX.Element = (
     <FormContext.Provider value={formContext}>
-      <FormRenderer
-        form={resolved}
-        values={values}
-        displayValues={displayValues}
-        errors={errors}
-        onChange={onFieldChange}
-        showHidden={designing}
-        selectedField={designing ? selectedField : undefined}
-        onFieldSelect={
-          designing
-            ? (name) => {
-                setSelectedField(name);
-                setDesignerTab('field');
-              }
-            : undefined
-        }
-      />
+      <FormRenderer {...rendererProps} />
     </FormContext.Provider>
   );
 
@@ -600,41 +646,14 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
       </div>
 
       {designing && draft ? (
-        <div className={classes.designLayout}>
-          <div className={classes.preview}>
-            <Dropdown
-              label={TEXT.previewMode}
-              options={PREVIEW_OPTIONS}
-              selectedKey={previewMode}
-              styles={{ root: { maxWidth: 240, marginBottom: 16 } }}
-              onChange={(_, option) => option && setPreviewMode(option.key as FormMode)}
-            />
-            {renderer}
-          </div>
-          <div className={classes.panel}>
-            <div className={classes.panelInner}>
-              <div className={classes.panelScroll}>
-                <DesignerPanel
-                  draft={draft}
-                  schema={loaded.schema}
-                  tab={designerTab}
-                  onTabChange={setDesignerTab}
-                  selectedField={selectedField}
-                  onSelectField={setSelectedField}
-                  onChange={setDraft}
-                />
-              </div>
-              <div className={classes.panelActions}>
-                <PrimaryButton
-                  text={TEXT.designerSave}
-                  disabled={saving}
-                  onClick={() => saveDesign().catch(() => undefined)}
-                />
-                <DefaultButton text={TEXT.cancel} disabled={saving} onClick={cancelDesign} />
-              </div>
-            </div>
-          </div>
-        </div>
+        <FormContext.Provider value={formContext}>
+          {/* Amíg a húzd-és-ejtsd csomagrész töltődik, a sima előnézet látszik. */}
+          <React.Suspense fallback={renderDesignLayout(draft, <FormRenderer {...rendererProps} />, undefined)}>
+            <DesignCanvas rendererProps={rendererProps} draft={draft} schema={loaded.schema} onChange={setDraft}>
+              {(parts) => renderDesignLayout(draft, parts.preview, parts.palette)}
+            </DesignCanvas>
+          </React.Suspense>
+        </FormContext.Provider>
       ) : (
         <>
           {renderer}

@@ -17,6 +17,10 @@ declare interface IFormJetFormCustomizerStrings {
   Time: string;
   InvalidTime: string;
   HiddenTag: string;
+  DesignDragField: string;
+  DesignDragSection: string;
+  DesignDropHere: string;
+  DesignPaletteHint: string;
   PeoplePlaceholder: string;
   PeopleNoResults: string;
   PeopleSearchFailed: string;
@@ -48,6 +52,8 @@ declare interface IFormJetFormCustomizerStrings {
   AttachmentAdd: string;
   AttachmentRemove: string;
   AttachmentPending: string;
+  AttachmentDropHint: string;
+  AttachmentDropActive: string;
   AttachmentDuplicate: string;
   AttachmentInvalidName: string;
   AttachmentEmpty: string;

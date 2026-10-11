@@ -74,6 +74,8 @@ export interface IDesignerPanelProps {
   selectedField?: string;
   onSelectField: (name: string | undefined) => void;
   onChange: (draft: IFormConfig) => void;
+  /** A még el nem helyezett mezők behúzható listája (a húzd-és-ejtsd felülettől); hiányában szöveges felsorolás látszik. */
+  unplacedPalette?: React.ReactNode;
 }
 
 function move<T>(items: T[], from: number, to: number): T[] {
@@ -521,16 +523,20 @@ export const DesignerPanel: React.FC<IDesignerPanelProps> = (props) => {
             value={draft.title ?? ''}
             onChange={(_, v) => props.onChange(compact({ ...draft, title: v }))}
           />
-          {draft.sections.map(renderSection)}
-          <DefaultButton iconProps={{ iconName: 'Add' }} text={strings.NewSection} onClick={addSection} />
           <div>
             <Label>{strings.UnplacedFields}</Label>
-            <div className={classes.hint}>
-              {unplaced.length === 0
-                ? strings.AllFieldsPlaced
-                : format(strings.UnplacedFieldsList, unplaced.map((f) => f.Title).join(', '))}
-            </div>
+            {unplaced.length > 0 && props.unplacedPalette ? (
+              props.unplacedPalette
+            ) : (
+              <div className={classes.hint}>
+                {unplaced.length === 0
+                  ? strings.AllFieldsPlaced
+                  : format(strings.UnplacedFieldsList, unplaced.map((f) => f.Title).join(', '))}
+              </div>
+            )}
           </div>
+          {draft.sections.map(renderSection)}
+          <DefaultButton iconProps={{ iconName: 'Add' }} text={strings.NewSection} onClick={addSection} />
         </div>
       </PivotItem>
       <PivotItem headerText={strings.TabField} itemKey="field">

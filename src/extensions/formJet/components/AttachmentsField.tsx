@@ -1,5 +1,6 @@
-// Mellékletek: a meglévő fájlok listája, hozzáadás és törlés. A változások csak a form mentésekor
-// hajtódnak végre (FormHost.save); addig a FormContext tartja őket.
+// Mellékletek: a meglévő fájlok listája (képeknél miniatűrrel, mérettel), hozzáadás fájlválasztóval vagy
+// a fájlok ráhúzásával, és törlés. A változások csak a form mentésekor hajtódnak végre (FormHost.save);
+// addig a FormContext tartja őket.
 
 import * as React from 'react';
 import { DefaultButton, IconButton } from '@fluentui/react/lib/Button';
@@ -10,22 +11,61 @@ import { mergeStyleSets } from '@fluentui/react/lib/Styling';
 
 import * as strings from 'FormJetFormCustomizerStrings';
 
-import { validateAttachmentName } from '../engine/Attachments';
+import { formatFileSize, isImageFileName, validateAttachmentName } from '../engine/Attachments';
 import { format } from '../engine/EngineStrings';
 import { IResolvedField } from '../engine/LayoutResolver';
+import { getDecimalSeparator } from '../engine/NumberFormat';
 import { FormContext, IAttachmentsState } from './FormContext';
 
+const THUMB_SIZE: number = 40;
+const THUMB_SIZE_COMPACT: number = 20;
+
 const classes = mergeStyleSets({
-  list: { display: 'flex', flexDirection: 'column', gap: 2, margin: '0 0 8px', padding: 0, listStyle: 'none' },
+  // A teljes mező ejtési cél: a keret csak fájl ráhúzásakor látszik.
+  dropArea: { border: '2px dashed transparent', borderRadius: 4, margin: -6, padding: 4 },
+  dropActive: { borderColor: '#0078d4', background: '#eff6fc' },
+  list: { display: 'flex', flexDirection: 'column', gap: 4, margin: '0 0 8px', padding: 0, listStyle: 'none' },
   compact: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  item: { display: 'flex', alignItems: 'center', gap: 6, minHeight: 28, minWidth: 0 },
-  chip: { padding: '0 4px 0 8px', background: '#f3f2f1', borderRadius: 14 },
+  item: { display: 'flex', alignItems: 'center', gap: 8, minHeight: 28, minWidth: 0 },
+  chip: { padding: '2px 4px 2px 6px', background: '#f3f2f1', borderRadius: 14, gap: 6 },
+  thumb: {
+    flexShrink: 0,
+    width: THUMB_SIZE,
+    height: THUMB_SIZE,
+    objectFit: 'cover',
+    border: '1px solid #edebe9',
+    borderRadius: 2,
+    background: '#ffffff'
+  },
+  thumbCompact: { width: THUMB_SIZE_COMPACT, height: THUMB_SIZE_COMPACT, borderRadius: '50%' },
+  icon: { flexShrink: 0, width: THUMB_SIZE, textAlign: 'center', fontSize: 16, color: '#605e5c' },
+  iconCompact: { width: 'auto', fontSize: 14 },
+  text: { display: 'flex', flexDirection: 'column', minWidth: 0 },
+  textCompact: { flexDirection: 'row', alignItems: 'baseline', gap: 6 },
   name: { minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
-  pending: { fontSize: 12, color: '#605e5c', whiteSpace: 'nowrap' },
+  meta: { fontSize: 12, color: '#605e5c', whiteSpace: 'nowrap' },
   empty: { padding: '6px 0', color: '#605e5c' },
+  actions: { display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
   hiddenInput: { display: 'none' },
   error: { fontSize: 12, color: '#a4262c', marginTop: 4 }
 });
+
+/** A még fel nem töltött képfájl miniatűrje helyi (blob) címről. */
+const LocalThumb: React.FC<{ file: File; className: string }> = ({ file, className }) => {
+  const [url, setUrl] = React.useState<string | undefined>();
+  React.useEffect(() => {
+    const objectUrl: string = URL.createObjectURL(file);
+    setUrl(objectUrl);
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [file]);
+  return url ? <img className={className} src={url} alt="" /> : <span className={className} />;
+};
+
+/** Fájlokat húznak-e (és nem például szöveget vagy a tervező egy elemét). */
+function hasFiles(event: React.DragEvent): boolean {
+  const types = event.dataTransfer?.types;
+  return !!types && Array.prototype.indexOf.call(types, 'Files') !== -1;
+}
 
 export interface IAttachmentsFieldProps {
   field: IResolvedField;
@@ -34,16 +74,23 @@ export interface IAttachmentsFieldProps {
 
 export const AttachmentsField: React.FC<IAttachmentsFieldProps> = (props) => {
   const { field, error } = props;
-  const { attachments, setAttachments } = React.useContext(FormContext);
+  const { attachments, setAttachments, cultureName } = React.useContext(FormContext);
   const input = React.useRef<HTMLInputElement>(null);
   const [rejected, setRejected] = React.useState<string | undefined>();
+  // A beágyazott elemek dragenter / dragleave eseményei miatt számoljuk, hogy a mező fölött vagyunk-e még.
+  const dragDepth = React.useRef<number>(0);
+  const [dropActive, setDropActive] = React.useState<boolean>(false);
 
   const kept = attachments.existing.filter((file) => attachments.removed.indexOf(file.name) === -1);
   const compact: boolean = field.attachmentsDisplay === 'compact';
   const itemClass: string = compact ? `${classes.item} ${classes.chip}` : classes.item;
+  const thumbClass: string = compact ? `${classes.thumb} ${classes.thumbCompact}` : classes.thumb;
+  const iconClass: string = compact ? `${classes.icon} ${classes.iconCompact}` : classes.icon;
+  const textClass: string = compact ? `${classes.text} ${classes.textCompact}` : classes.text;
+  const separator: string = getDecimalSeparator(cultureName);
 
-  const addFiles = (files: FileList | null): void => {
-    if (!files) {
+  const addFiles = (files: FileList | null | undefined): void => {
+    if (!files || files.length === 0) {
       return;
     }
     const next: IAttachmentsState = { ...attachments, added: attachments.added.slice() };
@@ -53,6 +100,7 @@ export const AttachmentsField: React.FC<IAttachmentsFieldProps> = (props) => {
       const taken: string[] = kept.map((item) => item.name).concat(next.added.map((item) => item.name));
       const problem = validateAttachmentName(file.name, taken);
       if (file.size === 0) {
+        // Az üres fájl és a ráhúzott mappa is nulla méretű.
         problems.push(format(strings.AttachmentEmpty, file.name));
       } else if (problem === 'duplicate') {
         problems.push(format(strings.AttachmentDuplicate, file.name));
@@ -66,10 +114,61 @@ export const AttachmentsField: React.FC<IAttachmentsFieldProps> = (props) => {
     setAttachments(next);
   };
 
+  const canDrop: boolean = !field.readOnly;
+  const dropHandlers = canDrop
+    ? {
+        onDragEnter: (event: React.DragEvent): void => {
+          if (hasFiles(event)) {
+            event.preventDefault();
+            dragDepth.current++;
+            setDropActive(true);
+          }
+        },
+        onDragOver: (event: React.DragEvent): void => {
+          if (hasFiles(event)) {
+            // Enélkül a böngésző megnyitná a fájlt.
+            event.preventDefault();
+            event.dataTransfer.dropEffect = 'copy';
+          }
+        },
+        onDragLeave: (event: React.DragEvent): void => {
+          if (hasFiles(event)) {
+            dragDepth.current = Math.max(0, dragDepth.current - 1);
+            if (dragDepth.current === 0) {
+              setDropActive(false);
+            }
+          }
+        },
+        onDrop: (event: React.DragEvent): void => {
+          if (hasFiles(event)) {
+            event.preventDefault();
+            dragDepth.current = 0;
+            setDropActive(false);
+            addFiles(event.dataTransfer.files);
+          }
+        }
+      }
+    : {};
+
+  const renderText = (name: string, url: string | undefined, meta: string): JSX.Element => (
+    <span className={textClass}>
+      {url ? (
+        <Link className={classes.name} href={url} target="_blank" rel="noopener noreferrer" title={name}>
+          {name}
+        </Link>
+      ) : (
+        <span className={classes.name} title={name}>
+          {name}
+        </span>
+      )}
+      {meta !== '' && <span className={classes.meta}>{meta}</span>}
+    </span>
+  );
+
   const message: string | undefined = error ?? rejected;
 
   return (
-    <div>
+    <div className={`${classes.dropArea} ${dropActive ? classes.dropActive : ''}`} {...dropHandlers}>
       <Label required={field.required}>{field.label}</Label>
       {kept.length === 0 && attachments.added.length === 0 ? (
         <div className={classes.empty}>{strings.AttachmentsNone}</div>
@@ -77,16 +176,12 @@ export const AttachmentsField: React.FC<IAttachmentsFieldProps> = (props) => {
         <ul className={compact ? `${classes.list} ${classes.compact}` : classes.list}>
           {kept.map((file) => (
             <li key={`e:${file.name}`} className={itemClass}>
-              <Icon iconName="Attach" />
-              {file.url ? (
-                <Link className={classes.name} href={file.url} target="_blank" rel="noopener noreferrer" title={file.name}>
-                  {file.name}
-                </Link>
+              {isImageFileName(file.name) && file.url ? (
+                <img className={thumbClass} src={file.url} alt="" loading="lazy" />
               ) : (
-                <span className={classes.name} title={file.name}>
-                  {file.name}
-                </span>
+                <Icon className={iconClass} iconName="Attach" />
               )}
+              {renderText(file.name, file.url || undefined, formatFileSize(file.size, separator))}
               {!field.readOnly && (
                 <IconButton
                   iconProps={{ iconName: 'Delete' }}
@@ -99,11 +194,12 @@ export const AttachmentsField: React.FC<IAttachmentsFieldProps> = (props) => {
           ))}
           {attachments.added.map((file) => (
             <li key={`a:${file.name}`} className={itemClass}>
-              <Icon iconName="Attach" />
-              <span className={classes.name} title={file.name}>
-                {file.name}
-              </span>
-              <span className={classes.pending}>{strings.AttachmentPending}</span>
+              {isImageFileName(file.name) ? (
+                <LocalThumb file={file} className={thumbClass} />
+              ) : (
+                <Icon className={iconClass} iconName="Attach" />
+              )}
+              {renderText(file.name, undefined, `${formatFileSize(file.size, separator)} ${strings.AttachmentPending}`)}
               {!field.readOnly && (
                 <IconButton
                   iconProps={{ iconName: 'Cancel' }}
@@ -131,11 +227,14 @@ export const AttachmentsField: React.FC<IAttachmentsFieldProps> = (props) => {
               event.target.value = '';
             }}
           />
-          <DefaultButton
-            iconProps={{ iconName: 'Attach' }}
-            text={strings.AttachmentAdd}
-            onClick={() => input.current?.click()}
-          />
+          <div className={classes.actions}>
+            <DefaultButton
+              iconProps={{ iconName: 'Attach' }}
+              text={strings.AttachmentAdd}
+              onClick={() => input.current?.click()}
+            />
+            <span className={classes.meta}>{dropActive ? strings.AttachmentDropActive : strings.AttachmentDropHint}</span>
+          </div>
         </>
       )}
       {message && (

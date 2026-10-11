@@ -104,6 +104,27 @@ function cellClass(colSpan: number, style: IFieldStyle): string {
   );
 }
 
+/** Egy becsomagolható elem tulajdonságai: a renderelő ezeket tenné a saját `div`-jére. */
+export interface ISlotProps {
+  className: string;
+  children: React.ReactNode;
+  onClick?: () => void;
+  'data-section'?: string;
+  'data-field'?: string;
+}
+
+/**
+ * A tervező ezeken keresztül csomagolja be a szekciókat, a rácsot és a cellákat (húzd-és-ejtsd).
+ * A visszaadott elemnek a kapott tulajdonságokat a saját gyökerére kell tennie, így az elrendezés
+ * és a megjelenés ugyanaz marad, mint a felhasználói formon.
+ */
+export interface IFormRendererSlots {
+  renderSection?: (section: IResolvedSection, slot: ISlotProps) => JSX.Element;
+  /** Üres szekciónál is meghívódik, hogy a szekcióba mezőt lehessen ejteni. */
+  renderGrid?: (section: IResolvedSection, slot: ISlotProps) => JSX.Element;
+  renderCell?: (section: IResolvedSection, field: IResolvedField, slot: ISlotProps) => JSX.Element;
+}
+
 export interface IFormRendererProps {
   form: IResolvedForm;
   values: FormValues;
@@ -115,10 +136,12 @@ export interface IFormRendererProps {
   /** Tervező előnézet: a kijelölt mező. */
   selectedField?: string;
   onFieldSelect?: (name: string) => void;
+  /** Csak a tervező adja meg. */
+  slots?: IFormRendererSlots;
 }
 
 export const FormRenderer: React.FC<IFormRendererProps> = (props) => {
-  const { form, showHidden } = props;
+  const { form, showHidden, slots } = props;
   // A felhasználó által átváltott szekciók; a többi a konfiguráció szerinti állapotban van.
   const [toggled, setToggled] = React.useState<Record<string, boolean>>({});
 
@@ -134,13 +157,11 @@ export const FormRenderer: React.FC<IFormRendererProps> = (props) => {
     if (props.onFieldSelect) {
       classNames.push(props.selectedField === field.name ? classes.selected : classes.clickable);
     }
-    return (
-      <div
-        key={field.name}
-        data-field={field.name}
-        className={classNames.join(' ')}
-        onClick={props.onFieldSelect ? () => props.onFieldSelect?.(field.name) : undefined}
-      >
+    const slot: ISlotProps = {
+      'data-field': field.name,
+      className: classNames.join(' '),
+      onClick: props.onFieldSelect ? () => props.onFieldSelect?.(field.name) : undefined,
+      children: (
         <FieldRenderer
           field={field}
           value={props.values[field.name] ?? ''}
@@ -148,7 +169,12 @@ export const FormRenderer: React.FC<IFormRendererProps> = (props) => {
           error={props.errors[field.name]}
           onChange={props.onChange}
         />
-      </div>
+      )
+    };
+    return slots?.renderCell ? (
+      <React.Fragment key={field.name}>{slots.renderCell(section, field, slot)}</React.Fragment>
+    ) : (
+      <div key={field.name} {...slot} />
     );
   };
 
@@ -186,25 +212,37 @@ export const FormRenderer: React.FC<IFormRendererProps> = (props) => {
       );
     }
 
-    return (
-      <div
-        key={section.id}
-        data-section={section.id}
-        className={`${sectionClass(section.style, form.style.density)} ${section.visible ? '' : classes.hidden}`}
-      >
-        {header}
-        {!collapsed && section.description && <div className={classes.sectionDescription}>{section.description}</div>}
-        {!collapsed && section.fields.length > 0 && (
-          <div className={gridClass(section.columns, form.style.density)}>
-            {section.fields.map((field) => renderField(section, field))}
-          </div>
-        )}
-        {!collapsed && section.related && (
-          <div className={classes.related}>
-            <RelatedItems config={section.related} designing={showHidden} />
-          </div>
-        )}
-      </div>
+    const gridSlot: ISlotProps = {
+      className: gridClass(section.columns, form.style.density),
+      children: section.fields.map((field) => renderField(section, field))
+    };
+    let grid: JSX.Element | undefined;
+    if (!collapsed && slots?.renderGrid) {
+      grid = slots.renderGrid(section, gridSlot);
+    } else if (!collapsed && section.fields.length > 0) {
+      grid = <div {...gridSlot} />;
+    }
+
+    const sectionSlot: ISlotProps = {
+      'data-section': section.id,
+      className: `${sectionClass(section.style, form.style.density)} ${section.visible ? '' : classes.hidden}`,
+      children: (
+        <>
+          {header}
+          {!collapsed && section.description && <div className={classes.sectionDescription}>{section.description}</div>}
+          {grid}
+          {!collapsed && section.related && (
+            <div className={classes.related}>
+              <RelatedItems config={section.related} designing={showHidden} />
+            </div>
+          )}
+        </>
+      )
+    };
+    return slots?.renderSection ? (
+      <React.Fragment key={section.id}>{slots.renderSection(section, sectionSlot)}</React.Fragment>
+    ) : (
+      <div key={section.id} {...sectionSlot} />
     );
   };
 

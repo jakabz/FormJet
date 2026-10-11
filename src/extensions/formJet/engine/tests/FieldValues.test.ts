@@ -1,6 +1,6 @@
 // A mezőtípusok form-string értékeinek értelmezése és előállítása.
 
-import { validateAttachmentName } from '../Attachments';
+import { formatFileSize, isImageFileName, validateAttachmentName } from '../Attachments';
 import { isEmptyValue } from '../ConditionEngine';
 import { createImageValue, createPendingImageValue, getImageUrl, IImageData, parseImageValue } from '../ImageValue';
 import {
@@ -299,6 +299,29 @@ describe('Attachments', () => {
     ['', '  ', 'a:b.txt', 'a/b.txt', 'a\\b.txt', 'a?.txt', 'a*.txt', 'a|b', 'a<b>', 'a"b', '.rejtett', 'vége.', 'a#b.txt', 'a%b.txt', 'x'.repeat(251)].forEach(
       (name) => expect(validateAttachmentName(name, [])).toBe('invalid')
     );
+  });
+
+  it('isImageFileName: a kiterjesztés alapján, kis- és nagybetűtől függetlenül', () => {
+    ['a.png', 'A.JPG', 'kép.jpeg', 'x.y.gif', 'a.webp', 'a.bmp', 'a.svg'].forEach((name) => expect(isImageFileName(name)).toBe(true));
+    ['a.pdf', 'png', 'a.png.docx', 'a.', ''].forEach((name) => expect(isImageFileName(name)).toBe(false));
+  });
+
+  it('formatFileSize: egységek, kerekítés és tizedesjel', () => {
+    expect(formatFileSize(0)).toBe('0 B');
+    expect(formatFileSize(512)).toBe('512 B');
+    expect(formatFileSize(1023)).toBe('1023 B');
+    expect(formatFileSize(1024)).toBe('1 KB');
+    expect(formatFileSize(12595, ',')).toBe('12,3 KB');
+    expect(formatFileSize(4.5 * 1024 * 1024, ',')).toBe('4,5 MB');
+    expect(formatFileSize(4.5 * 1024 * 1024)).toBe('4.5 MB');
+    expect(formatFileSize(3 * 1024 * 1024 * 1024)).toBe('3 GB');
+    expect(formatFileSize(5000 * 1024 * 1024 * 1024)).toBe('5000 GB');
+  });
+
+  it('formatFileSize: hiányzó vagy érvénytelen méretre üres szöveg', () => {
+    expect(formatFileSize(undefined)).toBe('');
+    expect(formatFileSize(-1)).toBe('');
+    expect(formatFileSize(NaN)).toBe('');
   });
 
   it('már meglévő név, kis- és nagybetűtől függetlenül', () => {

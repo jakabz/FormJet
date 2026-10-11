@@ -1,6 +1,8 @@
 // Az elem mellékletei: listázás, feltöltés, törlés (lomtárba).
 
 import '@pnp/sp/attachments';
+import '@pnp/sp/files';
+import '@pnp/sp/folders';
 
 import { getSP } from './sp';
 
@@ -8,6 +10,8 @@ export interface IAttachmentFile {
   name: string;
   /** Szerverrelatív cím; frissen feltöltött fájlnál üres lehet. */
   url: string;
+  /** A fájl mérete bájtban, ha ismert. */
+  size?: number;
 }
 
 export interface IAttachmentSyncResult {
@@ -27,7 +31,32 @@ export async function list(listId: string, itemId: number): Promise<IAttachmentF
     FileName: string;
     ServerRelativeUrl?: string;
   }>;
-  return files.map((file) => ({ name: file.FileName, url: file.ServerRelativeUrl ?? '' }));
+  const result: IAttachmentFile[] = files.map((file) => ({ name: file.FileName, url: file.ServerRelativeUrl ?? '' }));
+
+  // A mellékletek mérete csak a mellékletmappa fájljainak lekérdezéséből derül ki; ha ez nem sikerül, méret nélkül jelennek meg.
+  const first: string = result.filter((file) => file.url.lastIndexOf('/') > 0)[0]?.url ?? '';
+  if (first !== '') {
+    try {
+      const folder: string = first.slice(0, first.lastIndexOf('/'));
+      const details = (await getSP().web.getFolderByServerRelativePath(folder).files.select('Name', 'Length')()) as Array<{
+        Name: string;
+        Length?: string | number;
+      }>;
+      const sizes: Record<string, number> = {};
+      details.forEach((detail) => {
+        const size: number = Number(detail.Length);
+        if (isFinite(size)) {
+          sizes[detail.Name.toLowerCase()] = size;
+        }
+      });
+      result.forEach((file) => {
+        file.size = sizes[file.name.toLowerCase()];
+      });
+    } catch {
+      // Méret nélkül is használható a lista.
+    }
+  }
+  return result;
 }
 
 /**
@@ -58,7 +87,7 @@ export async function sync(listId: string, itemId: number, removed: string[], ad
         .add(file.name, file)
         .then((info) => {
           const data = info as { ServerRelativeUrl?: string } | undefined;
-          result.uploaded.push({ name: file.name, url: data?.ServerRelativeUrl ?? '' });
+          result.uploaded.push({ name: file.name, url: data?.ServerRelativeUrl ?? '', size: file.size });
         })
         .catch(() => {
           result.failed.push(file.name);

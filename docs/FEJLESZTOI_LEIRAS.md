@@ -136,6 +136,13 @@ A generált `config/serve.json` Form Customizer konfigurációját állítsd a t
 ### Tervező
 
 - A `startDesign` a konfiguráció mély másolatán dolgozik (`draft`). A mégse gomb egyszerűen eldobja.
+- **Húzd-és-ejtsd:** tervező módban az előnézetet a `DesignCanvas` rajzolja (dnd-kit). A szekciók és a mezők jobb felső sarkában fogantyú jelenik meg; a mező szekción belül és szekciók között, a szekció a többi szekció között helyezhető át. Üres szekció ejtési célként látszik. Billentyűzettel is működik (a fogantyún szóköz, nyilak, szóköz; Esc megszakítja és visszaállítja az elrendezést).
+  - A `DesignCanvas` ugyanazt a `FormRenderer`-t használja, csak a `slots` propon keresztül becsomagolja a szekciókat, a rácsot és a cellákat. A kapott `className`-et a saját gyökerére teszi, így a rács és a stílus változatlan.
+  - Az áthelyezést az `engine/LayoutMoves.ts` tiszta függvényei végzik (`moveSection`, `reorderField`, `moveFieldToSection`); másik szekcióba kerülő mező szélessége a célszekció oszlopszámához igazodik.
+  - Külön csomagrész (`formjet-designer`), amelyet a `FormHost` csak tervező módban tölt be; amíg töltődik, a sima előnézet látszik.
+  - **Új mező behúzása:** a még el nem helyezett mezők a tervező Elrendezés fülének tetején behúzható címkékként jelennek meg. Az előnézet egy mezőjére ejtve a mező elé, a szekció üres területére ejtve a szekció végére kerülnek (`addFieldToSection`); húzás közben kék jelölés mutatja a célt. A szekció „Mező hozzáadása” listája is megmaradt.
+  - Az előnézet és a mezőlista egy közös húzási környezetben van: a `DesignCanvas` a két részt (`preview`, `palette`) a gyerekfüggvényének adja át, a `FormHost` illeszti az elrendezésbe. A `DesignerPanel` a listát kész elemként kapja (`unplacedPalette`), így nem függ a dnd-kittől.
+  - A becsukott szekcióba nem lehet mezőt ejteni.
 - Az előnézet `previewMode`-ban (New/Edit/Display) a `draft`-ot rendereli, rejtett elemekkel halványan.
 - A `ConfigService.save` ETag-gel ír. 412 → `ConfigConflictError`, 403 → jogosultsági üzenet.
 
@@ -285,7 +292,9 @@ A logika az `engine/RelatedList.ts`-ben (ellenőrzés, `buildRelatedViewXml`), a
 
 Ha a listán engedélyezve vannak a mellékletek, a séma végére egy `Attachments` nevű és típusú pszeudo-mező kerül (`SchemaService.getFields`). Mezőként viselkedik: a tervezőben bármelyik szekcióba elhelyezhető, kaphat címkét, leírást, szélességet, stílust, módonkénti láthatóságot, csak olvasható és kötelező beállítást, feltételeket.
 
-- **Megjelenítés:** a mező `attachmentsDisplay` beállítása szerint lista vagy tömör (egymás melletti) elrendezés. A meglévő fájlok hivatkozásként új lapon nyílnak.
+- **Megjelenítés:** a mező `attachmentsDisplay` beállítása szerint lista vagy tömör (egymás melletti) elrendezés. A meglévő fájlok hivatkozásként új lapon nyílnak. A képfájlokról (kiterjesztés alapján: `isImageFileName`) miniatűr látszik, a név mellett a fájl mérete (`formatFileSize`, a web tizedesjelével).
+- **Fájlméret:** a mellékletek méretét az `AttachmentService.list` a mellékletmappa fájljainak lekérdezéséből veszi (a mellékletek saját végpontja nem adja vissza); ha ez nem sikerül, a fájlok méret nélkül jelennek meg.
+- **Hozzáadás ráhúzással:** a teljes mező ejtési cél; fájlok ráhúzásakor szaggatott keret jelzi. Ez a böngésző saját fájlhúzása (nem a tervező dnd-kitje), a kettő nem zavarja egymást. A ráhúzott mappa nulla méretű fájlként érkezik, ezért üresként elutasítjuk.
 - **Állapot:** a hozzáadott és törlésre jelölt fájlokat a `FormHost` tartja (`IAttachmentsState`), a vezérlő a `FormContext`-en keresztül éri el. A SharePointba csak a form mentésekor kerülnek.
 - **Mentés sorrendje:** előbb az elem (`ItemService.save`), utána a mellékletek (`AttachmentService.sync`): törlések, majd feltöltések, egymás után. Szerkesztésnél, ha csak a mellékletek változtak, az elem nem íródik, és ütközésvizsgálat sincs.
 - **Részleges hiba:** ha az elem mentése sikerült, de egy melléklet művelete nem, a form nyitva marad a hibás fájlok nevével. A Mentés ilyenkor csak a sikertelen mellékleteket próbálja újra (új elemnél nem hoz létre másolatot), a Mégse a formot mentettként zárja be.
@@ -451,6 +460,7 @@ A parancs a Heft `test` lépése: lefordítja a projektet, lefuttatja a lintet, 
 | Fájl | Mit fed le |
 | --- | --- |
 | `ConditionEngine.test.ts` | minden operátor, `all` / `any` / `not`, a feltételek ellenőrzése |
+| `LayoutMoves.test.ts` | szekció és mező áthelyezése, új mező felvétele, a szélesség igazítása, az eredeti konfiguráció változatlansága |
 | `LayoutResolver.test.ts` | a példa konfiguráció mindhárom módban, láthatóság, kötelezőség, szerkeszthetőség, `parseConfig` hibái, kezdőértékek (dátum, szám, százalék, felügyelt metaadat), mellékletek |
 | `FormStyle.test.ts` | módonkénti feloldás, színátmenet, a szabad CSS-re alkalmas értékek elutasítása |
 | `RelatedList.test.ts` | a CAML lekérdezés összeállítása, a mezőnevek és az érték biztonságos kezelése |
