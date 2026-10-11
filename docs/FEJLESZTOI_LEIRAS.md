@@ -440,12 +440,30 @@ A `DesignerPanel` csak a `draft` konfigurációt módosítja az `onChange`-en ke
 
 ### Egységtesztek
 
-Az `engine/` modulok tiszta függvények, Jesttel közvetlenül tesztelhetők. Javasolt esetek:
+Az `engine/` modulok tiszta függvények, ezekre Jest egységtesztek vannak az `src/extensions/formJet/engine/tests/` mappában. Futtatás:
 
-- minden operátor, a `all`/`any`/`not` kombinációkkal,
-- `resolveForm` mindhárom módban a `samples/config-example.json`-nal,
-- hibás JSON, ismeretlen `schemaVersion`, nem létező mezőre hivatkozó konfiguráció,
-- `unplacedFields` és `createDefaultConfig`.
+```
+npm test
+```
+
+A parancs a Heft `test` lépése: lefordítja a projektet, lefuttatja a lintet, majd a `lib-commonjs` mappába fordított `*.test.js` fájlokat futtatja. Az `npm run build` is lefuttatja őket, így hibás teszttel csomag sem készül. **Futó `npm start` mellett ne indítsd el**, mert ugyanabba a kimeneti mappába fordít.
+
+| Fájl | Mit fed le |
+| --- | --- |
+| `ConditionEngine.test.ts` | minden operátor, `all` / `any` / `not`, a feltételek ellenőrzése |
+| `LayoutResolver.test.ts` | a példa konfiguráció mindhárom módban, láthatóság, kötelezőség, szerkeszthetőség, `parseConfig` hibái, kezdőértékek (dátum, szám, százalék, felügyelt metaadat), mellékletek |
+| `FormStyle.test.ts` | módonkénti feloldás, színátmenet, a szabad CSS-re alkalmas értékek elutasítása |
+| `RelatedList.test.ts` | a CAML lekérdezés összeállítása, a mezőnevek és az érték biztonságos kezelése |
+| `DateFormat.test.ts` | dátumminta, formázás és értelmezés több kultúrán, kerekítés |
+| `NumberFormat.test.ts` | tizedesjel, százalék, pénznem jele |
+| `FieldValues.test.ts` | a keresőmező, személy, hivatkozás, hely, kép, felügyelt metaadat és a mellékletek form-stringjei |
+
+Szabályok új teszthez:
+
+- A fájl neve `*.test.ts`, a helye az `engine/tests/` mappa. A közös segédfüggvények (`field`, `sampleSchema`, `loadSampleConfig`, `configJson`, `getField`) a `helpers.ts`-ben vannak.
+- A tesztek ne függjenek a gép időzónájától és az aktuális időtől: a `getInitialValues` és a `resolveDateDefault` paraméterként kapja a „most” időpontot.
+- A `samples/config-example.json`-t a tesztek a projekt gyökeréből olvassák be; ha a példát módosítod, a `LayoutResolver.test.ts` elvárásait is igazítsd hozzá.
+- A `services/` és a `components/` rétegre nincs egységteszt; ezeket a kézi tesztmátrix fedi le.
 
 ### Kézi tesztmátrix
 

@@ -22,8 +22,10 @@ Az SPFx verziótól függ, hogy gulp (≤ 1.21) vagy Heft (1.22+) a build eszkö
 | Helyi futtatás | `npm start` | `gulp serve` |
 | Csomagolás (.sppkg) | a `package.json` megfelelő scriptje (Heft `package-solution --production`) | `gulp bundle --ship && gulp package-solution --ship` |
 | Típusellenőrzés | `npx tsc --noEmit -p .` | `npx tsc --noEmit -p .` |
+| Egységtesztek | `npm test` | – |
 
 - A Node.js verziónak egyeznie kell az SPFx verzió által előírttal (`.nvmrc` vagy a `package.json` `engines` mezője).
+- Az `npm test` (és az `npm run build`) ugyanabba a `lib` / `dist` mappába fordít, mint a futó `npm start`. Ha a fejlesztői szerver fut, ne indítsd el mellette: vagy állíttasd le a felhasználóval, vagy a projekt egy másolatán futtasd.
 - A futó `npm start` a `loc/` fájlok változását nem veszi át: új vagy módosított szöveg után le kell állítani és újra kell indítani, különben az új szövegek üresek. Emiatt felhasználói szöveget ne használj modul betöltésekor lefutó kódban (modulszintű `format(strings.…)`), csak függvényben vagy komponensben.
 - A helyi futtatás a `config/serve.json` Form Customizer konfigurációját használja (`pageUrl`, `RootFolder`, `PageType`: 8 = New, 6 = Edit, 4 = Display, Edit/Display esetén `ID`).
 - Telepítés egy site-ra: `scripts/Provision-FormJet.ps1` (PnP.PowerShell). Ezt **ne futtasd** a felhasználó kifejezett kérése nélkül, mert éles SharePoint site-ot módosít.
@@ -49,6 +51,7 @@ src/extensions/formJet/
     UserValue.ts             User / UserMulti form-string (JSON tömb `Key`-jel) értelmezése és előállítása
     EngineStrings.ts         a motor üzenetei (alapból angol; az onInit a loc `Engine` részét adja át) + format()
     LayoutResolver.ts        séma + konfig + mód + értékek → IResolvedForm; alapértelmezett konfig; parseConfig
+    tests/                   Jest egységtesztek a motor moduljaira (`*.test.ts`) + `helpers.ts`
   services/                  PnPjs v4 hívások, csak itt van SharePoint és egyéb hálózati kommunikáció
     sp.ts                    getSP() – a PnPjs példány; getSP(context) az onInit-ben; getAadToken() nem SharePoint hívásokhoz
     PermissionService.ts     admin-e (site admin vagy Manage Web)
@@ -142,10 +145,9 @@ A típusok forrása: `models/IFormConfig.ts`. Példa: `samples/config-example.js
 ## Ellenőrzés munka után
 
 1. `npx tsc --noEmit -p .` hiba nélkül fusson.
-2. Ha az `engine/` változott: ellenőrizd a `samples/config-example.json`-nal. New módban a Jóváhagyás szekció nem látszik; Edit módban 500 000 feletti összegnél a Justification látható és kötelező.
+2. Ha az `engine/` változott: fussanak le az egységtesztek (`npm test`), és az új viselkedéshez írj tesztet az `engine/tests/` mappába. A `samples/config-example.json` két alapesete a `LayoutResolver.test.ts`-ben van: New módban a Jóváhagyás szekció nem látszik; Edit módban 500 000 feletti összegnél a Justification látható és kötelező.
 3. Mentési útvonal változásánál nézd át, hogy rejtett mező nem kerülhet a `changed` objektumba (`FormHost.save`).
 
 ## Nyitott feladatok
 
 - Drag & drop a tervezőben (`@dnd-kit/core`, `@dnd-kit/sortable`), vizuális feltételszerkesztő.
-- Jest egységtesztek az `engine/` modulokra.
