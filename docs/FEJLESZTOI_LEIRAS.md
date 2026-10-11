@@ -305,7 +305,7 @@ A `validateUpdateListItem` minden mezőtípusra szöveges értéket vár. Új me
 | MultiChoice | `;#` elválasztás | `;#A;#B;#` |
 | Boolean | `1` vagy `0` | `1` |
 | DateTime | A web területi beállításai szerinti dátum; idővel együtt 24 órás `HH:mm` | magyar site-on pl. `2026. 10. 10.`, illetve `2026. 10. 10. 14:30` |
-| User, UserMulti | JSON tömb claims kulccsal | `[{"Key":"i:0#.f\|membership\|anna@contoso.com"}]` |
+| User, UserMulti | JSON tömb; a `Key` a claims bejelentkezési név, SharePoint csoportnál a csoport neve | `[{"Key":"i:0#.f\|membership\|anna@contoso.com"}]` |
 | Lookup | Az elem azonosítója | `5` |
 | TaxonomyFieldType | `Címke\|TermGuid` | `Budapest\|3f2a…` |
 | URL | `url, leírás` | `https://contoso.com, Weboldal` |
@@ -326,35 +326,23 @@ A LookupMulti és TaxonomyFieldTypeMulti pontos formátumát a bekötéskor a `F
 
 ### Új mezőtípus bekötése
 
-Példa: People mező a PnP `PeoplePicker`-rel.
+Minta: a személy mező (`User`, `UserMulti`). Ugyanezeket a lépéseket kell követni a többi típusnál is.
 
-1. Függőség: `npm install @pnp/spfx-controls-react`.
-2. A `PeoplePicker`-nek SPFx kontextus kell. Add át egy React contexttel a `FormHost`-ból, ne prop-drillinggel minden komponensen át:
-   ```tsx
-   // components/SpContext.ts
-   export const SpContext = React.createContext<FormCustomizerContext | undefined>(undefined);
-   ```
-   A `FormHost` csomagolja be a kimenetét `<SpContext.Provider value={context}>`-be.
-3. A `FieldRenderer` elején (a `readOnly` ág és a `switch` előtt, a hook szabályok miatt) kérd le a kontextust, majd adj új esetet a `switch`-hez:
-   ```tsx
-   const spContext = React.useContext(SpContext);
-   // ...
-   case 'User':
-   case 'UserMulti':
-     return (
-       <PeoplePicker
-         context={/* a PnP controls verziója szerinti kontextus objektum, spContext-ből */}
-         titleText={label}
-         personSelectionLimit={schema.TypeAsString === 'User' ? 1 : 20}
-         required={required}
-         errorMessage={error}
-         onChange={(items) => set(JSON.stringify(items.map((i) => ({ Key: i.id }))))}
-       />
-     );
-   ```
-   A `PeoplePicker` által visszaadott elem `id` mezőjének claims formátumát a használt PnP controls verzióval ellenőrizd.
-4. A meglévő érték megjelenítéséhez parse-old a `FieldValuesForEdit` értékét (`defaultSelectedUsers`).
-5. Teszteld: új elem, meglévő elem módosítása, ürítés, kötelező mező üresen.
+1. **Form-string:** nézd meg, mit ad vissza a `FieldValuesForEdit` egy kitöltött elemre, és írj hozzá tiszta értelmező / előállító függvényeket az `engine/`-be (`engine/UserValue.ts`: `parseUserValue`, `serializeUserValue`, `formatUserValue`). Üres értékre üres szöveget adj vissza, különben a kötelezőség ellenőrzése nem működik.
+2. **Séma:** ha a vezérlőnek kell a mező beállítása, vedd fel az `IFieldSchema`-ba és a `SchemaService.getFields` leképezésébe (`UserAllowGroups`, `UserSelectionGroup`).
+3. **Szolgáltatás:** a SharePoint-hívás a `services/`-be kerül (`PeopleService.searchPeople`), a komponens csak ezen keresztül éri el.
+4. **Vezérlő:** külön komponens a `components/`-ben (`PeopleField.tsx`), Fluent UI v8 elemekből. A vezérlő betöltéskor ne hívjon `onChange`-et, csak a felhasználó módosítására; különben a mező módosultnak számít, és feleslegesen kerül a mentésbe.
+5. **Bekötés:** új eset a `FieldRenderer` `switch`-ében és a `formatReadOnly`-ban (csak olvasható megjelenítés), valamint a típus felvétele a `LayoutResolver` `EDITABLE_TYPES` listájába.
+6. **Szövegek** a `loc/` mindkét nyelvi fájljába.
+7. **Teszt:** új elem, meglévő elem módosítása, ürítés, kötelező mező üresen, csak olvasható mód.
+
+A személy mező sajátosságai:
+
+- A keresés a SharePoint névkeresőjét használja (`clientPeoplePickerSearchUser`), ugyanazt, mint a gyári személyválasztó, így a találatok kulcsa közvetlenül visszaírható.
+- A mező beállításai érvényesülnek: csak személyek vagy személyek és csoportok, illetve szűkítés egy SharePoint csoport tagjaira.
+- A mentett érték elemenként `Key` + `DisplayText`; a SharePoint a `Key` alapján azonosít, a név csak a mentetlen érték megjelenítéséhez kell.
+- Meglévő elemnél a kiválasztottakat az `ItemService.loadUserValues` tölti be (a mező kibontásával: `Name`, `Title`, `EMail`), mert a `FieldValuesForEdit` személy mezőnél nem ad megbízhatóan visszaírható értéket. A `FormHost` ezt a séma betöltése után kéri le, és a betöltéskori (`original`) értékek közé teszi.
+- Profilkép nincs, a kiválasztottak monogrammal jelennek meg.
 
 ### Új feltétel-operátor
 

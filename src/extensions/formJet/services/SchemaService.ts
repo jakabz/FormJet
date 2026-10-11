@@ -26,6 +26,10 @@ interface IRawField {
   NumberOfLines?: number;
   /** DateTime mezőnél: 0 = csak dátum, 1 = dátum és idő. */
   DisplayFormat?: number;
+  /** User mezőnél: 0 = csak személyek, 1 = személyek és csoportok. */
+  SelectionMode?: number;
+  /** User mezőnél: a szűkítő SharePoint csoport azonosítója; 0, ha nincs szűkítés. */
+  SelectionGroup?: number;
 }
 
 /** A `Choices` REST verziótól függően tömb vagy `{ results: [] }`. */
@@ -72,6 +76,8 @@ export async function getFields(listId: string, contentTypeId: string): Promise<
       MaxLength: field.MaxLength,
       RichText: field.RichText,
       NumberOfLines: field.NumberOfLines,
-      DateOnly: field.TypeAsString === 'DateTime' ? field.DisplayFormat !== 1 : undefined
+      DateOnly: field.TypeAsString === 'DateTime' ? field.DisplayFormat !== 1 : undefined,
+      UserAllowGroups: field.SelectionMode === 1 ? true : undefined,
+      UserSelectionGroup: field.SelectionGroup || undefined
     }));
 }

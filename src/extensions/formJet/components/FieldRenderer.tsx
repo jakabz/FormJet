@@ -13,8 +13,10 @@ import * as strings from 'FormJetFormCustomizerStrings';
 
 import { joinMultiValue, splitMultiValue } from '../engine/ConditionEngine';
 import { IResolvedField } from '../engine/LayoutResolver';
+import { formatUserValue } from '../engine/UserValue';
 import { IFieldSchema } from '../models/IFieldSchema';
 import { DateTimeField } from './DateTimeField';
+import { PeopleField } from './PeopleField';
 
 // A TipTap szerkesztő nagy; csak akkor töltjük le, ha a formon van rich text mező.
 const RichTextField = React.lazy(() => import(/* webpackChunkName: 'formjet-richtext' */ './RichTextField'));
@@ -48,6 +50,9 @@ function formatReadOnly(schema: IFieldSchema, value: string): string {
       return value === '1' ? TEXT_YES : TEXT_NO;
     case 'MultiChoice':
       return splitMultiValue(value).join(', ') || TEXT_EMPTY;
+    case 'User':
+    case 'UserMulti':
+      return formatUserValue(value) || TEXT_EMPTY;
     default:
       return value;
   }
@@ -200,6 +205,15 @@ export const FieldRenderer: React.FC<IFieldRendererProps> = (props) => {
       return (
         <div>
           <DateTimeField field={field} value={value} error={error} onChange={set} />
+          {description && <div className={classes.description}>{description}</div>}
+        </div>
+      );
+
+    case 'User':
+    case 'UserMulti':
+      return (
+        <div>
+          <PeopleField field={field} value={value} error={error} onChange={set} />
           {description && <div className={classes.description}>{description}</div>}
         </div>
       );

@@ -17,6 +17,9 @@ declare interface IFormJetFormCustomizerStrings {
   Time: string;
   InvalidTime: string;
   HiddenTag: string;
+  PeoplePlaceholder: string;
+  PeopleNoResults: string;
+  PeopleSearchFailed: string;
   RteBold: string;
   RteItalic: string;
   RteUnderline: string;

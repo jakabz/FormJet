@@ -171,9 +171,16 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
 
       const config: IFormConfig =
         configResult.config ?? createDefaultConfig(listId, resolvedContentTypeId, schema);
-      const original: FormValues = item ? item.values : {};
+      let original: FormValues = item ? item.values : {};
+      // A személy mezők visszaírható értékét külön kell lekérdezni.
+      const userFields: string[] = schema
+        .filter((field) => field.TypeAsString === 'User' || field.TypeAsString === 'UserMulti')
+        .map((field) => field.InternalName);
+      if (item && itemId !== undefined && userFields.length > 0) {
+        original = { ...original, ...(await ItemService.loadUserValues(listId, itemId, userFields)) };
+      }
 
-      setValues(item ? item.values : getInitialValues(schema, config));
+      setValues(item ? original : getInitialValues(schema, config));
       setLoaded({
         schema,
         contentTypeId: resolvedContentTypeId,

@@ -38,6 +38,7 @@ src/extensions/formJet/
     DateFormat.ts            DateTime form-string ↔ Date a web kultúrája szerint
     FormStyle.ts             stílus: ellenőrzés (hex szín, színátmenet, számtartomány, felsorolt értékek), módonkénti feloldás, háttér CSS
     RelatedList.ts           kapcsolódó elemek: beállítás ellenőrzése, párosító érték, CAML lekérdezés
+    UserValue.ts             User / UserMulti form-string (JSON tömb `Key`-jel) értelmezése és előállítása
     EngineStrings.ts         a motor üzenetei (alapból angol; az onInit a loc `Engine` részét adja át) + format()
     LayoutResolver.ts        séma + konfig + mód + értékek → IResolvedForm; alapértelmezett konfig; parseConfig
   services/                  PnPjs v4 hívások, csak itt van SharePoint kommunikáció
@@ -45,6 +46,7 @@ src/extensions/formJet/
     PermissionService.ts     admin-e (site admin vagy Manage Web)
     SchemaService.ts         tartalomtípus mezői, tartalomtípus feloldása New módban
     ConfigService.ts         konfiguráció olvasása / mentése ETag-gel (412 → ConfigConflictError)
+    PeopleService.ts         személyek és csoportok keresése (clientPeoplePickerSearchUser)
     RelatedListService.ts    a webhely listái, egy lista mezői, kapcsolódó elemek lekérdezése (renderListDataAsStream)
     ItemService.ts           elem olvasása (FieldValuesForEdit / FieldValuesAsText), mentése (validateUpdateListItem)
   loc/                       en-us.js, hu-hu.js, myStrings.d.ts – minden felhasználói szöveg
@@ -53,6 +55,7 @@ src/extensions/formJet/
     FormRenderer.tsx         szekciók és rács; a tervező előnézete is ezt használja
     FieldRenderer.tsx        mezőtípus → vezérlő
     DateTimeField.tsx        DateTime mező: Fluent DatePicker (+ TimePicker, ha a mező időt is tárol)
+    PeopleField.tsx          User / UserMulti mező: Fluent NormalPeoplePicker a SharePoint névkeresőjével
     RichTextField.tsx        rich text Note mező: TipTap szerkesztő Fluent eszköztárral (lazy chunk)
     RelatedItems.tsx         kapcsolódó elemek szekció: csak olvasható táblázat egy másik listából
     RelatedListEditor.tsx    a tervező szekciókártyájának „Kapcsolódó elemek” beállításai
@@ -93,6 +96,7 @@ A típusok forrása: `models/IFormConfig.ts`. Példa: `samples/config-example.js
 
 - A `FieldValuesForEdit` / `FieldValuesAsText` kulcsaiban az `_` karakter `_x005f_`-ként jön; a `decodeKeys` alakítja vissza.
 - MultiChoice form-string: `;#A;#B;#`. Boolean: `"1"` / `"0"`.
+- User / UserMulti form-string: JSON tömb, elemenként `Key` (claims bejelentkezési név, SharePoint csoportnál a csoport neve). Üres kiválasztás: üres szöveg. Meglévő elemnél az értéket nem a `FieldValuesForEdit`-ből vesszük, hanem külön lekérdezésből (`ItemService.loadUserValues`: a mező kibontva, `Name` / `Title` / `EMail`).
 - Dátum: a `validateUpdateListItem` a **web területi beállításai** szerinti formátumot várja (magyar site-on pl. `2026. 10. 10.`), nem ISO-t. A formátumot az `engine/DateFormat.ts` állítja elő a `pageContext.cultureInfo.currentCultureName` alapján; az időt mindig 24 órás `HH:mm` alakban írjuk. A dátumok a web időzónája szerinti "falióra" értékek, időzóna-átváltás nincs.
 - A `Choices` mező REST verziótól függően tömb vagy `{ results: [] }`; a `SchemaService.normalizeChoices` kezeli.
 - A customizer a tartalomtípusra van kötve (`New/Edit/DisplayFormClientSideComponentId`). Grid nézetben és quick edit esetén a gyári felület fut.
@@ -103,6 +107,7 @@ A típusok forrása: `models/IFormConfig.ts`. Példa: `samples/config-example.js
 - React függvénykomponensek és hookok, osztálykomponenst ne írj. Fluent UI v8 (`@fluentui/react`), ne keverd v9-cel.
 - PnPjs v4: a lekérdezés hívható (`list.items.getById(id).select(...)()`), az `items.add` közvetlenül az adatot adja vissza.
 - Dátumválasztó: Fluent UI v8 `DatePicker` és `TimePicker` (`components/DateTimeField.tsx`); ne vezess be külön dátumkönyvtárat. A naptár nevei a felület nyelvét követik (`engine/DateFormat.ts`, `Intl`), új nyelvhez nem kell külön import.
+- Személyválasztó: Fluent UI v8 `NormalPeoplePicker` + `PeopleService` (`components/PeopleField.tsx`). A `@pnp/spfx-controls-react` csomagot ne vezesd be egyeztetés nélkül: nagy, és saját Fluent verziót hoz.
 - Rich text szerkesztő: TipTap v3 (`components/RichTextField.tsx`), csak a rich text Note mezőknél; a sima szöveges Note `TextField` marad. A `FieldRenderer` `React.lazy`-vel tölti be, a TipTap ne kerüljön a fő csomagba. A HTML-t mindig a TipTap sémája értelmezze, `dangerouslySetInnerHTML`-t ne használj. A `@tiptap/*` csomagok verziója legyen azonos.
 - React 17 (`ReactDOM.render`). React 18-ra váltás csak az SPFx verzióval együtt.
 - Felhasználónak szóló szöveget ne írj a kódba. Új szöveg: kulcs a `loc/myStrings.d.ts`-be, és **mindkét** nyelvi fájlba (`en-us.js`, `hu-hu.js`); használat: `import * as strings from 'FormJetFormCustomizerStrings'`. Paraméterezés `{0}` helyőrzővel és a `format()` függvénnyel.
@@ -116,7 +121,7 @@ A típusok forrása: `models/IFormConfig.ts`. Példa: `samples/config-example.js
 
 ## Nyitott feladatok
 
-- People / Lookup / Managed metadata / URL / Location / Image mezők bekötése (`@pnp/spfx-controls-react`) a `FieldRenderer`-ben.
+- Lookup / Managed metadata / URL / Location / Image mezők bekötése a `FieldRenderer`-ben.
 - Mellékletek feltöltése mentés után (`FormHost.save` TODO).
 - Drag & drop a tervezőben (`@dnd-kit/core`, `@dnd-kit/sortable`), vizuális feltételszerkesztő.
 - Jest egységtesztek az `engine/` modulokra.

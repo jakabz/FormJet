@@ -16,6 +16,10 @@ export interface IFieldSchema {
   NumberOfLines?: number;
   /** DateTime mezőnél: csak dátum (true) vagy dátum és idő (false). */
   DateOnly?: boolean;
+  /** User mezőnél: csoport is választható-e (a mező „Személyek és csoportok” beállítása). */
+  UserAllowGroups?: boolean;
+  /** User mezőnél: ha a választás egy SharePoint csoport tagjaira van szűkítve, a csoport azonosítója. */
+  UserSelectionGroup?: number;
 }
 
 /** Mezőértékek form-string formátumban, InternalName szerint. */

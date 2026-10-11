@@ -61,6 +61,50 @@ export async function load(listId: string, itemId: number): Promise<IItemData> {
   };
 }
 
+interface IUserInfo {
+  Name?: string;
+  Title?: string;
+  EMail?: string | null; // eslint-disable-line @rushstack/no-new-null
+}
+
+/** Egy lekérdezésben legfeljebb ennyi személy mezőt bontunk ki (a SharePoint korlátozza a kibontott mezők számát). */
+const USER_FIELDS_PER_REQUEST: number = 8;
+
+function toUserFormString(value: unknown): string {
+  const users: IUserInfo[] = Array.isArray(value) ? (value as IUserInfo[]) : value ? [value as IUserInfo] : [];
+  const entries = users
+    .filter((user) => !!user && !!user.Name)
+    .map((user) => ({ Key: user.Name, DisplayText: user.Title || user.Name, EntityData: { Email: user.EMail || '' } }));
+  return entries.length > 0 ? JSON.stringify(entries) : '';
+}
+
+/**
+ * A személy mezők értéke form-stringként (JSON tömb, `Key` = bejelentkezési név, csoportnál a csoport neve).
+ * A FieldValuesForEdit ezeknél a mezőknél nem ad megbízhatóan visszaírható értéket, ezért külön kérdezzük le.
+ * Sikertelen lekérdezésnél az adott mezők kimaradnak, és a FieldValuesForEdit értéke marad érvényben.
+ */
+export async function loadUserValues(listId: string, itemId: number, fieldNames: string[]): Promise<FormValues> {
+  const item = getSP().web.lists.getById(listId).items.getById(itemId);
+  const result: FormValues = {};
+  const requests: Array<Promise<void>> = [];
+  for (let start: number = 0; start < fieldNames.length; start += USER_FIELDS_PER_REQUEST) {
+    const names: string[] = fieldNames.slice(start, start + USER_FIELDS_PER_REQUEST);
+    const selects: string[] = [];
+    names.forEach((name) => selects.push(`${name}/Name`, `${name}/Title`, `${name}/EMail`));
+    requests.push(
+      (item.select(...selects).expand(...names)() as Promise<Record<string, unknown>>)
+        .then((data) => {
+          names.forEach((name) => {
+            result[name] = toUserFormString(data[name]);
+          });
+        })
+        .catch(() => undefined)
+    );
+  }
+  await Promise.all(requests);
+  return result;
+}
+
 export async function getModified(listId: string, itemId: number): Promise<string> {
   const meta = (await getSP().web.lists.getById(listId).items.getById(itemId).select('Modified')()) as {
     Modified: string;
