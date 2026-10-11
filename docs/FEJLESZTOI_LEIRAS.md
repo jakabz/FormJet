@@ -320,6 +320,14 @@ Condition = { all: Condition[] } | { any: Condition[] } | { not: Condition }
 
 A feltételek a form **aktuális** értékeire futnak, nem a mentett értékekre.
 
+**Szerkesztés a tervezőben.** A feltételeket a `ConditionEditor` szerkeszti, alapból vizuálisan: soronként egy mező, egy összehasonlítás és egy érték; több sornál választható, hogy minden vagy bármelyik feltételnek kell teljesülnie.
+
+- Vizuálisan a lapos feltételek szerkeszthetők: egyetlen mezőfeltétel, vagy mezőfeltételek `all` / `any` csoportja. A beágyazott csoportot vagy `not`-ot tartalmazó feltétel automatikusan JSON-ként jelenik meg; a „Szerkesztés JSON-ként” hivatkozással bármelyik feltétel átváltható.
+- Az érték vezérlője a mezőhöz igazodik: választás mezőnél a választható értékek listája (`ezek egyike` operátornál több is), igen/nem mezőnél Igen / Nem, egyébként szövegmező.
+- Az érték típusa: szám és pénznem mezőnél, illetve a `nagyobb` / `kisebb` operátornál a tiszta szám számként kerül a feltételbe, igen/nem mezőnél logikai értékként, egyébként szövegként. A nem szerkesztett sor értéke és típusa változatlan marad.
+- A félkész sor (nincs mező, vagy hiányzik az érték) a szerkesztőben megmarad, de a konfigurációba nem kerül be.
+- A modell átalakítása az `engine/ConditionModel.ts`-ben van (`toConditionRows`, `fromConditionRows`), tesztekkel.
+
 ## 7. Form-string formátumok
 
 A `validateUpdateListItem` minden mezőtípusra szöveges értéket vár. Új mezőtípus bekötésekor mindig nézd meg, mit ad vissza a `FieldValuesForEdit` egy kitöltött elemre, és ugyanazt a formátumot írd vissza.
@@ -423,7 +431,7 @@ A személy mező sajátosságai:
 
 1. `ConditionOperator` típus bővítése a `models/IFormConfig.ts`-ben.
 2. Új `case` a `ConditionEngine.evalField`-ben.
-3. A tervező `ConditionEditor` súgószövegének frissítése.
+3. Felirat az operátorhoz a `ConditionEditor` `operatorLabels` függvényében és a loc fájlokban; a JSON mód súgószövegének (`ConditionHelp`) frissítése.
 4. Ennek a leírásnak a 6. fejezete.
 
 ### Új felhasználói szöveg (lokalizáció)
@@ -459,6 +467,7 @@ A parancs a Heft `test` lépése: lefordítja a projektet, lefuttatja a lintet, 
 
 | Fájl | Mit fed le |
 | --- | --- |
+| `ConditionModel.test.ts` | a vizuális feltételszerkesztő modellje: sorok ↔ feltétel, típusok megőrzése, félkész sorok |
 | `ConditionEngine.test.ts` | minden operátor, `all` / `any` / `not`, a feltételek ellenőrzése |
 | `LayoutMoves.test.ts` | szekció és mező áthelyezése, új mező felvétele, a szélesség igazítása, az eredeti konfiguráció változatlansága |
 | `LayoutResolver.test.ts` | a példa konfiguráció mindhárom módban, láthatóság, kötelezőség, szerkeszthetőség, `parseConfig` hibái, kezdőértékek (dátum, szám, százalék, felügyelt metaadat), mellékletek |

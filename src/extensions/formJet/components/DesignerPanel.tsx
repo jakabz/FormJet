@@ -15,13 +15,11 @@ import { mergeStyleSets } from '@fluentui/react/lib/Styling';
 import * as strings from 'FormJetFormCustomizerStrings';
 
 import { ATTACHMENTS_FIELD } from '../engine/Attachments';
-import { validateCondition } from '../engine/ConditionEngine';
 import { format } from '../engine/EngineStrings';
 import { parseConfig, unplacedFields } from '../engine/LayoutResolver';
 import { IFieldSchema } from '../models/IFieldSchema';
 import {
   AttachmentsDisplay,
-  Condition,
   FORM_MODES,
   FormMode,
   IFieldConfig,
@@ -32,6 +30,7 @@ import {
   LookupDisplay
 } from '../models/IFormConfig';
 import { AccordionCard } from './AccordionCard';
+import { ConditionEditor } from './ConditionEditor';
 import { RelatedListEditor } from './RelatedListEditor';
 import { StylePanel } from './StylePanel';
 
@@ -42,8 +41,6 @@ const MODE_LABELS: Record<FormMode, string> = {
   edit: strings.ModeEdit,
   display: strings.ModeDisplay
 };
-
-const CONDITION_HELP: string = strings.ConditionHelp;
 
 // Függvény, nem modulszintű állandó: a format() hiányzó szövegre hibát dobna, és a modul betöltésekor
 // ez az egész form megjelenését megakadályozná.
@@ -135,72 +132,6 @@ const ModeCheckboxes: React.FC<IModeCheckboxesProps> = (props) => {
         ))}
       </div>
     </div>
-  );
-};
-
-interface IConditionEditorProps {
-  label: string;
-  value: Condition | undefined;
-  onChange: (value: Condition | undefined) => void;
-}
-
-function conditionToText(value: Condition | undefined): string {
-  return value ? JSON.stringify(value, undefined, 2) : '';
-}
-
-function tryParse(text: string): unknown {
-  try {
-    return text.trim() === '' ? undefined : JSON.parse(text);
-  } catch {
-    return undefined;
-  }
-}
-
-const ConditionEditor: React.FC<IConditionEditorProps> = (props) => {
-  const [text, setText] = React.useState<string>(conditionToText(props.value));
-  const [error, setError] = React.useState<string | undefined>();
-
-  // Ha a feltétel kívülről változik (másik mező, JSON fül), a szöveget hozzá igazítjuk.
-  React.useEffect(() => {
-    if (JSON.stringify(tryParse(text)) !== JSON.stringify(props.value)) {
-      setText(conditionToText(props.value));
-      setError(undefined);
-    }
-  }, [props.value]);
-
-  const onTextChange = (next: string): void => {
-    setText(next);
-    if (next.trim() === '') {
-      setError(undefined);
-      props.onChange(undefined);
-      return;
-    }
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(next);
-    } catch {
-      setError(strings.InvalidJsonShort);
-      return;
-    }
-    const validationError: string | undefined = validateCondition(parsed);
-    setError(validationError);
-    if (!validationError) {
-      props.onChange(parsed as Condition);
-    }
-  };
-
-  return (
-    <TextField
-      label={props.label}
-      multiline
-      autoAdjustHeight
-      rows={2}
-      value={text}
-      errorMessage={error}
-      description={CONDITION_HELP}
-      styles={{ field: { fontFamily: 'Consolas, Menlo, monospace', fontSize: 12 } }}
-      onChange={(_, next) => onTextChange(next ?? '')}
-    />
   );
 };
 
@@ -315,6 +246,7 @@ export const DesignerPanel: React.FC<IDesignerPanelProps> = (props) => {
         onChange={(visibleIn) => updateSection(index, { visibleIn })}
       />
       <ConditionEditor
+        schema={schema}
         label={strings.VisibleWhen}
         value={section.visibleWhen}
         onChange={(visibleWhen) => updateSection(index, { visibleWhen })}
@@ -481,16 +413,22 @@ export const DesignerPanel: React.FC<IDesignerPanelProps> = (props) => {
               {strings.RequiredOnlyStricter}
             </div>
             <ConditionEditor
+              key={`${selectedField}:VisibleWhen`}
+              schema={schema}
               label={strings.VisibleWhen}
               value={config.visibleWhen}
               onChange={(visibleWhen) => updateField(selectedField, { visibleWhen })}
             />
             <ConditionEditor
+              key={`${selectedField}:ReadOnlyWhen`}
+              schema={schema}
               label={strings.ReadOnlyWhen}
               value={config.readOnlyWhen}
               onChange={(readOnlyWhen) => updateField(selectedField, { readOnlyWhen })}
             />
             <ConditionEditor
+              key={`${selectedField}:RequiredWhen`}
+              schema={schema}
               label={strings.RequiredWhen}
               value={config.requiredWhen}
               onChange={(requiredWhen) => updateField(selectedField, { requiredWhen })}

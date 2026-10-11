@@ -39,6 +39,7 @@ src/extensions/formJet/
   engine/                    TISZTA LOGIKA, SharePoint és React nélkül
     Attachments.ts           mellékletek: a pszeudo-mező neve, fájlnevek ellenőrzése, képfájl felismerése, fájlméret formázása
     ConditionEngine.ts       visibleWhen / readOnlyWhen / requiredWhen kiértékelése
+    ConditionModel.ts        a vizuális feltételszerkesztő modellje: Condition ↔ szerkeszthető sorok
     DateFormat.ts            DateTime form-string ↔ Date a web kultúrája szerint
     FormStyle.ts             stílus: ellenőrzés (hex szín, színátmenet, számtartomány, felsorolt értékek), módonkénti feloldás, háttér CSS
     NumberFormat.ts          szám alapérték form-stringgé alakítása (tizedesjel a web kultúrája szerint, százalék); pénznem jele az LCID-ből
@@ -73,6 +74,7 @@ src/extensions/formJet/
     DesignCanvas.tsx         a tervező húzd-és-ejtsd felülete: áthelyezhető előnézet + a nem elhelyezett mezők behúzható listája (dnd-kit, lazy chunk)
     FieldRenderer.tsx        mezőtípus → vezérlő
     AttachmentsField.tsx     mellékletek: fájlok listája miniatűrrel és mérettel, hozzáadás (fájlválasztó vagy ráhúzás), törlés; a változások mentéskor hajtódnak végre
+    ConditionEditor.tsx      feltételszerkesztő a tervezőben: vizuális sorok, összetett feltételnél JSON
     DateTimeField.tsx        DateTime mező: Fluent DatePicker (+ TimePicker, ha a mező időt is tárol)
     ImageField.tsx           kép (Thumbnail) mező: előnézet, kiválasztás, csere, törlés; a feltöltés mentéskor történik
     LocationField.tsx        Location mező: Fluent TagPicker helykereséssel; a beírt szöveg egyéni helyként is menthető
@@ -115,7 +117,7 @@ A típusok forrása: `models/IFormConfig.ts`. Példa: `samples/config-example.js
 
 - Séma módosításakor emeld a `schemaVersion`-t, és bővítsd a `parseConfig`-ot migrációval a régi verzióról. A mentett konfigurációk éles listákban vannak, nem törhetnek el.
 - Új stílustulajdonság: típus az `IFormStyle` / `ISectionStyle` / `IFieldStyle`-ban + a `FormStyle.ts` megfelelő `*_STYLE_SPEC`-je + alkalmazás a `FormRenderer`-ben + vezérlő a `StylePanel`-ben + a fejlesztői leírás 6. fejezete. Opcionális mezőként nem kell sémaverziót emelni.
-- Új feltétel-operátor: `ConditionOperator` típus + `ConditionEngine.evalField` + a `DesignerPanel` súgószövege.
+- Új feltétel-operátor: `ConditionOperator` típus + `ConditionEngine.evalField` + felirat a `ConditionEditor` `operatorLabels` függvényében (és a loc fájlokban) + a JSON mód súgószövege (`ConditionHelp`) + teszt.
 
 ## SharePoint sajátosságok
 
@@ -153,4 +155,4 @@ A típusok forrása: `models/IFormConfig.ts`. Példa: `samples/config-example.js
 
 ## Nyitott feladatok
 
-- Vizuális feltételszerkesztő a tervezőben (a feltételek ma JSON-ként szerkeszthetők).
+- Beágyazott feltételcsoportok és a `not` vizuális szerkesztése (ma csak JSON-ként).
