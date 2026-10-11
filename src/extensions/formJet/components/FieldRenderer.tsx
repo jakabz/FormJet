@@ -14,11 +14,13 @@ import * as strings from 'FormJetFormCustomizerStrings';
 import { ATTACHMENTS_FIELD } from '../engine/Attachments';
 import { joinMultiValue, splitMultiValue } from '../engine/ConditionEngine';
 import { IResolvedField } from '../engine/LayoutResolver';
+import { formatLocationValue } from '../engine/LocationValue';
 import { getCurrencyAffix, ICurrencyAffix } from '../engine/NumberFormat';
 import { formatUserValue } from '../engine/UserValue';
 import { IFieldSchema } from '../models/IFieldSchema';
 import { AttachmentsField } from './AttachmentsField';
 import { DateTimeField } from './DateTimeField';
+import { LocationField } from './LocationField';
 import { LookupField } from './LookupField';
 import { PeopleField } from './PeopleField';
 import { UrlField } from './UrlField';
@@ -59,6 +61,8 @@ function formatReadOnly(schema: IFieldSchema, value: string): string {
     case 'User':
     case 'UserMulti':
       return formatUserValue(value) || TEXT_EMPTY;
+    case 'Location':
+      return formatLocationValue(value) || TEXT_EMPTY;
     default: {
       if (schema.Percentage) {
         return `${value}${PERCENT_SIGN}`;
@@ -139,6 +143,16 @@ export const FieldRenderer: React.FC<IFieldRendererProps> = (props) => {
     );
   }
 
+  // Hely: csak olvashatóként is a saját vezérlője jeleníti meg (térkép ikonnal).
+  if (field.readOnly && schema.TypeAsString === 'Location' && value !== '') {
+    return (
+      <div>
+        <LocationField field={field} value={value} onChange={set} />
+        {footer}
+      </div>
+    );
+  }
+
   // Hivatkozás: csak olvashatóként is a saját vezérlője jeleníti meg (hivatkozásként vagy képként).
   if (field.readOnly && schema.TypeAsString === 'URL' && value !== '') {
     return (
@@ -153,7 +167,9 @@ export const FieldRenderer: React.FC<IFieldRendererProps> = (props) => {
     return (
       <div>
         <Label>{label}</Label>
-        <div className={classes.readOnlyValue}>{displayValue || formatReadOnly(schema, value)}</div>
+        <div className={classes.readOnlyValue}>
+          {(schema.TypeAsString === 'Location' ? undefined : displayValue) || formatReadOnly(schema, value)}
+        </div>
         {footer}
       </div>
     );
@@ -270,6 +286,14 @@ export const FieldRenderer: React.FC<IFieldRendererProps> = (props) => {
       return (
         <div>
           <LookupField field={field} value={value} error={error} onChange={set} />
+          {description && <div className={classes.description}>{description}</div>}
+        </div>
+      );
+
+    case 'Location':
+      return (
+        <div>
+          <LocationField field={field} value={value} error={error} onChange={set} />
           {description && <div className={classes.description}>{description}</div>}
         </div>
       );

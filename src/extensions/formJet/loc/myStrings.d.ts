@@ -26,6 +26,12 @@ declare interface IFormJetFormCustomizerStrings {
   UrlAddressPlaceholder: string;
   UrlDescription: string;
   UrlInvalid: string;
+  LocationPlaceholder: string;
+  LocationNoResults: string;
+  LocationUseText: string;
+  LocationSearchFailed: string;
+  LocationShowMap: string;
+  LocationOpenLargeMap: string;
   Attachments: string;
   AttachmentsNone: string;
   AttachmentAdd: string;

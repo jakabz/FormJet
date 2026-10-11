@@ -5,6 +5,7 @@ import { IListItemFormUpdateValue } from '@pnp/sp/lists';
 import * as strings from 'FormJetFormCustomizerStrings';
 
 import { serializeLookupValue } from '../engine/LookupValue';
+import { parseLocationValue, serializeLocationValue } from '../engine/LocationValue';
 import { serializeUrlValue } from '../engine/UrlValue';
 import { FieldErrors, FormValues } from '../models/IFieldSchema';
 import { getSP } from './sp';
@@ -148,6 +149,27 @@ export async function loadUrlValues(listId: string, itemId: number, fieldNames: 
     fieldNames.forEach((name) => {
       const value = data[name] as { Url?: string; Description?: string } | null | undefined;
       result[name] = serializeUrlValue({ url: value?.Url ?? '', description: value?.Description ?? '' });
+    });
+  } catch {
+    // Marad a FieldValuesForEdit értéke.
+  }
+  return result;
+}
+
+/**
+ * A hely (Location) mezők értéke form-stringként (a helyobjektum JSON-ja).
+ * Sikertelen lekérdezésnél az adott mezők kimaradnak, és a FieldValuesForEdit értéke marad érvényben.
+ */
+export async function loadLocationValues(listId: string, itemId: number, fieldNames: string[]): Promise<FormValues> {
+  const item = getSP().web.lists.getById(listId).items.getById(itemId);
+  const result: FormValues = {};
+  try {
+    const data = (await item.select(...fieldNames)()) as Record<string, unknown>;
+    fieldNames.forEach((name) => {
+      const value: unknown = data[name];
+      // A REST a helyet JSON szövegként adja; objektumként érkező értéket is elfogadunk.
+      const text: string = typeof value === 'string' ? value : value ? JSON.stringify(value) : '';
+      result[name] = serializeLocationValue(parseLocationValue(text));
     });
   } catch {
     // Marad a FieldValuesForEdit értéke.

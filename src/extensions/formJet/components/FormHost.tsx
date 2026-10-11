@@ -196,6 +196,13 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
       if (item && itemId !== undefined && urlFields.length > 0) {
         original = { ...original, ...(await ItemService.loadUrlValues(listId, itemId, urlFields)) };
       }
+      // Hely mezők: a helyobjektum JSON-ja külön lekérdezésből.
+      const locationFields: string[] = schema
+        .filter((field) => field.TypeAsString === 'Location')
+        .map((field) => field.InternalName);
+      if (item && itemId !== undefined && locationFields.length > 0) {
+        original = { ...original, ...(await ItemService.loadLocationValues(listId, itemId, locationFields)) };
+      }
 
       const hasAttachments: boolean = schema.some((field) => field.TypeAsString === ATTACHMENTS_FIELD);
       const existing: AttachmentService.IAttachmentFile[] =
