@@ -329,7 +329,8 @@ A `validateUpdateListItem` minden mezőtípusra szöveges értéket vár. Új me
 | User, UserMulti | JSON tömb; a `Key` a claims bejelentkezési név, SharePoint csoportnál a csoport neve | `[{"Key":"i:0#.f\|membership\|anna@contoso.com"}]` |
 | Lookup | A hivatkozott elem azonosítója | `5` |
 | LookupMulti | Azonosító;#cím párok, a cím üresen hagyható | `5;#;#6;#` |
-| TaxonomyFieldType | `Címke\|TermGuid` | `Budapest\|3f2a…` |
+| TaxonomyFieldType | `Címke\|TermGuid;` | `Budapest\|3f2a…;` |
+| TaxonomyFieldTypeMulti | Ugyanez egymás után | `Budapest\|3f2a…;Győr\|7c1b…;` |
 | Location | A helyobjektum JSON-ja | `{"DisplayName":"Budapest","Address":{"City":"Budapest","CountryOrRegion":"Magyarország"},"Coordinates":{"Latitude":47.49,"Longitude":19.04}}` |
 | Thumbnail (kép) | A képobjektum JSON-ja | `{"type":"thumbnail","fileName":"logo.png","serverRelativeUrl":"/sites/x/SiteAssets/Lists/<listaId>/logo.png","id":"<fájl GUID>",…}` |
 | URL | `cím, leírás`; a címben lévő vessző duplázva, leírás nélkül a cím ismétlődik | `https://contoso.com, Weboldal` |
@@ -367,6 +368,16 @@ A kép mezőt (`Thumbnail`) az `ImageField` szerkeszti: előnézet, kép kivála
 - A törlés csak a mező értékét üríti, a feltöltött fájlt nem törli az eszköztárból.
 - Meglévő elemnél az értéket az `ItemService.loadImageValues` tölti be.
 
+A felügyelt metaadat mezőt (`TaxonomyFieldType`, `TaxonomyFieldTypeMulti`) a `TaxonomyField` szerkeszti (Fluent `TagPicker`):
+
+- A választható kifejezéseket a `TaxonomyService.getTerms` tölti be a mező kifejezéskészletéből a SharePoint `_api/v2.1/termStore` végpontjáról, szintenként (`children`), a munkamenet idejére megjegyezve. A PnPjs v4-ben nincs taxonomy modul, ezért ez közvetlen `fetch` hívás. Legfeljebb 2000 kifejezés tölthető be.
+- Ha a mező a készlet egy ágára van szűkítve (`AnchorId`), csak az alatta lévő kifejezések választhatók. Az elavult (deprecated) kifejezések kimaradnak.
+- A javaslatok a teljes útvonalat mutatják (`Európa > Magyarország > Budapest`), a szűrés az útvonalban keres; egyszerre 30 javaslat látszik. Üres mezőbe kattintva a készlet eleje jelenik meg.
+- A címkék a felület nyelvén jelennek meg, ha a kifejezésnek van ilyen nyelvű címkéje; különben az alapértelmezett címkével.
+- Meglévő elemnél az értéket az `ItemService.loadTaxonomyValues` adja a `TermGuid` alapján; a REST egyértékű mezőnél a címke helyén belső sorszámot adhat, ezért a megjelenítendő címkét a vezérlő a betöltött készletből oldja fel.
+- Új elemnél a mező SharePointban beállított alapértéke (`1;#Címke|guid` alakban tárolva) kezdőértékként megjelenik (`getInitialValues`).
+- Új kifejezés felvétele a formról (nyitott készlet), faszerkezetű böngésző és a webhelycsoportok közötti kifejezéstár-választás nincs megvalósítva.
+
 A keresőmezőt a `LookupField` szerkeszti: az egyértékű (`Lookup`) Fluent `Dropdown`-t kap, a többértékű (`LookupMulti`) a mező `lookupDisplay` beállítása szerint mindig nyitott jelölőnégyzetes listát (görgetés nélkül minden választható elem látszik) vagy többválasztós lenyíló listát; alapértelmezésben az elemszám dönt:
 
 - A választható elemeket a `LookupService` tölti be a hivatkozott listából, a mező megjelenített mezője szerint rendezve; az eredményt a munkamenet idejére megjegyzi. Legfeljebb 2000 elem tölthető be, efelett a vezérlő alatt jelzés látszik.
@@ -375,7 +386,7 @@ A keresőmezőt a `LookupField` szerkeszti: az egyértékű (`Lookup`) Fluent `D
 - A mező szűrése, a kapcsolat viselkedése (törlés korlátozása) és a kaszkádolt választás nincs megvalósítva.
 - Ha egy kiválasztott elem nincs a betöltött listában (törölték, vagy a korláton túl van), `#azonosító` alakban látszik, és megmarad.
 
-A TaxonomyFieldTypeMulti pontos formátumát a bekötéskor a `FieldValuesForEdit` kimenetével kell ellenőrizni; tenant- és verziófüggő eltérések előfordulnak.
+A további, itt fel nem sorolt mezőtípusok pontos formátumát a bekötéskor a `FieldValuesForEdit` kimenetével kell ellenőrizni; tenant- és verziófüggő eltérések előfordulnak.
 
 ## 8. Receptek
 

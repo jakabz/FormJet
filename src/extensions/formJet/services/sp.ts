@@ -33,6 +33,14 @@ export async function getAadToken(resource: string): Promise<string> {
   return provider.getToken(resource);
 }
 
+/** A webhely teljes címe, záró perjel nélkül. */
+export function getWebUrl(): string {
+  if (!spfxContext) {
+    throw new Error('The SPFx context is not initialized: call getSP(context) in onInit.');
+  }
+  return spfxContext.pageContext.web.absoluteUrl.replace(/\/$/, '');
+}
+
 /** A webhely kiszolgálójának címe, pl. `https://contoso.sharepoint.com`. */
 export function getWebOrigin(): string {
   const url: string = spfxContext?.pageContext.web.absoluteUrl ?? window.location.href;

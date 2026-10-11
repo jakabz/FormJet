@@ -219,6 +219,13 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
       if (item && itemId !== undefined && locationFields.length > 0) {
         original = { ...original, ...(await ItemService.loadLocationValues(listId, itemId, locationFields)) };
       }
+      // Felügyelt metaadat mezők: a kifejezések azonosítója külön lekérdezésből.
+      const taxonomyFields: ItemService.ITaxonomyFieldRef[] = schema
+        .filter((field) => field.TermSetId !== undefined)
+        .map((field) => ({ name: field.InternalName, multiple: field.TypeAsString === 'TaxonomyFieldTypeMulti' }));
+      if (item && itemId !== undefined && taxonomyFields.length > 0) {
+        original = { ...original, ...(await ItemService.loadTaxonomyValues(listId, itemId, taxonomyFields)) };
+      }
       // Kép mezők: a képobjektum JSON-ja külön lekérdezésből.
       const imageFields: string[] = schema
         .filter((field) => field.TypeAsString === 'Thumbnail')

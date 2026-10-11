@@ -39,6 +39,10 @@ declare interface IFormJetFormCustomizerStrings {
   ImagePending: string;
   ImageInvalid: string;
   ImageUploadFailed: string;
+  TaxonomyPlaceholder: string;
+  TaxonomyNoResults: string;
+  TaxonomyLoadFailed: string;
+  TaxonomyTooMany: string;
   Attachments: string;
   AttachmentsNone: string;
   AttachmentAdd: string;

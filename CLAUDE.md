@@ -44,6 +44,7 @@ src/extensions/formJet/
     ImageValue.ts            kép (Thumbnail) form-string (képobjektum JSON) értelmezése, előállítása, megjeleníthető cím
     LocationValue.ts         Location form-string (helyobjektum JSON) értelmezése, előállítása, cím formázása
     LookupValue.ts           Lookup / LookupMulti form-string (azonosítók) értelmezése és előállítása
+    TaxonomyValue.ts         felügyelt metaadat form-string (`Címke|TermGuid;`) értelmezése és előállítása
     UrlValue.ts              URL mező form-string (`cím, leírás`) értelmezése és előállítása; biztonságos cím ellenőrzése
     UserValue.ts             User / UserMulti form-string (JSON tömb `Key`-jel) értelmezése és előállítása
     EngineStrings.ts         a motor üzenetei (alapból angol; az onInit a loc `Engine` részét adja át) + format()
@@ -57,6 +58,7 @@ src/extensions/formJet/
     LocationService.ts       helykeresés a Microsoft 365 helykeresőjével (Outlook végpont, AAD tokennel – nem PnPjs)
     LookupService.ts         a keresőmező választható elemei a hivatkozott listából (gyorsítótárazva)
     PeopleService.ts         személyek és csoportok keresése (clientPeoplePickerSearchUser)
+    TaxonomyService.ts       a kifejezéskészlet kifejezései (`_api/v2.1/termStore`, fetch – a PnPjs v4-ben nincs taxonomy modul)
     RelatedListService.ts    a webhely listái, egy lista mezői, kapcsolódó elemek lekérdezése (renderListDataAsStream)
     ImageService.ts          a kép mező fájljának feltöltése (`UploadImage`, a webhely eszköztárába)
     ItemService.ts           elem olvasása (FieldValuesForEdit / FieldValuesAsText), mentése (validateUpdateListItem)
@@ -72,6 +74,7 @@ src/extensions/formJet/
     LookupField.tsx          Lookup mező: Fluent Dropdown; LookupMulti: jelölőnégyzetes lista vagy lenyíló lista (`lookupDisplay`)
     PeopleField.tsx          User / UserMulti mező: Fluent NormalPeoplePicker a SharePoint névkeresőjével
     UrlField.tsx             URL mező: webcím + megjelenő szöveg; csak olvashatóként hivatkozás vagy kép
+    TaxonomyField.tsx        felügyelt metaadat mező: Fluent TagPicker a kifejezéskészletből, gépelés közbeni szűréssel
     RichTextField.tsx        rich text Note mező: TipTap szerkesztő Fluent eszköztárral (lazy chunk)
     RelatedItems.tsx         kapcsolódó elemek szekció: csak olvasható táblázat egy másik listából
     RelatedListEditor.tsx    a tervező szekciókártyájának „Kapcsolódó elemek” beállításai
@@ -120,6 +123,7 @@ A típusok forrása: `models/IFormConfig.ts`. Példa: `samples/config-example.js
 - URL form-string: `cím, leírás` (a címben lévő vessző duplázva). Meglévő elemnél az értéket a mező `Url` / `Description` részéből vesszük (`ItemService.loadUrlValues`). Hivatkozásként vagy képként csak `http(s)://`, `mailto:` vagy webhelyen belüli cím jelenik meg (`isSafeUrl`).
 - Location form-string: a helyobjektum JSON-ja (`DisplayName`, `Address`, `Coordinates`, …); az ismeretlen tulajdonságokat is változatlanul visszaírjuk. A „Hely: város” típusú kísérő oszlopokat a SharePoint tölti ki, azok csak olvashatók. A keresés nem dokumentált Outlook végpontot használ (`LocationService`); ha nem érhető el, a mező egyéni (csak névvel rendelkező) helyet ment.
 - Kép (Thumbnail) form-string: a képobjektum JSON-ja (`type: thumbnail`, `fileName`, `serverRelativeUrl`, `id`, `fieldName`, `fieldId`, `serverUrl`). A kiválasztott kép a mentéskor, **az elem mentése előtt** töltődik fel (`ImageService.uploadImage`); hiba esetén az elem nem íródik. Feltöltésig a mező értéke egy `pending` jelző, a fájlt a `FormContext` tartja. Megjelenítéshez csak webhelyen belüli cím használható (`ImageValue.getImageUrl`).
+- Felügyelt metaadat form-string: `Címke|TermGuid;`, több értéknél egymás után. Meglévő elemnél az értéket a mező `TermGuid` részéből vesszük (`ItemService.loadTaxonomyValues`); a REST által adott címke nem megbízható, a megjelenítendő címkét a vezérlő a készletből oldja fel. Csak a kifejezéskészlethez kötött mező szerkeszthető (`TermSetId`).
 - A `Choices` mező REST verziótól függően tömb vagy `{ results: [] }`; a `SchemaService.normalizeChoices` kezeli.
 - A customizer a tartalomtípusra van kötve (`New/Edit/DisplayFormClientSideComponentId`). Grid nézetben és quick edit esetén a gyári felület fut.
 
@@ -143,6 +147,5 @@ A típusok forrása: `models/IFormConfig.ts`. Példa: `samples/config-example.js
 
 ## Nyitott feladatok
 
-- Managed metadata mező bekötése a `FieldRenderer`-ben.
 - Drag & drop a tervezőben (`@dnd-kit/core`, `@dnd-kit/sortable`), vizuális feltételszerkesztő.
 - Jest egységtesztek az `engine/` modulokra.

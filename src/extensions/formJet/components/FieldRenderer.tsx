@@ -24,6 +24,7 @@ import { ImageField } from './ImageField';
 import { LocationField } from './LocationField';
 import { LookupField } from './LookupField';
 import { PeopleField } from './PeopleField';
+import { TaxonomyField } from './TaxonomyField';
 import { UrlField } from './UrlField';
 
 // A TipTap szerkesztő nagy; csak akkor töltjük le, ha a formon van rich text mező.
@@ -150,6 +151,16 @@ export const FieldRenderer: React.FC<IFieldRendererProps> = (props) => {
       <div>
         <ImageField field={field} value={value} error={error} onChange={set} />
         {description && <div className={classes.description}>{description}</div>}
+      </div>
+    );
+  }
+
+  // Felügyelt metaadat: ha nincs kész megjelenítendő szöveg, a választó oldja fel a címkéket a készletből.
+  if (field.readOnly && schema.TermSetId !== undefined && !displayValue && value !== '') {
+    return (
+      <div>
+        <TaxonomyField field={field} value={value} onChange={set} />
+        {footer}
       </div>
     );
   }
@@ -297,6 +308,15 @@ export const FieldRenderer: React.FC<IFieldRendererProps> = (props) => {
       return (
         <div>
           <LookupField field={field} value={value} error={error} onChange={set} />
+          {description && <div className={classes.description}>{description}</div>}
+        </div>
+      );
+
+    case 'TaxonomyFieldType':
+    case 'TaxonomyFieldTypeMulti':
+      return (
+        <div>
+          <TaxonomyField field={field} value={value} error={error} onChange={set} />
           {description && <div className={classes.description}>{description}</div>}
         </div>
       );

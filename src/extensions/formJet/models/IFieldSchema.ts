@@ -32,6 +32,10 @@ export interface IFieldSchema {
   UrlImage?: boolean;
   /** Kép (Thumbnail) mezőnél: a mező azonosítója (GUID); a feltöltött kép értékébe kerül. */
   FieldId?: string;
+  /** Felügyelt metaadat mezőnél: a kifejezéskészlet azonosítója (GUID). */
+  TermSetId?: string;
+  /** Felügyelt metaadat mezőnél: ha a választás a készlet egy ágára van szűkítve, a horgony kifejezés azonosítója. */
+  TermAnchorId?: string;
 }
 
 /** Mezőértékek form-string formátumban, InternalName szerint. */

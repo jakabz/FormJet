@@ -23,6 +23,7 @@ import { evaluate, joinMultiValue, validateCondition } from './ConditionEngine';
 import { formatDateValue, parseDateValue, roundToTimeStep } from './DateFormat';
 import { engineStrings, format } from './EngineStrings';
 import { resolveNumberDefault } from './NumberFormat';
+import { parseTaxonomyValue, serializeTaxonomyValue } from './TaxonomyValue';
 import { isRelatedComplete, parseRelated } from './RelatedList';
 import { parseFieldStyles, parseFormStyles, parseSectionStyles, resolveModeStyle } from './FormStyle';
 
@@ -86,6 +87,10 @@ export interface IParseConfigResult {
 export function isEditableField(schema: IFieldSchema): boolean {
   if (schema.ReadOnlyField) {
     return false;
+  }
+  if (schema.TypeAsString === 'TaxonomyFieldType' || schema.TypeAsString === 'TaxonomyFieldTypeMulti') {
+    // Csak kifejezéskészlethez kötött mezőhöz van választó.
+    return schema.TermSetId !== undefined;
   }
   if (schema.TypeAsString === 'Lookup' || schema.TypeAsString === 'LookupMulti') {
     // Csak a listára mutató keresőmezőhöz van választó.
@@ -276,6 +281,15 @@ export function getInitialValues(
       }
     } else if (configured !== undefined) {
       values[field.InternalName] = configured;
+    } else if (field.DefaultValue && field.TermSetId !== undefined) {
+      // A séma alapértéke belső sorszámmal áll (`1;#Címke|guid`); ebből a form-string a `Címke|guid;` alak.
+      const value: string = serializeTaxonomyValue(
+        parseTaxonomyValue(field.DefaultValue),
+        field.TypeAsString === 'TaxonomyFieldTypeMulti'
+      );
+      if (value !== '') {
+        values[field.InternalName] = value;
+      }
     } else if (field.DefaultValue && (field.TypeAsString === 'Number' || field.TypeAsString === 'Currency')) {
       values[field.InternalName] = resolveNumberDefault(field.DefaultValue, culture, !!field.Percentage);
     } else if (field.DefaultValue && SCHEMA_DEFAULT_TYPES.indexOf(field.TypeAsString) !== -1) {

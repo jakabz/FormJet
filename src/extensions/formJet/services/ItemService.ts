@@ -7,6 +7,7 @@ import * as strings from 'FormJetFormCustomizerStrings';
 import { serializeLookupValue } from '../engine/LookupValue';
 import { parseImageValue } from '../engine/ImageValue';
 import { parseLocationValue, serializeLocationValue } from '../engine/LocationValue';
+import { serializeTaxonomyValue } from '../engine/TaxonomyValue';
 import { serializeUrlValue } from '../engine/UrlValue';
 import { FieldErrors, FormValues } from '../models/IFieldSchema';
 import { getSP } from './sp';
@@ -191,6 +192,40 @@ export async function loadImageValues(listId: string, itemId: number, fieldNames
       const value: unknown = data[name];
       const text: string = typeof value === 'string' ? value : value ? JSON.stringify(value) : '';
       result[name] = parseImageValue(text) ? text : '';
+    });
+  } catch {
+    // Marad a FieldValuesForEdit értéke.
+  }
+  return result;
+}
+
+export interface ITaxonomyFieldRef {
+  name: string;
+  multiple: boolean;
+}
+
+interface ITaxonomyRestValue {
+  Label?: string;
+  TermGuid?: string;
+}
+
+/**
+ * A felügyelt metaadat mezők értéke form-stringként (`Címke|TermGuid;`).
+ * A REST egyértékű mezőnél a címke helyén belső sorszámot adhat; a vezérlő a címkét a készletből oldja fel.
+ * Sikertelen lekérdezésnél az adott mezők kimaradnak, és a FieldValuesForEdit értéke marad érvényben.
+ */
+export async function loadTaxonomyValues(listId: string, itemId: number, fields: ITaxonomyFieldRef[]): Promise<FormValues> {
+  const item = getSP().web.lists.getById(listId).items.getById(itemId);
+  const result: FormValues = {};
+  try {
+    const data = (await item.select(...fields.map((field) => field.name))()) as Record<string, unknown>;
+    fields.forEach((field) => {
+      const raw: unknown = (data[field.name] as { results?: unknown } | undefined)?.results ?? data[field.name];
+      const list: ITaxonomyRestValue[] = Array.isArray(raw) ? raw : raw ? [raw as ITaxonomyRestValue] : [];
+      const terms = list
+        .filter((value) => !!value && !!value.TermGuid)
+        .map((value) => ({ id: String(value.TermGuid).toLowerCase(), label: value.Label ?? '' }));
+      result[field.name] = serializeTaxonomyValue(terms, field.multiple);
     });
   } catch {
     // Marad a FieldValuesForEdit értéke.

@@ -4,6 +4,7 @@ import * as strings from 'FormJetFormCustomizerStrings';
 
 import { ATTACHMENTS_FIELD } from '../engine/Attachments';
 import { normalizeLookupListId } from '../engine/LookupValue';
+import { normalizeTermGuid } from '../engine/TaxonomyValue';
 import { IFieldSchema } from '../models/IFieldSchema';
 import * as AttachmentService from './AttachmentService';
 import { getSP } from './sp';
@@ -40,10 +41,17 @@ interface IRawField {
   /** Lookup mezőnél: a hivatkozott lista azonosítója (`{guid}`), vagy különleges érték (pl. `UserInfo`). */
   LookupList?: string;
   LookupField?: string;
+  /** Felügyelt metaadat mezőnél: a kifejezéskészlet és a horgony kifejezés azonosítója. */
+  TermSetId?: string;
+  AnchorId?: string;
   /** Number mezőnél: százalékos megjelenítés. */
   ShowAsPercentage?: boolean;
   /** Currency mezőnél: a pénznem formátumának LCID-je. */
   CurrencyLocaleId?: number;
+}
+
+function isTaxonomy(field: IRawField): boolean {
+  return field.TypeAsString === 'TaxonomyFieldType' || field.TypeAsString === 'TaxonomyFieldTypeMulti';
 }
 
 function isLookup(field: IRawField): boolean {
@@ -109,7 +117,9 @@ export async function getFields(listId: string, contentTypeId: string): Promise<
       Percentage: field.TypeAsString === 'Number' && field.ShowAsPercentage ? true : undefined,
       CurrencyLocaleId: field.TypeAsString === 'Currency' ? field.CurrencyLocaleId : undefined,
       UrlImage: field.TypeAsString === 'URL' && field.DisplayFormat === 1 ? true : undefined,
-      FieldId: field.TypeAsString === 'Thumbnail' ? field.Id : undefined
+      FieldId: field.TypeAsString === 'Thumbnail' ? field.Id : undefined,
+      TermSetId: isTaxonomy(field) ? normalizeTermGuid(field.TermSetId) : undefined,
+      TermAnchorId: isTaxonomy(field) ? normalizeTermGuid(field.AnchorId) : undefined
     }));
 
   // A mellékletek pszeudo-mezőként szerepelnek a sémában, így a tervezőben bármelyik szekcióba elhelyezhetők.
