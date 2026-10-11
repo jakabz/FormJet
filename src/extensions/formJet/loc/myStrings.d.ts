@@ -22,6 +22,10 @@ declare interface IFormJetFormCustomizerStrings {
   PeopleSearchFailed: string;
   LookupLoadFailed: string;
   LookupTooMany: string;
+  UrlAddress: string;
+  UrlAddressPlaceholder: string;
+  UrlDescription: string;
+  UrlInvalid: string;
   RteBold: string;
   RteItalic: string;
   RteUnderline: string;

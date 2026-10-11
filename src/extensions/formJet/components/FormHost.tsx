@@ -186,6 +186,11 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
       if (item && itemId !== undefined && lookupFields.length > 0) {
         original = { ...original, ...(await ItemService.loadLookupValues(listId, itemId, lookupFields)) };
       }
+      // Hivatkozás mezők: a cím és a leírás külön lekérdezésből.
+      const urlFields: string[] = schema.filter((field) => field.TypeAsString === 'URL').map((field) => field.InternalName);
+      if (item && itemId !== undefined && urlFields.length > 0) {
+        original = { ...original, ...(await ItemService.loadUrlValues(listId, itemId, urlFields)) };
+      }
 
       setValues(item ? original : getInitialValues(schema, config, props.cultureName));
       setLoaded({

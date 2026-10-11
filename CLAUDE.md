@@ -41,6 +41,7 @@ src/extensions/formJet/
     NumberFormat.ts          szám alapérték form-stringgé alakítása (tizedesjel a web kultúrája szerint, százalék); pénznem jele az LCID-ből
     RelatedList.ts           kapcsolódó elemek: beállítás ellenőrzése, párosító érték, CAML lekérdezés
     LookupValue.ts           Lookup / LookupMulti form-string (azonosítók) értelmezése és előállítása
+    UrlValue.ts              URL mező form-string (`cím, leírás`) értelmezése és előállítása; biztonságos cím ellenőrzése
     UserValue.ts             User / UserMulti form-string (JSON tömb `Key`-jel) értelmezése és előállítása
     EngineStrings.ts         a motor üzenetei (alapból angol; az onInit a loc `Engine` részét adja át) + format()
     LayoutResolver.ts        séma + konfig + mód + értékek → IResolvedForm; alapértelmezett konfig; parseConfig
@@ -61,6 +62,7 @@ src/extensions/formJet/
     DateTimeField.tsx        DateTime mező: Fluent DatePicker (+ TimePicker, ha a mező időt is tárol)
     LookupField.tsx          Lookup mező: Fluent Dropdown; LookupMulti: jelölőnégyzetes lista vagy lenyíló lista (`lookupDisplay`)
     PeopleField.tsx          User / UserMulti mező: Fluent NormalPeoplePicker a SharePoint névkeresőjével
+    UrlField.tsx             URL mező: webcím + megjelenő szöveg; csak olvashatóként hivatkozás vagy kép
     RichTextField.tsx        rich text Note mező: TipTap szerkesztő Fluent eszköztárral (lazy chunk)
     RelatedItems.tsx         kapcsolódó elemek szekció: csak olvasható táblázat egy másik listából
     RelatedListEditor.tsx    a tervező szekciókártyájának „Kapcsolódó elemek” beállításai
@@ -105,6 +107,7 @@ A típusok forrása: `models/IFormConfig.ts`. Példa: `samples/config-example.js
 - Dátum: a `validateUpdateListItem` a **web területi beállításai** szerinti formátumot várja (magyar site-on pl. `2026. 10. 10.`), nem ISO-t. A formátumot az `engine/DateFormat.ts` állítja elő a `pageContext.cultureInfo.currentCultureName` alapján; az időt mindig 24 órás `HH:mm` alakban írjuk. A dátumok a web időzónája szerinti "falióra" értékek, időzóna-átváltás nincs.
 - Szám form-string: a web kultúrája szerinti tizedesjellel (magyar site-on `0,5`); százalékos mezőnél (`ShowAsPercentage`) a százalékérték (`25`), nem a tárolt tört. A séma `DefaultValue`-ja kultúrafüggetlen és tört (`0.25`), ezt a `NumberFormat.resolveNumberDefault` alakítja át.
 - Lookup form-string: egyértékűnél a hivatkozott elem azonosítója (`5`), többértékűnél `5;#;#6;#`. Meglévő elemnél az értéket a `<mező>Id` tulajdonságból vesszük (`ItemService.loadLookupValues`), nem a `FieldValuesForEdit`-ből. Csak a listára mutató keresőmező szerkeszthető (`LookupListId`).
+- URL form-string: `cím, leírás` (a címben lévő vessző duplázva). Meglévő elemnél az értéket a mező `Url` / `Description` részéből vesszük (`ItemService.loadUrlValues`). Hivatkozásként vagy képként csak `http(s)://`, `mailto:` vagy webhelyen belüli cím jelenik meg (`isSafeUrl`).
 - A `Choices` mező REST verziótól függően tömb vagy `{ results: [] }`; a `SchemaService.normalizeChoices` kezeli.
 - A customizer a tartalomtípusra van kötve (`New/Edit/DisplayFormClientSideComponentId`). Grid nézetben és quick edit esetén a gyári felület fut.
 
@@ -128,7 +131,7 @@ A típusok forrása: `models/IFormConfig.ts`. Példa: `samples/config-example.js
 
 ## Nyitott feladatok
 
-- Managed metadata / URL / Location / Image mezők bekötése a `FieldRenderer`-ben.
+- Managed metadata / Location / Image mezők bekötése a `FieldRenderer`-ben.
 - Mellékletek feltöltése mentés után (`FormHost.save` TODO).
 - Drag & drop a tervezőben (`@dnd-kit/core`, `@dnd-kit/sortable`), vizuális feltételszerkesztő.
 - Jest egységtesztek az `engine/` modulokra.

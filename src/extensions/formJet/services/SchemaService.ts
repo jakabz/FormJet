@@ -28,7 +28,7 @@ interface IRawField {
   MaxLength?: number;
   RichText?: boolean;
   NumberOfLines?: number;
-  /** DateTime mezőnél: 0 = csak dátum, 1 = dátum és idő. */
+  /** DateTime mezőnél: 0 = csak dátum, 1 = dátum és idő. URL mezőnél: 0 = hivatkozás, 1 = kép. */
   DisplayFormat?: number;
   /** User mezőnél: 0 = csak személyek, 1 = személyek és csoportok. */
   SelectionMode?: number;
@@ -102,6 +102,7 @@ export async function getFields(listId: string, contentTypeId: string): Promise<
       LookupListId: isLookup(field) ? normalizeLookupListId(field.LookupList) : undefined,
       LookupField: isLookup(field) ? field.LookupField || undefined : undefined,
       Percentage: field.TypeAsString === 'Number' && field.ShowAsPercentage ? true : undefined,
-      CurrencyLocaleId: field.TypeAsString === 'Currency' ? field.CurrencyLocaleId : undefined
+      CurrencyLocaleId: field.TypeAsString === 'Currency' ? field.CurrencyLocaleId : undefined,
+      UrlImage: field.TypeAsString === 'URL' && field.DisplayFormat === 1 ? true : undefined
     }));
 }

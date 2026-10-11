@@ -28,6 +28,8 @@ export interface IFieldSchema {
   Percentage?: boolean;
   /** Currency mezőnél: a pénznem formátumának nyelvi azonosítója (LCID), pl. 1038 = magyar forint. */
   CurrencyLocaleId?: number;
+  /** URL mezőnél: képként jelenik meg (a mező „Kép” formátuma), nem hivatkozásként. */
+  UrlImage?: boolean;
 }
 
 /** Mezőértékek form-string formátumban, InternalName szerint. */

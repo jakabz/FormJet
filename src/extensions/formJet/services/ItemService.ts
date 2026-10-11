@@ -5,6 +5,7 @@ import { IListItemFormUpdateValue } from '@pnp/sp/lists';
 import * as strings from 'FormJetFormCustomizerStrings';
 
 import { serializeLookupValue } from '../engine/LookupValue';
+import { serializeUrlValue } from '../engine/UrlValue';
 import { FieldErrors, FormValues } from '../models/IFieldSchema';
 import { getSP } from './sp';
 
@@ -128,6 +129,25 @@ export async function loadLookupValues(listId: string, itemId: number, fields: I
     const data = (await item.select(...fields.map((field) => `${field.name}Id`))()) as Record<string, unknown>;
     fields.forEach((field) => {
       result[field.name] = serializeLookupValue(toLookupIds(data[`${field.name}Id`]), field.multiple);
+    });
+  } catch {
+    // Marad a FieldValuesForEdit értéke.
+  }
+  return result;
+}
+
+/**
+ * A hivatkozás (URL) mezők értéke form-stringként, a mező `Url` és `Description` részéből.
+ * Sikertelen lekérdezésnél az adott mezők kimaradnak, és a FieldValuesForEdit értéke marad érvényben.
+ */
+export async function loadUrlValues(listId: string, itemId: number, fieldNames: string[]): Promise<FormValues> {
+  const item = getSP().web.lists.getById(listId).items.getById(itemId);
+  const result: FormValues = {};
+  try {
+    const data = (await item.select(...fieldNames)()) as Record<string, unknown>;
+    fieldNames.forEach((name) => {
+      const value = data[name] as { Url?: string; Description?: string } | null | undefined;
+      result[name] = serializeUrlValue({ url: value?.Url ?? '', description: value?.Description ?? '' });
     });
   } catch {
     // Marad a FieldValuesForEdit értéke.

@@ -315,7 +315,7 @@ A `validateUpdateListItem` minden mezőtípusra szöveges értéket vár. Új me
 | Lookup | A hivatkozott elem azonosítója | `5` |
 | LookupMulti | Azonosító;#cím párok, a cím üresen hagyható | `5;#;#6;#` |
 | TaxonomyFieldType | `Címke\|TermGuid` | `Budapest\|3f2a…` |
-| URL | `url, leírás` | `https://contoso.com, Weboldal` |
+| URL | `cím, leírás`; a címben lévő vessző duplázva, leírás nélkül a cím ismétlődik | `https://contoso.com, Weboldal` |
 
 A DateTime értéket a `DateTimeField` (Fluent `DatePicker`, dátum + idő mezőnél `TimePicker`-rel) szerkeszti. A formátumot az `engine/DateFormat.ts` a web kultúrájából (`pageContext.cultureInfo.currentCultureName`) vezeti le a böngésző `Intl` API-jával, és ugyanezzel olvassa vissza a `FieldValuesForEdit` értékét. Időzóna-átváltás nincs: a kapott "falióra" értéket írjuk vissza. Ha egy tárolt érték nem értelmezhető dátumként, a mező szövegmezőként jelenik meg, hogy az érték ne vesszen el. Új nyelvű (kultúrájú) site-on érdemes egy mentést kipróbálni, mert a szerver .NET-formátuma ritkán eltérhet a böngészőétől.
 
@@ -328,6 +328,8 @@ A rich text Note mezőt a `RichTextField` (TipTap v3) szerkeszti, és csak olvas
 - Új formázás támogatása: a megfelelő TipTap kiterjesztés felvétele a `RichTextField` `extensions` listájába (a többi `@tiptap/*` csomaggal azonos verzióban), és gomb az eszköztárba.
 
 A pénznem mező jelét és helyét (a szám előtt vagy után) a `NumberFormat.getCurrencyAffix` adja a mező `CurrencyLocaleId` (LCID) értékéből. A böngésző az LCID-ből nem tudja kiolvasni a pénznemet, ezért a gyakori értékek egy táblázatban (`CURRENCY_LOCALES`) szerepelnek; ismeretlen LCID-nél a mező jel nélkül jelenik meg, új pénznemhez a táblázatot kell bővíteni. A jel csak megjelenítés: a mentett form-stringbe nem kerül bele.
+
+A hivatkozás mezőt (`URL`) az `UrlField` szerkeszti két beviteli mezővel (webcím, megjelenő szöveg). Csak olvashatóként hivatkozás jelenik meg (új lapon nyílik), a képként formázott mezőnél (`DisplayFormat = 1`) maga a kép. Hivatkozást és képet csak biztonságos címből készítünk (`UrlValue.isSafeUrl`: `http(s)://`, `mailto:`, webhelyen belüli útvonal); más címnél a szöveg látszik. A leírás cím nélkül nem menthető, ezért a vezérlő addig helyben tartja. Meglévő elemnél az értéket az `ItemService.loadUrlValues` tölti be.
 
 A keresőmezőt a `LookupField` szerkeszti: az egyértékű (`Lookup`) Fluent `Dropdown`-t kap, a többértékű (`LookupMulti`) a mező `lookupDisplay` beállítása szerint mindig nyitott jelölőnégyzetes listát (görgetés nélkül minden választható elem látszik) vagy többválasztós lenyíló listát; alapértelmezésben az elemszám dönt:
 

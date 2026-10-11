@@ -19,6 +19,7 @@ import { IFieldSchema } from '../models/IFieldSchema';
 import { DateTimeField } from './DateTimeField';
 import { LookupField } from './LookupField';
 import { PeopleField } from './PeopleField';
+import { UrlField } from './UrlField';
 
 // A TipTap szerkesztő nagy; csak akkor töltjük le, ha a formon van rich text mező.
 const RichTextField = React.lazy(() => import(/* webpackChunkName: 'formjet-richtext' */ './RichTextField'));
@@ -121,6 +122,16 @@ export const FieldRenderer: React.FC<IFieldRendererProps> = (props) => {
     return (
       <div>
         <LookupField field={field} value={value} onChange={set} />
+        {footer}
+      </div>
+    );
+  }
+
+  // Hivatkozás: csak olvashatóként is a saját vezérlője jeleníti meg (hivatkozásként vagy képként).
+  if (field.readOnly && schema.TypeAsString === 'URL' && value !== '') {
+    return (
+      <div>
+        <UrlField field={field} value={value} onChange={set} />
         {footer}
       </div>
     );
@@ -247,6 +258,14 @@ export const FieldRenderer: React.FC<IFieldRendererProps> = (props) => {
       return (
         <div>
           <LookupField field={field} value={value} error={error} onChange={set} />
+          {description && <div className={classes.description}>{description}</div>}
+        </div>
+      );
+
+    case 'URL':
+      return (
+        <div>
+          <UrlField field={field} value={value} error={error} onChange={set} />
           {description && <div className={classes.description}>{description}</div>}
         </div>
       );
