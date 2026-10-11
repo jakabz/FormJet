@@ -24,6 +24,10 @@ export interface IFieldSchema {
   LookupListId?: string;
   /** Lookup mezőnél: a hivatkozott lista megjelenített mezőjének InternalName-je. */
   LookupField?: string;
+  /** Number mezőnél: százalékként jelenik meg (az érték százalékban értendő, pl. `25`). */
+  Percentage?: boolean;
+  /** Currency mezőnél: a pénznem formátumának nyelvi azonosítója (LCID), pl. 1038 = magyar forint. */
+  CurrencyLocaleId?: number;
 }
 
 /** Mezőértékek form-string formátumban, InternalName szerint. */

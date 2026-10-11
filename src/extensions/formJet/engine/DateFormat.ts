@@ -20,6 +20,18 @@ function formatter(culture: string, options: Intl.DateTimeFormatOptions): Intl.D
   }
 }
 
+/** Az időválasztó lépésköze percben; az alapértelmezett „most” időpont is erre kerekül. */
+export const TIME_STEP_MINUTES: number = 5;
+
+/** Az időpont a legközelebbi lépésközre kerekítve (10:23 → 10:25, 10:22 → 10:20), másodpercek nélkül. */
+export function roundToTimeStep(date: Date, stepMinutes: number = TIME_STEP_MINUTES): Date {
+  const stepMs: number = stepMinutes * 60000;
+  const midnight: Date = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const sinceMidnight: number = date.getTime() - midnight.getTime();
+  // A nap kezdetétől számolunk, így az óraátállítás napján is a falióra szerinti percre kerekítünk.
+  return new Date(midnight.getTime() + Math.round(sinceMidnight / stepMs) * stepMs);
+}
+
 /** A kultúra rövid dátummintája, pl. hu-HU: `yyyy. MM. dd.`, en-US: `MM/dd/yyyy`. */
 export function getDateTemplate(culture: string): string {
   if (templateCache[culture] === undefined) {

@@ -187,7 +187,7 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
         original = { ...original, ...(await ItemService.loadLookupValues(listId, itemId, lookupFields)) };
       }
 
-      setValues(item ? original : getInitialValues(schema, config));
+      setValues(item ? original : getInitialValues(schema, config, props.cultureName));
       setLoaded({
         schema,
         contentTypeId: resolvedContentTypeId,
@@ -201,7 +201,7 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
     } catch (e) {
       setLoadError(errorText(e, TEXT.loadFailed));
     }
-  }, [mode, listId, itemId, props.contentTypeId]);
+  }, [mode, listId, itemId, props.contentTypeId, props.cultureName]);
 
   React.useEffect(() => {
     load().catch(() => undefined);

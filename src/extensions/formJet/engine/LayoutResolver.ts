@@ -18,7 +18,9 @@ import {
 } from '../models/IFormConfig';
 import { FormValues, IFieldSchema } from '../models/IFieldSchema';
 import { evaluate, joinMultiValue, validateCondition } from './ConditionEngine';
+import { formatDateValue, parseDateValue, roundToTimeStep } from './DateFormat';
 import { engineStrings, format } from './EngineStrings';
+import { resolveNumberDefault } from './NumberFormat';
 import { isRelatedComplete, parseRelated } from './RelatedList';
 import { parseFieldStyles, parseFormStyles, parseSectionStyles, resolveModeStyle } from './FormStyle';
 
@@ -225,13 +227,52 @@ export function createDefaultConfig(listId: string, contentTypeId: string, schem
   };
 }
 
-/** Kezdőértékek New módban: a konfig defaultValue-ja, ennek hiányában egyszerű típusoknál a séma DefaultValue-ja. */
-export function getInitialValues(schema: IFieldSchema[], config: IFormConfig): FormValues {
+const TODAY_TOKEN: string = '[today]';
+const ISO_DATE: RegExp = /^\d{4}-\d{2}-\d{2}(T|$)/;
+
+/**
+ * Dátum mező kezdőértéke form-stringként. A forrás lehet `[today]`, ISO dátum (a SharePoint a rögzített
+ * alapértelmezett dátumot így tárolja), vagy már a web formátumában megadott dátum.
+ * `undefined`, ha az érték nem értelmezhető dátumként (például számított alapérték).
+ */
+export function resolveDateDefault(raw: string, culture: string, dateOnly: boolean, now: Date): string | undefined {
+  const text: string = raw.trim();
+  if (text.toLowerCase() === TODAY_TOKEN) {
+    // Csak dátum mezőnél a mai nap; dátum + idő mezőnél a mostani időpont, az időválasztó lépésközére kerekítve.
+    const today: Date = dateOnly ? new Date(now.getFullYear(), now.getMonth(), now.getDate()) : roundToTimeStep(now);
+    return formatDateValue(today, culture, dateOnly);
+  }
+  if (ISO_DATE.test(text)) {
+    const date: Date = new Date(text);
+    return isNaN(date.getTime()) ? undefined : formatDateValue(date, culture, dateOnly);
+  }
+  const parsed: Date | undefined = parseDateValue(text, culture);
+  return parsed ? formatDateValue(parsed, culture, dateOnly) : undefined;
+}
+
+/**
+ * Kezdőértékek New módban: a konfig defaultValue-ja, ennek hiányában a séma DefaultValue-ja
+ * (egyszerű típusoknál és dátumnál). A dátum a web kultúrája szerinti form-stringgé alakul.
+ */
+export function getInitialValues(
+  schema: IFieldSchema[],
+  config: IFormConfig,
+  culture: string = 'en-US',
+  now: Date = new Date()
+): FormValues {
   const values: FormValues = {};
   schema.forEach((field) => {
     const configured: string | undefined = config.fields[field.InternalName]?.defaultValue;
-    if (configured !== undefined) {
+    if (field.TypeAsString === 'DateTime') {
+      const raw: string | undefined = configured ?? field.DefaultValue;
+      const value: string | undefined = raw ? resolveDateDefault(raw, culture, field.DateOnly !== false, now) : undefined;
+      if (value !== undefined) {
+        values[field.InternalName] = value;
+      }
+    } else if (configured !== undefined) {
       values[field.InternalName] = configured;
+    } else if (field.DefaultValue && (field.TypeAsString === 'Number' || field.TypeAsString === 'Currency')) {
+      values[field.InternalName] = resolveNumberDefault(field.DefaultValue, culture, !!field.Percentage);
     } else if (field.DefaultValue && SCHEMA_DEFAULT_TYPES.indexOf(field.TypeAsString) !== -1) {
       values[field.InternalName] =
         field.TypeAsString === 'MultiChoice' ? joinMultiValue([field.DefaultValue]) : field.DefaultValue;

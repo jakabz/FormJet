@@ -24,6 +24,8 @@ const classes = mergeStyleSets({
     alignItems: 'center',
     gap: 8,
     width: '100%',
+    // A belső margó (pl. a színes sávos fejlécnél) a szélességbe számítson, különben a fejléc kilóg.
+    boxSizing: 'border-box',
     padding: '0 0 6px',
     margin: '0 0 12px',
     border: 'none',

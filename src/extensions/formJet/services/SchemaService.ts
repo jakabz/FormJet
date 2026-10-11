@@ -37,6 +37,10 @@ interface IRawField {
   /** Lookup mezőnél: a hivatkozott lista azonosítója (`{guid}`), vagy különleges érték (pl. `UserInfo`). */
   LookupList?: string;
   LookupField?: string;
+  /** Number mezőnél: százalékos megjelenítés. */
+  ShowAsPercentage?: boolean;
+  /** Currency mezőnél: a pénznem formátumának LCID-je. */
+  CurrencyLocaleId?: number;
 }
 
 function isLookup(field: IRawField): boolean {
@@ -96,6 +100,8 @@ export async function getFields(listId: string, contentTypeId: string): Promise<
       UserAllowGroups: field.SelectionMode === 1 ? true : undefined,
       UserSelectionGroup: field.SelectionGroup || undefined,
       LookupListId: isLookup(field) ? normalizeLookupListId(field.LookupList) : undefined,
-      LookupField: isLookup(field) ? field.LookupField || undefined : undefined
+      LookupField: isLookup(field) ? field.LookupField || undefined : undefined,
+      Percentage: field.TypeAsString === 'Number' && field.ShowAsPercentage ? true : undefined,
+      CurrencyLocaleId: field.TypeAsString === 'Currency' ? field.CurrencyLocaleId : undefined
     }));
 }

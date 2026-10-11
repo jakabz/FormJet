@@ -13,6 +13,7 @@ import * as strings from 'FormJetFormCustomizerStrings';
 
 import { joinMultiValue, splitMultiValue } from '../engine/ConditionEngine';
 import { IResolvedField } from '../engine/LayoutResolver';
+import { getCurrencyAffix, ICurrencyAffix } from '../engine/NumberFormat';
 import { formatUserValue } from '../engine/UserValue';
 import { IFieldSchema } from '../models/IFieldSchema';
 import { DateTimeField } from './DateTimeField';
@@ -25,6 +26,7 @@ const RichTextField = React.lazy(() => import(/* webpackChunkName: 'formjet-rich
 const TEXT_YES: string = strings.Yes;
 const TEXT_NO: string = strings.No;
 const TEXT_EMPTY: string = '–';
+const PERCENT_SIGN: string = '%';
 
 const classes = mergeStyleSets({
   readOnlyValue: { padding: '6px 0', minHeight: 20, whiteSpace: 'pre-wrap', wordBreak: 'break-word' },
@@ -54,8 +56,16 @@ function formatReadOnly(schema: IFieldSchema, value: string): string {
     case 'User':
     case 'UserMulti':
       return formatUserValue(value) || TEXT_EMPTY;
-    default:
+    default: {
+      if (schema.Percentage) {
+        return `${value}${PERCENT_SIGN}`;
+      }
+      const currency: ICurrencyAffix | undefined = getCurrencyAffix(schema.CurrencyLocaleId);
+      if (currency) {
+        return currency.position === 'prefix' ? `${currency.symbol}${value}` : `${value} ${currency.symbol}`;
+      }
       return value;
+    }
   }
 }
 
@@ -125,6 +135,8 @@ export const FieldRenderer: React.FC<IFieldRendererProps> = (props) => {
       </div>
     );
   }
+
+  const currency: ICurrencyAffix | undefined = getCurrencyAffix(schema.CurrencyLocaleId);
 
   switch (schema.TypeAsString) {
     case 'Note':
@@ -240,18 +252,29 @@ export const FieldRenderer: React.FC<IFieldRendererProps> = (props) => {
       );
 
     // Text, Number, Currency
-    default:
+    default: {
+      const prefix: string | undefined = currency?.position === 'prefix' ? currency.symbol : undefined;
+      const suffix: string | undefined = schema.Percentage
+        ? PERCENT_SIGN
+        : currency?.position === 'suffix'
+          ? currency.symbol
+          : undefined;
       return (
         <TextField
           label={label}
           required={required}
           value={value}
           maxLength={schema.TypeAsString === 'Text' ? schema.MaxLength : undefined}
+          prefix={prefix}
+          suffix={suffix}
+          // Utótagnál (%, Ft) a szám jobbra igazodik, hogy a jel mellett álljon; előtagnál ($) balra marad.
+          styles={suffix ? { field: { textAlign: 'right' } } : undefined}
           placeholder={placeholder}
           description={description}
           errorMessage={error}
           onChange={(_, next) => set(next ?? '')}
         />
       );
+    }
   }
 };

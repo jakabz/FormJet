@@ -120,6 +120,7 @@ A generált `config/serve.json` Form Customizer konfigurációját állítsd a t
    - `ConfigService.load` – konfiguráció (hiba esetén alapértelmezett elrendezés és admin figyelmeztetés),
    - `ItemService.load` – Edit/Display módban az elem értékei (`FieldValuesForEdit`, `FieldValuesAsText`, `Modified`).
 4. New módban a kezdőértékek: a konfig `defaultValue`-ja, ennek hiányában egyszerű típusoknál a séma `DefaultValue`-ja.
+   Dátum mezőnél a `[today]` a mai napot jelenti (dátum + idő mezőnél a mostani időpontot, az időválasztó 5 perces lépésközére kerekítve), a SharePoint által ISO alakban tárolt rögzített dátum pedig a web kultúrája szerinti form-stringgé alakul (`resolveDateDefault`); a számított alapérték (pl. `=Today+7`) nincs kezelve.
 5. Minden értékváltozáskor a `resolveForm` újraszámolja a feltételeket. Ez olcsó művelet; ne tegyél bele aszinkron hívást.
 
 ### Mentés (`FormHost.save`)
@@ -176,7 +177,7 @@ A tartalomtípus mezői közül a rejtett és a számított megjelenítő (`Comp
 | `readOnlyIn` | `FormMode[]` | egyik sem | Csak olvasható módonként. Display módban minden csak olvasható. |
 | `requiredIn` | `FormMode[]` | egyik sem | Kötelezőség módonként. **Csak szigorít.** |
 | `visibleWhen`, `readOnlyWhen`, `requiredWhen` | `Condition` | – | Feltételes változatok. |
-| `defaultValue` | string | – | Kezdőérték New módban, form-string formátumban. |
+| `defaultValue` | string | – | Kezdőérték New módban, form-string formátumban. Dátum mezőnél `[today]`, ISO dátum vagy a web formátuma szerinti dátum is megadható. |
 | `lookupDisplay` | `'auto'` \| `'checklist'` \| `'dropdown'` | `auto` | Többértékű keresőmező megjelenítése: mindig nyitott jelölőnégyzetes lista vagy lenyíló lista. `auto`: legfeljebb 8 választható elemnél jelölőnégyzetes lista, efelett lenyíló. |
 
 Egy mező akkor látszik, ha a szekciója látszik, **és** a mező `visibleIn`, **és** `visibleWhen` feltétele is teljesül. Ami nincs egyetlen szekcióban sem, az nem jelenik meg.
@@ -304,6 +305,8 @@ A `validateUpdateListItem` minden mezőtípusra szöveges értéket vár. Új me
 | Text, Note (sima szöveg) | Egyszerű szöveg | `Irodaszer` |
 | Note (rich text) | HTML | `<p>Sürgős <strong>rendelés</strong></p>` |
 | Number, Currency | A web területi beállításai szerinti szám | `1234,5` |
+| Currency | Szám, pénznemjel nélkül; a jel a mező elő- vagy utótagjaként látszik (`CurrencyLocaleId` szerint) | `1500` (megjelenítve: `1500 Ft`) |
+| Number, százalékként | A százalékérték, nem a tárolt tört; a mező `%` utótagot kap | `25` (tárolva: `0.25`) |
 | Choice | A választás szövege | `Informatika` |
 | MultiChoice | `;#` elválasztás | `;#A;#B;#` |
 | Boolean | `1` vagy `0` | `1` |
@@ -323,6 +326,8 @@ A rich text Note mezőt a `RichTextField` (TipTap v3) szerkeszti, és csak olvas
 - Táblázathoz és képhez nincs eszköztár, csak a meglévő tartalom megőrzését szolgálják.
 - A szerkesztő külön csomagrész (`formjet-richtext`), csak akkor töltődik le, ha a formon van rich text mező.
 - Új formázás támogatása: a megfelelő TipTap kiterjesztés felvétele a `RichTextField` `extensions` listájába (a többi `@tiptap/*` csomaggal azonos verzióban), és gomb az eszköztárba.
+
+A pénznem mező jelét és helyét (a szám előtt vagy után) a `NumberFormat.getCurrencyAffix` adja a mező `CurrencyLocaleId` (LCID) értékéből. A böngésző az LCID-ből nem tudja kiolvasni a pénznemet, ezért a gyakori értékek egy táblázatban (`CURRENCY_LOCALES`) szerepelnek; ismeretlen LCID-nél a mező jel nélkül jelenik meg, új pénznemhez a táblázatot kell bővíteni. A jel csak megjelenítés: a mentett form-stringbe nem kerül bele.
 
 A keresőmezőt a `LookupField` szerkeszti: az egyértékű (`Lookup`) Fluent `Dropdown`-t kap, a többértékű (`LookupMulti`) a mező `lookupDisplay` beállítása szerint mindig nyitott jelölőnégyzetes listát (görgetés nélkül minden választható elem látszik) vagy többválasztós lenyíló listát; alapértelmezésben az elemszám dönt:
 

@@ -14,12 +14,11 @@ import {
   formatDateValue,
   getCalendarNames,
   getFirstDayOfWeek,
-  parseDateValue
+  parseDateValue,
+  TIME_STEP_MINUTES
 } from '../engine/DateFormat';
 import { IResolvedField } from '../engine/LayoutResolver';
 import { FormContext } from './FormContext';
-
-const TIME_INCREMENT_MINUTES: number = 15;
 
 const classes = mergeStyleSets({
   // A címke a sor fölött van, a két beviteli mező felülre igazodik: így a dátum vagy az idő alatti
@@ -101,6 +100,11 @@ export const DateTimeField: React.FC<IDateTimeFieldProps> = (props) => {
     props.onChange(formatDateValue(next, cultureName, false));
   };
 
+  // Az időválasztó listája a nap elejétől induljon, ne a kiválasztott időpont órájától.
+  const dayStart: Date | undefined = parsed
+    ? new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate())
+    : undefined;
+
   const datePicker: JSX.Element = (
     <DatePicker
       className={dateOnly ? undefined : classes.date}
@@ -132,10 +136,10 @@ export const DateTimeField: React.FC<IDateTimeFieldProps> = (props) => {
             ariaLabel={`${field.label} – ${strings.Time}`}
             useHour12={false}
             allowFreeform
-            increments={TIME_INCREMENT_MINUTES}
+            increments={TIME_STEP_MINUTES}
             disabled={!parsed}
             value={parsed}
-            dateAnchor={parsed}
+            dateAnchor={dayStart}
             strings={{ invalidInputErrorMessage: strings.InvalidTime }}
             onChange={(_, time) => setTime(time)}
           />
