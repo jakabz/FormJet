@@ -86,6 +86,8 @@ export const PeopleField: React.FC<IPeopleFieldProps> = (props) => {
         onChange={onChange}
         getTextFromItem={(persona) => persona.text ?? ''}
         pickerSuggestionsProps={SUGGESTIONS}
+        // A választó alapból átlátszó; színes hátterű szekcióban vagy mezőn is fehér legyen, mint a többi vezérlő.
+        styles={{ text: { background: '#ffffff' } }}
         inputProps={{
           'aria-label': field.label,
           placeholder: selected.length === 0 ? field.placeholder ?? strings.PeoplePlaceholder : undefined

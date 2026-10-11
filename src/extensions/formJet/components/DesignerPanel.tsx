@@ -25,7 +25,9 @@ import {
   IFieldConfig,
   IFieldPlacement,
   IFormConfig,
-  ISectionConfig
+  ISectionConfig,
+  LOOKUP_CHECKLIST_MAX,
+  LookupDisplay
 } from '../models/IFormConfig';
 import { AccordionCard } from './AccordionCard';
 import { RelatedListEditor } from './RelatedListEditor';
@@ -40,6 +42,16 @@ const MODE_LABELS: Record<FormMode, string> = {
 };
 
 const CONDITION_HELP: string = strings.ConditionHelp;
+
+// Függvény, nem modulszintű állandó: a format() hiányzó szövegre hibát dobna, és a modul betöltésekor
+// ez az egész form megjelenését megakadályozná.
+function lookupDisplayOptions(): IDropdownOption[] {
+  return [
+    { key: 'auto', text: format(strings.LookupDisplayAuto, LOOKUP_CHECKLIST_MAX) },
+    { key: 'checklist', text: strings.LookupDisplayChecklist },
+    { key: 'dropdown', text: strings.LookupDisplayDropdown }
+  ];
+}
 
 const COLUMN_OPTIONS: IDropdownOption[] = [1, 2, 3, 4].map((n) => ({ key: n, text: String(n) }));
 
@@ -414,6 +426,19 @@ export const DesignerPanel: React.FC<IDesignerPanelProps> = (props) => {
               value={config.defaultValue ?? ''}
               onChange={(_, v) => updateField(selectedField, { defaultValue: v })}
             />
+            {fieldSchema.TypeAsString === 'LookupMulti' && (
+              <Dropdown
+                label={strings.LookupDisplay}
+                options={lookupDisplayOptions()}
+                selectedKey={config.lookupDisplay ?? 'auto'}
+                onChange={(_, option) =>
+                  option &&
+                  updateField(selectedField, {
+                    lookupDisplay: option.key === 'auto' ? undefined : (option.key as LookupDisplay)
+                  })
+                }
+              />
+            )}
             <ModeCheckboxes
               label={strings.VisibleInModes}
               value={config.visibleIn}

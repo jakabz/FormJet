@@ -16,6 +16,7 @@ import { IResolvedField } from '../engine/LayoutResolver';
 import { formatUserValue } from '../engine/UserValue';
 import { IFieldSchema } from '../models/IFieldSchema';
 import { DateTimeField } from './DateTimeField';
+import { LookupField } from './LookupField';
 import { PeopleField } from './PeopleField';
 
 // A TipTap szerkesztő nagy; csak akkor töltjük le, ha a formon van rich text mező.
@@ -101,6 +102,17 @@ export const FieldRenderer: React.FC<IFieldRendererProps> = (props) => {
           onChange={set}
         />
       </React.Suspense>
+    );
+  }
+
+  // Keresőmező: ha nincs kész megjelenítendő szöveg (az érték a betöltés óta változott), a választó oldja fel a neveket.
+  const isLookup: boolean = schema.LookupListId !== undefined;
+  if (field.readOnly && isLookup && !displayValue && value !== '') {
+    return (
+      <div>
+        <LookupField field={field} value={value} onChange={set} />
+        {footer}
+      </div>
     );
   }
 
@@ -214,6 +226,15 @@ export const FieldRenderer: React.FC<IFieldRendererProps> = (props) => {
       return (
         <div>
           <PeopleField field={field} value={value} error={error} onChange={set} />
+          {description && <div className={classes.description}>{description}</div>}
+        </div>
+      );
+
+    case 'Lookup':
+    case 'LookupMulti':
+      return (
+        <div>
+          <LookupField field={field} value={value} error={error} onChange={set} />
           {description && <div className={classes.description}>{description}</div>}
         </div>
       );

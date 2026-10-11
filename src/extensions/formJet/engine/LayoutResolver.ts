@@ -12,7 +12,9 @@ import {
   IFormStyle,
   IRelatedListConfig,
   ISectionConfig,
-  ISectionStyle
+  ISectionStyle,
+  LOOKUP_DISPLAYS,
+  LookupDisplay
 } from '../models/IFormConfig';
 import { FormValues, IFieldSchema } from '../models/IFieldSchema';
 import { evaluate, joinMultiValue, validateCondition } from './ConditionEngine';
@@ -34,6 +36,8 @@ export interface IResolvedField {
   label: string;
   description?: string;
   placeholder?: string;
+  /** Többértékű keresőmező megjelenítése. */
+  lookupDisplay: LookupDisplay;
   colSpan: number;
   /** A szekció láthatóságát is tartalmazza. */
   visible: boolean;
@@ -76,6 +80,10 @@ export interface IParseConfigResult {
 export function isEditableField(schema: IFieldSchema): boolean {
   if (schema.ReadOnlyField) {
     return false;
+  }
+  if (schema.TypeAsString === 'Lookup' || schema.TypeAsString === 'LookupMulti') {
+    // Csak a listára mutató keresőmezőhöz van választó.
+    return schema.LookupListId !== undefined;
   }
   return EDITABLE_TYPES.indexOf(schema.TypeAsString) !== -1;
 }
@@ -147,6 +155,7 @@ export function resolveForm(
         label: fieldConfig.label || fieldSchema.Title,
         description: fieldConfig.description ?? fieldSchema.Description,
         placeholder: fieldConfig.placeholder,
+        lookupDisplay: fieldConfig.lookupDisplay ?? 'auto',
         colSpan: Math.min(clampColumns(placement.colSpan), columns),
         visible,
         readOnly,
@@ -321,6 +330,13 @@ function parseFieldConfig(input: unknown, name: string): IFieldConfig {
   if (description !== undefined) field.description = description;
   if (placeholder !== undefined) field.placeholder = placeholder;
   if (defaultValue !== undefined) field.defaultValue = defaultValue;
+  if (input.lookupDisplay !== undefined) {
+    if (LOOKUP_DISPLAYS.indexOf(input.lookupDisplay as LookupDisplay) === -1) {
+      throw new Error(format(engineStrings().InvalidOption, `${path}.lookupDisplay`, LOOKUP_DISPLAYS.join(', ')));
+    }
+    // Az alapértelmezést nem tároljuk.
+    if (input.lookupDisplay !== 'auto') field.lookupDisplay = input.lookupDisplay as LookupDisplay;
+  }
   if (visibleIn) field.visibleIn = visibleIn;
   if (readOnlyIn) field.readOnlyIn = readOnlyIn;
   if (requiredIn) field.requiredIn = requiredIn;

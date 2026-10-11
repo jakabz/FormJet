@@ -20,6 +20,8 @@ declare interface IFormJetFormCustomizerStrings {
   PeoplePlaceholder: string;
   PeopleNoResults: string;
   PeopleSearchFailed: string;
+  LookupLoadFailed: string;
+  LookupTooMany: string;
   RteBold: string;
   RteItalic: string;
   RteUnderline: string;
@@ -99,6 +101,10 @@ declare interface IFormJetFormCustomizerStrings {
   PlaceholderText: string;
   DefaultValue: string;
   DefaultValueHint: string;
+  LookupDisplay: string;
+  LookupDisplayAuto: string;
+  LookupDisplayChecklist: string;
+  LookupDisplayDropdown: string;
   RequiredOnlyStricter: string;
   ConfigJson: string;
   Apply: string;

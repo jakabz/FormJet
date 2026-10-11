@@ -141,6 +141,8 @@ A generált `config/serve.json` Form Customizer konfigurációját állítsd a t
 
 Forrás: `models/IFormConfig.ts`. Példa: `samples/config-example.json`.
 
+A tartalomtípus mezői közül a rejtett és a számított megjelenítő (`Computed`, pl. `LinkTitle`) mezők nem kerülnek a sémába, így a tervezőben sem választhatók. Ha egy korábbi konfiguráció ilyen mezőre hivatkozik, az admin a „nem létező mezők” figyelmeztetést látja.
+
 ### IFormConfig
 
 | Tulajdonság | Típus | Kötelező | Jelentés |
@@ -175,6 +177,7 @@ Forrás: `models/IFormConfig.ts`. Példa: `samples/config-example.json`.
 | `requiredIn` | `FormMode[]` | egyik sem | Kötelezőség módonként. **Csak szigorít.** |
 | `visibleWhen`, `readOnlyWhen`, `requiredWhen` | `Condition` | – | Feltételes változatok. |
 | `defaultValue` | string | – | Kezdőérték New módban, form-string formátumban. |
+| `lookupDisplay` | `'auto'` \| `'checklist'` \| `'dropdown'` | `auto` | Többértékű keresőmező megjelenítése: mindig nyitott jelölőnégyzetes lista vagy lenyíló lista. `auto`: legfeljebb 8 választható elemnél jelölőnégyzetes lista, efelett lenyíló. |
 
 Egy mező akkor látszik, ha a szekciója látszik, **és** a mező `visibleIn`, **és** `visibleWhen` feltétele is teljesül. Ami nincs egyetlen szekcióban sem, az nem jelenik meg.
 
@@ -306,7 +309,8 @@ A `validateUpdateListItem` minden mezőtípusra szöveges értéket vár. Új me
 | Boolean | `1` vagy `0` | `1` |
 | DateTime | A web területi beállításai szerinti dátum; idővel együtt 24 órás `HH:mm` | magyar site-on pl. `2026. 10. 10.`, illetve `2026. 10. 10. 14:30` |
 | User, UserMulti | JSON tömb; a `Key` a claims bejelentkezési név, SharePoint csoportnál a csoport neve | `[{"Key":"i:0#.f\|membership\|anna@contoso.com"}]` |
-| Lookup | Az elem azonosítója | `5` |
+| Lookup | A hivatkozott elem azonosítója | `5` |
+| LookupMulti | Azonosító;#cím párok, a cím üresen hagyható | `5;#;#6;#` |
 | TaxonomyFieldType | `Címke\|TermGuid` | `Budapest\|3f2a…` |
 | URL | `url, leírás` | `https://contoso.com, Weboldal` |
 
@@ -320,7 +324,15 @@ A rich text Note mezőt a `RichTextField` (TipTap v3) szerkeszti, és csak olvas
 - A szerkesztő külön csomagrész (`formjet-richtext`), csak akkor töltődik le, ha a formon van rich text mező.
 - Új formázás támogatása: a megfelelő TipTap kiterjesztés felvétele a `RichTextField` `extensions` listájába (a többi `@tiptap/*` csomaggal azonos verzióban), és gomb az eszköztárba.
 
-A LookupMulti és TaxonomyFieldTypeMulti pontos formátumát a bekötéskor a `FieldValuesForEdit` kimenetével kell ellenőrizni; tenant- és verziófüggő eltérések előfordulnak.
+A keresőmezőt a `LookupField` szerkeszti: az egyértékű (`Lookup`) Fluent `Dropdown`-t kap, a többértékű (`LookupMulti`) a mező `lookupDisplay` beállítása szerint mindig nyitott jelölőnégyzetes listát (görgetés nélkül minden választható elem látszik) vagy többválasztós lenyíló listát; alapértelmezésben az elemszám dönt:
+
+- A választható elemeket a `LookupService` tölti be a hivatkozott listából, a mező megjelenített mezője szerint rendezve; az eredményt a munkamenet idejére megjegyzi. Legfeljebb 2000 elem tölthető be, efelett a vezérlő alatt jelzés látszik.
+- Meglévő elemnél az értéket az `ItemService.loadLookupValues` adja a `<mező>Id` tulajdonságból, mert a `FieldValuesForEdit` formátuma itt sem megbízható. Az `engine/LookupValue.ts` értelmezője ettől függetlenül több alakot elfogad (`5`, `5;#Cím`, `5;#Cím;#6;#Cím2`).
+- Csak a listára mutató keresőmező szerkeszthető. A függő (további oszlopként megjelenő) keresőmezők és a nem listára mutatók (`LookupList` nem GUID) csak olvashatók maradnak.
+- A mező szűrése, a kapcsolat viselkedése (törlés korlátozása) és a kaszkádolt választás nincs megvalósítva.
+- Ha egy kiválasztott elem nincs a betöltött listában (törölték, vagy a korláton túl van), `#azonosító` alakban látszik, és megmarad.
+
+A TaxonomyFieldTypeMulti pontos formátumát a bekötéskor a `FieldValuesForEdit` kimenetével kell ellenőrizni; tenant- és verziófüggő eltérések előfordulnak.
 
 ## 8. Receptek
 

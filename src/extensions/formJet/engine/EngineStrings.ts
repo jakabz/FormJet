@@ -56,6 +56,10 @@ export function engineStrings(): IEngineStrings {
 
 /** `{0}`, `{1}` … helyőrzők behelyettesítése. */
 export function format(template: string, ...args: Array<string | number>): string {
+  // Hiányzó szöveg (például elavult nyelvi fájl) ne okozzon futási hibát.
+  if (typeof template !== 'string') {
+    return '';
+  }
   return template.replace(/\{(\d+)\}/g, (match: string, index: string) => {
     const value: string | number | undefined = args[Number(index)];
     return value === undefined ? match : String(value);

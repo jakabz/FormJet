@@ -24,6 +24,7 @@ Az SPFx verziótól függ, hogy gulp (≤ 1.21) vagy Heft (1.22+) a build eszkö
 | Típusellenőrzés | `npx tsc --noEmit -p .` | `npx tsc --noEmit -p .` |
 
 - A Node.js verziónak egyeznie kell az SPFx verzió által előírttal (`.nvmrc` vagy a `package.json` `engines` mezője).
+- A futó `npm start` a `loc/` fájlok változását nem veszi át: új vagy módosított szöveg után le kell állítani és újra kell indítani, különben az új szövegek üresek. Emiatt felhasználói szöveget ne használj modul betöltésekor lefutó kódban (modulszintű `format(strings.…)`), csak függvényben vagy komponensben.
 - A helyi futtatás a `config/serve.json` Form Customizer konfigurációját használja (`pageUrl`, `RootFolder`, `PageType`: 8 = New, 6 = Edit, 4 = Display, Edit/Display esetén `ID`).
 - Telepítés egy site-ra: `scripts/Provision-FormJet.ps1` (PnP.PowerShell). Ezt **ne futtasd** a felhasználó kifejezett kérése nélkül, mert éles SharePoint site-ot módosít.
 
@@ -38,14 +39,16 @@ src/extensions/formJet/
     DateFormat.ts            DateTime form-string ↔ Date a web kultúrája szerint
     FormStyle.ts             stílus: ellenőrzés (hex szín, színátmenet, számtartomány, felsorolt értékek), módonkénti feloldás, háttér CSS
     RelatedList.ts           kapcsolódó elemek: beállítás ellenőrzése, párosító érték, CAML lekérdezés
+    LookupValue.ts           Lookup / LookupMulti form-string (azonosítók) értelmezése és előállítása
     UserValue.ts             User / UserMulti form-string (JSON tömb `Key`-jel) értelmezése és előállítása
     EngineStrings.ts         a motor üzenetei (alapból angol; az onInit a loc `Engine` részét adja át) + format()
     LayoutResolver.ts        séma + konfig + mód + értékek → IResolvedForm; alapértelmezett konfig; parseConfig
   services/                  PnPjs v4 hívások, csak itt van SharePoint kommunikáció
     sp.ts                    getSP() – a PnPjs példány; getSP(context) az onInit-ben
     PermissionService.ts     admin-e (site admin vagy Manage Web)
-    SchemaService.ts         tartalomtípus mezői, tartalomtípus feloldása New módban
+    SchemaService.ts         tartalomtípus mezői (rejtett és Computed mezők nélkül), tartalomtípus feloldása New módban
     ConfigService.ts         konfiguráció olvasása / mentése ETag-gel (412 → ConfigConflictError)
+    LookupService.ts         a keresőmező választható elemei a hivatkozott listából (gyorsítótárazva)
     PeopleService.ts         személyek és csoportok keresése (clientPeoplePickerSearchUser)
     RelatedListService.ts    a webhely listái, egy lista mezői, kapcsolódó elemek lekérdezése (renderListDataAsStream)
     ItemService.ts           elem olvasása (FieldValuesForEdit / FieldValuesAsText), mentése (validateUpdateListItem)
@@ -55,6 +58,7 @@ src/extensions/formJet/
     FormRenderer.tsx         szekciók és rács; a tervező előnézete is ezt használja
     FieldRenderer.tsx        mezőtípus → vezérlő
     DateTimeField.tsx        DateTime mező: Fluent DatePicker (+ TimePicker, ha a mező időt is tárol)
+    LookupField.tsx          Lookup mező: Fluent Dropdown; LookupMulti: jelölőnégyzetes lista vagy lenyíló lista (`lookupDisplay`)
     PeopleField.tsx          User / UserMulti mező: Fluent NormalPeoplePicker a SharePoint névkeresőjével
     RichTextField.tsx        rich text Note mező: TipTap szerkesztő Fluent eszköztárral (lazy chunk)
     RelatedItems.tsx         kapcsolódó elemek szekció: csak olvasható táblázat egy másik listából
@@ -98,6 +102,7 @@ A típusok forrása: `models/IFormConfig.ts`. Példa: `samples/config-example.js
 - MultiChoice form-string: `;#A;#B;#`. Boolean: `"1"` / `"0"`.
 - User / UserMulti form-string: JSON tömb, elemenként `Key` (claims bejelentkezési név, SharePoint csoportnál a csoport neve). Üres kiválasztás: üres szöveg. Meglévő elemnél az értéket nem a `FieldValuesForEdit`-ből vesszük, hanem külön lekérdezésből (`ItemService.loadUserValues`: a mező kibontva, `Name` / `Title` / `EMail`).
 - Dátum: a `validateUpdateListItem` a **web területi beállításai** szerinti formátumot várja (magyar site-on pl. `2026. 10. 10.`), nem ISO-t. A formátumot az `engine/DateFormat.ts` állítja elő a `pageContext.cultureInfo.currentCultureName` alapján; az időt mindig 24 órás `HH:mm` alakban írjuk. A dátumok a web időzónája szerinti "falióra" értékek, időzóna-átváltás nincs.
+- Lookup form-string: egyértékűnél a hivatkozott elem azonosítója (`5`), többértékűnél `5;#;#6;#`. Meglévő elemnél az értéket a `<mező>Id` tulajdonságból vesszük (`ItemService.loadLookupValues`), nem a `FieldValuesForEdit`-ből. Csak a listára mutató keresőmező szerkeszthető (`LookupListId`).
 - A `Choices` mező REST verziótól függően tömb vagy `{ results: [] }`; a `SchemaService.normalizeChoices` kezeli.
 - A customizer a tartalomtípusra van kötve (`New/Edit/DisplayFormClientSideComponentId`). Grid nézetben és quick edit esetén a gyári felület fut.
 
@@ -121,7 +126,7 @@ A típusok forrása: `models/IFormConfig.ts`. Példa: `samples/config-example.js
 
 ## Nyitott feladatok
 
-- Lookup / Managed metadata / URL / Location / Image mezők bekötése a `FieldRenderer`-ben.
+- Managed metadata / URL / Location / Image mezők bekötése a `FieldRenderer`-ben.
 - Mellékletek feltöltése mentés után (`FormHost.save` TODO).
 - Drag & drop a tervezőben (`@dnd-kit/core`, `@dnd-kit/sortable`), vizuális feltételszerkesztő.
 - Jest egységtesztek az `engine/` modulokra.

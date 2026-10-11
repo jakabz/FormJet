@@ -35,6 +35,15 @@ export interface INotCondition {
 
 export type Condition = IAllCondition | IAnyCondition | INotCondition | IFieldCondition;
 
+/**
+ * Többértékű keresőmező megjelenítése: mindig nyitott jelölőnégyzetes lista, lenyíló lista,
+ * vagy `auto` (legfeljebb 8 választható elemnél jelölőnégyzetes lista, efelett lenyíló).
+ */
+export type LookupDisplay = 'auto' | 'checklist' | 'dropdown';
+export const LOOKUP_DISPLAYS: LookupDisplay[] = ['auto', 'checklist', 'dropdown'];
+/** `auto` módban eddig az elemszámig jelenik meg jelölőnégyzetes lista. */
+export const LOOKUP_CHECKLIST_MAX: number = 8;
+
 export type Density = 'comfortable' | 'compact';
 export const DENSITIES: Density[] = ['comfortable', 'compact'];
 
@@ -153,6 +162,8 @@ export interface IFieldConfig {
   requiredWhen?: Condition;
   /** Kezdőérték New módban, form-string formátumban. */
   defaultValue?: string;
+  /** Többértékű keresőmező megjelenítése. Hiányában `auto`. */
+  lookupDisplay?: LookupDisplay;
   style?: IModeStyles<IFieldStyle>;
 }
 

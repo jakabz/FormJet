@@ -2,11 +2,15 @@
 
 import * as strings from 'FormJetFormCustomizerStrings';
 
+import { normalizeLookupListId } from '../engine/LookupValue';
 import { IFieldSchema } from '../models/IFieldSchema';
 import { getSP } from './sp';
 
 /** Mezők, amelyeket a form nem kezel mezőként. */
 const EXCLUDED_FIELDS: string[] = ['ContentType', 'Attachments'];
+
+/** Számított megjelenítő mezők (pl. LinkTitle): nem szerkeszthetők, és saját értékük sincs. */
+const EXCLUDED_TYPES: string[] = ['Computed'];
 
 const FOLDER_CONTENT_TYPE_PREFIX: string = '0x0120';
 
@@ -30,6 +34,13 @@ interface IRawField {
   SelectionMode?: number;
   /** User mezőnél: a szűkítő SharePoint csoport azonosítója; 0, ha nincs szűkítés. */
   SelectionGroup?: number;
+  /** Lookup mezőnél: a hivatkozott lista azonosítója (`{guid}`), vagy különleges érték (pl. `UserInfo`). */
+  LookupList?: string;
+  LookupField?: string;
+}
+
+function isLookup(field: IRawField): boolean {
+  return field.TypeAsString === 'Lookup' || field.TypeAsString === 'LookupMulti';
 }
 
 /** A `Choices` REST verziótól függően tömb vagy `{ results: [] }`. */
@@ -62,7 +73,12 @@ export async function getFields(listId: string, contentTypeId: string): Promise<
     .fields.filter('Hidden eq false')()) as IRawField[];
 
   return raw
-    .filter((field) => !field.Hidden && EXCLUDED_FIELDS.indexOf(field.InternalName) === -1)
+    .filter(
+      (field) =>
+        !field.Hidden &&
+        EXCLUDED_FIELDS.indexOf(field.InternalName) === -1 &&
+        EXCLUDED_TYPES.indexOf(field.TypeAsString) === -1
+    )
     .map((field) => ({
       InternalName: field.InternalName,
       Title: field.Title,
@@ -78,6 +94,8 @@ export async function getFields(listId: string, contentTypeId: string): Promise<
       NumberOfLines: field.NumberOfLines,
       DateOnly: field.TypeAsString === 'DateTime' ? field.DisplayFormat !== 1 : undefined,
       UserAllowGroups: field.SelectionMode === 1 ? true : undefined,
-      UserSelectionGroup: field.SelectionGroup || undefined
+      UserSelectionGroup: field.SelectionGroup || undefined,
+      LookupListId: isLookup(field) ? normalizeLookupListId(field.LookupList) : undefined,
+      LookupField: isLookup(field) ? field.LookupField || undefined : undefined
     }));
 }

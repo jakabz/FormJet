@@ -20,6 +20,10 @@ export interface IFieldSchema {
   UserAllowGroups?: boolean;
   /** User mezőnél: ha a választás egy SharePoint csoport tagjaira van szűkítve, a csoport azonosítója. */
   UserSelectionGroup?: number;
+  /** Lookup mezőnél: a hivatkozott lista GUID-ja; hiányzik, ha a mező nem listára mutat. */
+  LookupListId?: string;
+  /** Lookup mezőnél: a hivatkozott lista megjelenített mezőjének InternalName-je. */
+  LookupField?: string;
 }
 
 /** Mezőértékek form-string formátumban, InternalName szerint. */

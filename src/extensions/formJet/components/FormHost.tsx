@@ -179,6 +179,13 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
       if (item && itemId !== undefined && userFields.length > 0) {
         original = { ...original, ...(await ItemService.loadUserValues(listId, itemId, userFields)) };
       }
+      // A keresőmezőknél ugyanígy: a hivatkozott elemek azonosítóját külön kérdezzük le.
+      const lookupFields: ItemService.ILookupFieldRef[] = schema
+        .filter((field) => field.LookupListId !== undefined)
+        .map((field) => ({ name: field.InternalName, multiple: field.TypeAsString === 'LookupMulti' }));
+      if (item && itemId !== undefined && lookupFields.length > 0) {
+        original = { ...original, ...(await ItemService.loadLookupValues(listId, itemId, lookupFields)) };
+      }
 
       setValues(item ? original : getInitialValues(schema, config));
       setLoaded({

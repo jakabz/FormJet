@@ -4,6 +4,7 @@
 import { IListItemFormUpdateValue } from '@pnp/sp/lists';
 import * as strings from 'FormJetFormCustomizerStrings';
 
+import { serializeLookupValue } from '../engine/LookupValue';
 import { FieldErrors, FormValues } from '../models/IFieldSchema';
 import { getSP } from './sp';
 
@@ -102,6 +103,35 @@ export async function loadUserValues(listId: string, itemId: number, fieldNames:
     );
   }
   await Promise.all(requests);
+  return result;
+}
+
+export interface ILookupFieldRef {
+  name: string;
+  multiple: boolean;
+}
+
+function toLookupIds(value: unknown): number[] {
+  const raw: unknown = (value as { results?: unknown } | undefined)?.results ?? value;
+  const list: unknown[] = Array.isArray(raw) ? raw : raw === undefined || raw === null ? [] : [raw];
+  return list.map(Number).filter((id) => id > 0);
+}
+
+/**
+ * A keresőmezők értéke form-stringként, a hivatkozott elemek azonosítójából (`<mező>Id`).
+ * Sikertelen lekérdezésnél az adott mezők kimaradnak, és a FieldValuesForEdit értéke marad érvényben.
+ */
+export async function loadLookupValues(listId: string, itemId: number, fields: ILookupFieldRef[]): Promise<FormValues> {
+  const item = getSP().web.lists.getById(listId).items.getById(itemId);
+  const result: FormValues = {};
+  try {
+    const data = (await item.select(...fields.map((field) => `${field.name}Id`))()) as Record<string, unknown>;
+    fields.forEach((field) => {
+      result[field.name] = serializeLookupValue(toLookupIds(data[`${field.name}Id`]), field.multiple);
+    });
+  } catch {
+    // Marad a FieldValuesForEdit értéke.
+  }
   return result;
 }
 
