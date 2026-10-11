@@ -136,6 +136,18 @@ Amíg nem mentesz, a változtatásaidat csak te látod.
 
 Az elrendezés listánként (pontosabban a lista tartalomtípusonként) külön tárolódik. Ahol még nincs mentett elrendezés, ott az összes mező egy szekcióban, egymás alatt jelenik meg.
 
+### A FormJet bekapcsolása egy listán
+
+Azt, hogy egy listán a FormJet űrlap vagy a SharePoint beépített űrlapja nyíljon meg, a **FormJet beállítása** webparton lehet megadni. A webhely tulajdonosa használhatja.
+
+1. Szerkessz egy oldalt a webhelyen, és vedd fel rá a **FormJet beállítása** webpartot.
+2. A **Listák** táblázatban a webhely listái láthatók, tartalomtípusonként egy sorban. Az **Űrlap** oszlop mutatja, mi nyílik meg most.
+3. A sor végén lévő kapcsolóval kapcsold be vagy ki a FormJet űrlapot. A változás azonnal érvényes, mindhárom helyzetre (új elem, szerkesztés, megtekintés).
+
+Kikapcsoláskor a lista visszaáll a SharePoint beépített űrlapjára; a mentett elrendezés megmarad, és újbóli bekapcsoláskor ismét érvényes.
+
+A webpart **Konfigurációs lista** része azt a listát mutatja, amelyben az elrendezések tárolódnak. Ha még nincs meg, a **Lista létrehozása** gombbal létrehozható (az első elrendezés mentésekor magától is létrejön). A **Csak olvasás a tagoknak** gombbal beállítható, hogy az elrendezéseket csak a tulajdonosok módosíthassák; ezt érdemes megtenni.
+
 ## 5. Elrendezés: szekciók és mezők
 
 ### Áthelyezés húzással
@@ -325,4 +337,4 @@ A dátumot a webhely területi beállítása szerinti formában kell megadni. A 
 A listán engedélyezni kell a mellékleteket, és a mezőt el kell helyezni egy szekcióban.
 
 **Az űrlap helyett a SharePoint eredeti űrlapja nyílik meg.**
-A FormJet nincs bekapcsolva ezen a listán. Ezt a rendszergazda tudja beállítani.
+A FormJet nincs bekapcsolva ezen a listán. A webhely tulajdonosa a **FormJet beállítása** webparton tudja bekapcsolni (lásd [A FormJet bekapcsolása egy listán](#a-formjet-bekapcsolása-egy-listán)).

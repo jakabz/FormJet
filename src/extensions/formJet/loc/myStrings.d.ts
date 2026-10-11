@@ -226,6 +226,32 @@ declare interface IFormJetFormCustomizerStrings {
   RelatedIncomplete: string;
   RelatedNeedsItem: string;
 
+  // Setup web part
+  SetupTitle: string;
+  SetupIntro: string;
+  SetupNotAdmin: string;
+  SetupLoadFailed: string;
+  SetupActionFailed: string;
+  SetupRefresh: string;
+  SetupConfigList: string;
+  SetupConfigListHint: string;
+  SetupConfigMissing: string;
+  SetupConfigCreate: string;
+  SetupConfigExists: string;
+  SetupPermInherited: string;
+  SetupPermUnique: string;
+  SetupPermRestrict: string;
+  SetupPermConfirm: string;
+  SetupLists: string;
+  SetupNoLists: string;
+  SetupColumnList: string;
+  SetupColumnContentType: string;
+  SetupColumnForm: string;
+  SetupBindingFormJet: string;
+  SetupBindingDefault: string;
+  SetupBindingOther: string;
+  SetupToggle: string;
+
   // Engine messages; must match IEngineStrings (engine/EngineStrings.ts)
   Engine: {
     ConditionRoot: string;

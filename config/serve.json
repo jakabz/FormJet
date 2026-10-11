@@ -28,6 +28,9 @@
         "RootFolder": "/sites/FormJet-Teszt/Lists/TesztList",
         "ID": 1
       }
+    },
+    "setup": {
+      "pageUrl": "https://46pcjx.sharepoint.com/sites/FormJet-Teszt/_layouts/15/workbench.aspx"
     }
   }
 }

@@ -78,8 +78,94 @@ export async function load(listId: string, contentTypeId: string): Promise<IConf
   return { ...ref, config: parsed.config };
 }
 
-/** Mentés ETag-gel. 412 → ConfigConflictError, 403 → ConfigAccessDeniedError. */
-export async function save(config: IFormConfig, ref: IConfigRef): Promise<IConfigRef> {
+export interface IConfigListStatus {
+  exists: boolean;
+  /** A lista szerverrelatív címe. */
+  url?: string;
+  /** Saját (nem a webhelytől örökölt) jogosultságai vannak-e. */
+  hasUniquePermissions?: boolean;
+}
+
+// SP.RoleType: Reader = 2.
+const ROLE_TYPE_READER: 2 = 2;
+const GENERIC_LIST_TEMPLATE: number = 100;
+
+export async function getListStatus(): Promise<IConfigListStatus> {
+  const list = getSP().web.lists.getByTitle(CONFIG_LIST_TITLE);
+  let url: string | undefined;
+  try {
+    const info = (await list.select('Id', 'RootFolder/ServerRelativeUrl').expand('RootFolder')()) as {
+      RootFolder?: { ServerRelativeUrl?: string };
+    };
+    url = info.RootFolder?.ServerRelativeUrl;
+  } catch (e) {
+    if (getHttpStatus(e) === 404) {
+      return { exists: false };
+    }
+    throw e;
+  }
+
+  // A jogosultság öröklését külön, önmagában kérdezzük le: más tulajdonságokkal együtt kérve a SharePoint
+  // nem adta vissza megbízhatóan. Ha nem sikerül megállapítani, az állapot ismeretlen marad.
+  let hasUniquePermissions: boolean | undefined;
+  try {
+    const security = (await list.select('HasUniqueRoleAssignments')()) as { HasUniqueRoleAssignments?: boolean | string };
+    const value: boolean | string | undefined = security.HasUniqueRoleAssignments;
+    hasUniquePermissions = value === undefined ? undefined : value === true || value === 'true';
+  } catch {
+    hasUniquePermissions = undefined;
+  }
+  return { exists: true, url, hasUniquePermissions };
+}
+
+/** A konfigurációs lista létrehozása, ha még nincs. Listakezelési jog kell hozzá. */
+export async function ensureList(): Promise<void> {
+  if ((await getListStatus()).exists) {
+    return;
+  }
+  const sp = getSP();
+  await sp.web.lists.add(CONFIG_LIST_TITLE, '', GENERIC_LIST_TEMPLATE, false, { OnQuickLaunch: false });
+  const list = sp.web.lists.getByTitle(CONFIG_LIST_TITLE);
+  await list.fields.addText(FIELD_LIST_ID, { Indexed: true });
+  await list.fields.addText(FIELD_CONTENT_TYPE_ID);
+  await list.fields.addMultilineText(FIELD_CONFIG, { NumberOfLines: 20, RichText: false });
+  try {
+    await list.defaultView.fields.add(FIELD_LIST_ID);
+    await list.defaultView.fields.add(FIELD_CONTENT_TYPE_ID);
+  } catch {
+    // A nézet oszlopai csak a kézi áttekintést segítik; hiányuk nem hiba.
+  }
+}
+
+/**
+ * A konfigurációs lista jogosultságának szűkítése: a lista saját jogosultságot kap (a webhelyét lemásolva),
+ * és a webhely tagjainak csoportja csak olvasási jogot. A tulajdonosok és a látogatók joga nem változik.
+ */
+export async function restrictListToReadOnly(): Promise<void> {
+  const sp = getSP();
+  const list = sp.web.lists.getByTitle(CONFIG_LIST_TITLE);
+  await list.breakRoleInheritance(true, false);
+  const members = (await sp.web.associatedMemberGroup.select('Id')()) as { Id: number };
+  const reader = (await sp.web.roleDefinitions.getByType(ROLE_TYPE_READER).select('Id')()) as { Id: number };
+
+  let current: Array<{ Id: number }> = [];
+  try {
+    current = (await list.roleAssignments.getById(members.Id).bindings()) as Array<{ Id: number }>;
+  } catch {
+    // A tagok csoportjának nincs joga a listán; csak az olvasást adjuk hozzá.
+  }
+  // Előbb az olvasás kerül fel, utána kerülnek le a többiek, hogy a csoport közben se maradjon jog nélkül.
+  if (!current.some((role) => role.Id === reader.Id)) {
+    await list.roleAssignments.add(members.Id, reader.Id);
+  }
+  for (let i: number = 0; i < current.length; i++) {
+    if (current[i].Id !== reader.Id) {
+      await list.roleAssignments.remove(members.Id, current[i].Id);
+    }
+  }
+}
+
+async function write(config: IFormConfig, ref: IConfigRef): Promise<IConfigRef> {
   const list = getSP().web.lists.getByTitle(CONFIG_LIST_TITLE);
   const payload: Record<string, string> = {
     Title: config.title || `${config.listId} / ${config.contentTypeId}`,
@@ -87,17 +173,33 @@ export async function save(config: IFormConfig, ref: IConfigRef): Promise<IConfi
     [FIELD_CONTENT_TYPE_ID]: config.contentTypeId,
     [FIELD_CONFIG]: JSON.stringify(config, undefined, 2)
   };
+  let itemId: number | undefined = ref.itemId;
+  if (itemId !== undefined) {
+    await list.items.getById(itemId).update(payload, ref.etag ?? '*');
+  } else {
+    const added = (await list.items.add(payload)) as { Id: number };
+    itemId = added.Id;
+  }
+  const fresh = (await list.items.getById(itemId).select('Id')()) as IConfigItem;
+  return { itemId, etag: fresh['odata.etag'] };
+}
 
+/**
+ * Mentés ETag-gel. 412 → ConfigConflictError, 403 → ConfigAccessDeniedError.
+ * Ha a konfigurációs lista még nem létezik, létrehozza, és újra ment.
+ */
+export async function save(config: IFormConfig, ref: IConfigRef): Promise<IConfigRef> {
   try {
-    let itemId: number | undefined = ref.itemId;
-    if (itemId !== undefined) {
-      await list.items.getById(itemId).update(payload, ref.etag ?? '*');
-    } else {
-      const added = (await list.items.add(payload)) as { Id: number };
-      itemId = added.Id;
+    try {
+      return await write(config, ref);
+    } catch (e) {
+      // Első mentés olyan webhelyen, ahol a lista még nincs meg.
+      if (ref.itemId === undefined && getHttpStatus(e) === 404 && !(await getListStatus()).exists) {
+        await ensureList();
+        return await write(config, ref);
+      }
+      throw e;
     }
-    const fresh = (await list.items.getById(itemId).select('Id')()) as IConfigItem;
-    return { itemId, etag: fresh['odata.etag'] };
   } catch (e) {
     const status: number | undefined = getHttpStatus(e);
     if (status === 412) {

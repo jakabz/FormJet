@@ -1,6 +1,7 @@
 // A PnPjs példány és az SPFx kontextus. Az onInit-ben getSP(context), utána bárhol getSP().
 
 import { FormCustomizerContext } from '@microsoft/sp-listview-extensibility';
+import { WebPartContext } from '@microsoft/sp-webpart-base';
 import { spfi, SPFI, SPFx } from '@pnp/sp';
 import '@pnp/sp/webs';
 import '@pnp/sp/lists';
@@ -9,11 +10,16 @@ import '@pnp/sp/fields';
 import '@pnp/sp/content-types';
 import '@pnp/sp/security';
 import '@pnp/sp/site-users/web';
+import '@pnp/sp/site-groups/web';
+import '@pnp/sp/views';
+
+/** Az űrlap (Form Customizer) vagy a beállító webpart kontextusa. */
+export type SpfxContext = FormCustomizerContext | WebPartContext;
 
 let sp: SPFI | undefined;
-let spfxContext: FormCustomizerContext | undefined;
+let spfxContext: SpfxContext | undefined;
 
-export function getSP(context?: FormCustomizerContext): SPFI {
+export function getSP(context?: SpfxContext): SPFI {
   if (context) {
     spfxContext = context;
     sp = spfi().using(SPFx(context));

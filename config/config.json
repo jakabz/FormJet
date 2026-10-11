@@ -9,6 +9,14 @@
           "manifest": "./src/extensions/formJet/FormJetFormCustomizer.manifest.json"
         }
       ]
+    },
+    "form-jet-setup-web-part": {
+      "components": [
+        {
+          "entrypoint": "./lib/webparts/formJetSetup/FormJetSetupWebPart.js",
+          "manifest": "./src/webparts/formJetSetup/FormJetSetupWebPart.manifest.json"
+        }
+      ]
     }
   },
   "externals": {},

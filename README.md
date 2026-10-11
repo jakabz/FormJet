@@ -27,13 +27,18 @@ A nem alapértelmezett konfiguráció indítása: `npm start -- --serve-config e
 ## Telepítés
 
 1. `npm run build`, majd a `sharepoint/solution/formjet.sppkg` feltöltése az app catalogba.
-2. Első telepítéskor egy site-on (PnP.PowerShell 2.x, saját Entra ID alkalmazásregisztrációval):
-   ```powershell
-   ./scripts/Provision-FormJet.ps1 -SiteUrl <site> -TargetList <lista> -ComponentId 89262798-3b9c-4299-9d5b-754a7e8ac6d8 -ClientId <app id>
-   ```
-   A szkript létrehozza a `FormConfigurations` listát, és beköti a customizert a lista tartalomtípusaira.
-3. Állítsd be a `FormConfigurations` lista jogosultságát: a felhasználók olvashassák, de csak az adminok írhassák.
-   A form nem jogosultsági határ; a konfigurációt ez a jogosultság védi.
-4. Visszaállítás a gyári formokra: ugyanez a szkript `-Unbind` kapcsolóval.
+2. A webhelyen tedd ki egy oldalra a **FormJet beállítása** webpartot (a csomag része), és kapcsold be a FormJet űrlapot a kívánt
+   listákon. A webpart a `FormConfigurations` listát is létrehozza, és egy gombbal a tagok számára csak olvashatóvá teszi.
+   Webhelytulajdonosi jog kell hozzá.
+3. Az űrlap nem jogosultsági határ; az elrendezéseket a `FormConfigurations` lista jogosultsága védi.
+
+Sok webhely automatizált beállításához a PowerShell szkript is használható (PnP.PowerShell 2.x, saját Entra ID
+alkalmazásregisztrációval):
+
+```powershell
+./scripts/Provision-FormJet.ps1 -SiteUrl <site> -TargetList <lista> -ComponentId 89262798-3b9c-4299-9d5b-754a7e8ac6d8 -ClientId <app id>
+```
+
+Visszaállítás a gyári űrlapra: a webparton a kapcsoló kikapcsolása, vagy a szkript `-Unbind` kapcsolóval.
 
 Példa konfiguráció: [samples/config-example.json](samples/config-example.json).

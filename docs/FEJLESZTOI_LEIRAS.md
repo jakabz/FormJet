@@ -501,19 +501,41 @@ Szabályok új teszthez:
 1. Verzióemelés a `config/package-solution.json`-ban (`solution.version`, és ha használjátok, a feature verziók).
 2. Production build és csomagolás a `package.json` scriptjei szerint.
 3. A `.sppkg` feltöltése a tenant vagy site collection app catalogba.
-4. Első telepítéskor egy site-on:
-   ```powershell
-   ./scripts/Provision-FormJet.ps1 -SiteUrl <site> -TargetList <lista> -ComponentId <manifest id> -ClientId <app id>
-   ```
-5. Visszaállítás a gyári formokra: ugyanez `-Unbind` kapcsolóval. A `FormConfigurations` lista ilyenkor megmarad.
+4. Bekapcsolás egy webhelyen: a **FormJet beállítása** webparttal (lásd alább), vagy a PowerShell szkripttel.
 
-Kódfrissítéshez elég az új `.sppkg` feltöltése; a bekötést és a konfigurációs listát nem kell újra futtatni.
+Kódfrissítéshez elég az új `.sppkg` feltöltése; a bekötést és a konfigurációs listát nem kell újra beállítani.
+
+### A beállító webpart
+
+A csomag a Form Customizer mellett egy webpartot is tartalmaz (`src/webparts/formJetSetup/`, külön bundle a `config/config.json`-ban). Egy oldalra kitéve azt a webhelyet kezeli, ahol van:
+
+- **Listák:** a webhely listái (dokumentumtárak és rejtett listák nélkül) tartalomtípusonként, az aktuális űrlappal: FormJet, beépített SharePoint űrlap, vagy másik egyéni űrlap. A kapcsoló a tartalomtípus mindhárom űrlapját (új, szerkesztő, megtekintő) a FormJet összetevőre állítja, illetve üríti (`SetupService.setBinding`).
+- **Konfigurációs lista:** ha a `FormConfigurations` lista hiányzik, létrehozható (`ConfigService.ensureList`); a lista az első elrendezés mentésekor magától is létrejön (`ConfigService.save`).
+- **Jogosultság:** a „Csak olvasás a tagoknak” gomb a listának saját jogosultságot ad, és a webhely tagjainak csoportját olvasásra állítja (`ConfigService.restrictListToReadOnly`). A szerepkört típus szerint keresi, így nem függ a webhely nyelvétől. Más, egyedileg jogosított csoportokat nem módosít.
+- A módosításokhoz webhelytulajdonosi jog kell; e nélkül a vezérlők le vannak tiltva.
+
+Tudnivalók a kódhoz:
+
+- A webpart a Form Customizer `services/` és `components/` rétegét használja (`SetupPanel`, `SetupService`), és ugyanazt a lokalizációs modult. A `services/sp.ts` `getSP(context)` mindkét kontextust elfogadja.
+- A FormJet összetevő azonosítója a `SetupService.FORMJET_COMPONENT_ID` állandóban van; egyeznie kell a `FormJetFormCustomizer.manifest.json` `id` értékével.
+- A megtekintő űrlap tulajdonságának neve a REST felületen kétféle lehet (`DisplayFormClientSideComponentId` / `DispFormClientSideComponentId`); a `SetupService` azt használja, amelyik a lekérdezés válaszában szerepel.
+- Helyi kipróbálás: `npm start -- --serve-config setup` a hosted workbench-et nyitja meg, ahol a webpart felvehető.
+
+### PowerShell szkript
+
+Sok webhely automatizált beállításához megmaradt a szkript (PnP.PowerShell 2.x, saját Entra ID alkalmazásregisztrációval):
+
+```powershell
+./scripts/Provision-FormJet.ps1 -SiteUrl <site> -TargetList <lista> -ComponentId <manifest id> -ClientId <app id>
+```
+
+Visszaállítás a gyári űrlapokra: ugyanez `-Unbind` kapcsolóval. A `FormConfigurations` lista ilyenkor megmarad.
 
 ## 11. Gyakori problémák
 
 | Tünet | Valószínű ok | Teendő |
 | --- | --- | --- |
-| A gyári form nyílik meg | A tartalomtípus nincs bekötve, vagy a lista Power Apps formra van állítva | Futtasd a szkriptet; form beállítás: "SharePoint default" |
+| A gyári form nyílik meg | A tartalomtípus nincs bekötve, vagy a lista Power Apps formra van állítva | Kapcsold be a beállító webparton (vagy futtasd a szkriptet); form beállítás: "SharePoint default" |
 | Grid nézetben a rejtett mező szerkeszthető | A customizer csak a formot cseréli | Elvárt viselkedés; védelem jogosultsággal |
 | "A FormConfigurations lista nem érhető el" | A lista nem jött létre, vagy a felhasználónak nincs olvasási joga | Szkript futtatása; jogosultság ellenőrzése |
 | Dátum mentésekor hiba | ISO formátumot küldünk | A web területi beállításai szerinti formátum kell |

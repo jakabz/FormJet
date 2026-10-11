@@ -34,11 +34,13 @@ Az SPFx verziótól függ, hogy gulp (≤ 1.21) vagy Heft (1.22+) a build eszkö
 - Az `npm test` (és az `npm run build`) ugyanabba a `lib` / `dist` mappába fordít, mint a futó `npm start`. Ha a fejlesztői szerver fut, ne indítsd el mellette: vagy állíttasd le a felhasználóval, vagy a projekt egy másolatán futtasd.
 - A futó `npm start` a `loc/` fájlok változását nem veszi át: új vagy módosított szöveg után le kell állítani és újra kell indítani, különben az új szövegek üresek. Emiatt felhasználói szöveget ne használj modul betöltésekor lefutó kódban (modulszintű `format(strings.…)`), csak függvényben vagy komponensben.
 - A helyi futtatás a `config/serve.json` Form Customizer konfigurációját használja (`pageUrl`, `RootFolder`, `PageType`: 8 = New, 6 = Edit, 4 = Display, Edit/Display esetén `ID`).
-- Telepítés egy site-ra: `scripts/Provision-FormJet.ps1` (PnP.PowerShell). Ezt **ne futtasd** a felhasználó kifejezett kérése nélkül, mert éles SharePoint site-ot módosít.
+- Telepítés egy site-ra: a csomag **FormJet beállítása** webpartjával (a webhelyen, böngészőből), vagy a `scripts/Provision-FormJet.ps1` szkripttel (PnP.PowerShell). A szkriptet **ne futtasd** a felhasználó kifejezett kérése nélkül, mert éles SharePoint site-ot módosít.
 
 ## Architektúra
 
 ```
+src/webparts/formJetSetup/   Beállító webpart (külön bundle): a FormJet be- és kikapcsolása a webhely listáin
+  FormJetSetupWebPart.ts     belépési pont → components/SetupPanel
 src/extensions/formJet/
   FormJetFormCustomizer.ts   SPFx belépési pont: mód, lista, elem → FormHost; formSaved()/formClosed()
   models/                    IFormConfig (konfigurációs séma), IFieldSchema (mezőséma, FormValues, FieldErrors)
@@ -65,7 +67,8 @@ src/extensions/formJet/
     PermissionService.ts     admin-e (site admin vagy Manage Web)
     SchemaService.ts         tartalomtípus mezői (rejtett és Computed mezők nélkül, + `Attachments` pszeudo-mező), tartalomtípus feloldása New módban
     AttachmentService.ts     mellékletek listázása (mérettel), feltöltése és törlése (lomtárba), egymás után futtatva
-    ConfigService.ts         konfiguráció olvasása / mentése ETag-gel (412 → ConfigConflictError)
+    ConfigService.ts         konfiguráció olvasása / mentése ETag-gel (412 → ConfigConflictError); a konfigurációs lista létrehozása és jogosultsága
+    SetupService.ts          a webhely listái és tartalomtípusai, a FormJet be- és kikapcsolása (a beállító webparthoz)
     LocationService.ts       helykeresés a Microsoft 365 helykeresőjével (Outlook végpont, AAD tokennel – nem PnPjs)
     LookupService.ts         a keresőmező választható elemei a hivatkozott listából (gyorsítótárazva)
     PeopleService.ts         személyek és csoportok keresése (clientPeoplePickerSearchUser)
@@ -93,6 +96,7 @@ src/extensions/formJet/
     RelatedListEditor.tsx    a tervező szekciókártyájának „Kapcsolódó elemek” beállításai
     FormContext.ts           React context: a web kultúrája, a felület nyelve, az elem azonosítója, mentett értékei és a mellékletek állapota
     DesignerPanel.tsx        admin tervező (Elrendezés / Mező / Stílus / JSON fülek)
+    SetupPanel.tsx           a beállító webpart felülete: konfigurációs lista, listánkénti kapcsolók
     StylePanel.tsx           a tervező Stílus füle: form, szekció és mező stílusa módonként
 scripts/Provision-FormJet.ps1  konfigurációs lista + tartalomtípus bekötés
 samples/config-example.json    példa konfiguráció
@@ -116,6 +120,7 @@ Rétegszabályok:
 7. **A stílus strukturált, nem szabad CSS.** A konfiguráció `style` részeibe csak a `FormStyle.ts` specifikációjában szereplő tulajdonság kerülhet; a szín kizárólag hex érték, a színátmenet ellenőrzött részekből (típus, szög, két hex szín) áll össze a `backgroundCss`-ben. Szabad CSS mezőt, `url()`-t vagy tetszőleges CSS értéket ne engedj be egyeztetés nélkül.
 8. **A kapcsolódó elemek csak olvashatók.** A `related` szekció egy másik lista elemeit listázza, de nem ír bele; a kapcsolódó elemek formon belüli szerkesztése vagy mentése egyeztetést igényel. A CAML lekérdezésbe kerülő mezőnevek csak belső névnek megfelelő értékek lehetnek (`RelatedList.ts`).
 9. **A mellékletek pszeudo-mezőként működnek, és az elem mentése után kerülnek fel.** Az `Attachments` a sémában mezőként szerepel (ha a listán engedélyezve van), így bármelyik szekcióba elhelyezhető, de értéke nem form-string, és soha nem kerül a `changed` objektumba. Ha az elem mentése sikerült, de egy melléklet művelete nem, a form nyitva marad, és a Mentés már csak a mellékleteket próbálja újra (`attachmentRetryId`) – új elemnél így nem jön létre másolat. Ezt a sorrendet ne változtasd meg egyeztetés nélkül.
+10. **A beállító webpart csak a saját webhelyét kezeli**, és csak a tartalomtípus három űrlap-összetevőjét, valamint a `FormConfigurations` listát módosítja. Több webhely kezelése, más listák jogosultságának módosítása vagy tenant-szintű művelet egyeztetést igényel.
 
 ## Konfigurációs séma
 
