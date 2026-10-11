@@ -32,6 +32,13 @@ declare interface IFormJetFormCustomizerStrings {
   LocationSearchFailed: string;
   LocationShowMap: string;
   LocationOpenLargeMap: string;
+  ImageNone: string;
+  ImageAdd: string;
+  ImageReplace: string;
+  ImageRemove: string;
+  ImagePending: string;
+  ImageInvalid: string;
+  ImageUploadFailed: string;
   Attachments: string;
   AttachmentsNone: string;
   AttachmentAdd: string;

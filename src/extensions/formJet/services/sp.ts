@@ -33,6 +33,13 @@ export async function getAadToken(resource: string): Promise<string> {
   return provider.getToken(resource);
 }
 
+/** A webhely kiszolgálójának címe, pl. `https://contoso.sharepoint.com`. */
+export function getWebOrigin(): string {
+  const url: string = spfxContext?.pageContext.web.absoluteUrl ?? window.location.href;
+  const match: RegExpMatchArray | null = url.match(/^https?:\/\/[^/]+/i);
+  return match ? match[0] : '';
+}
+
 /** A PnPjs HttpRequestError HTTP státusza, ha a hiba HTTP válaszból származik. */
 export function getHttpStatus(error: unknown): number | undefined {
   const status: unknown = (error as { status?: unknown } | undefined)?.status;

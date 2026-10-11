@@ -20,6 +20,7 @@ import { formatUserValue } from '../engine/UserValue';
 import { IFieldSchema } from '../models/IFieldSchema';
 import { AttachmentsField } from './AttachmentsField';
 import { DateTimeField } from './DateTimeField';
+import { ImageField } from './ImageField';
 import { LocationField } from './LocationField';
 import { LookupField } from './LookupField';
 import { PeopleField } from './PeopleField';
@@ -138,6 +139,16 @@ export const FieldRenderer: React.FC<IFieldRendererProps> = (props) => {
     return (
       <div>
         <AttachmentsField field={field} error={error} />
+        {description && <div className={classes.description}>{description}</div>}
+      </div>
+    );
+  }
+
+  // Kép: szerkesztve és csak olvashatóként is a saját vezérlője jeleníti meg.
+  if (schema.TypeAsString === 'Thumbnail') {
+    return (
+      <div>
+        <ImageField field={field} value={value} error={error} onChange={set} />
         {description && <div className={classes.description}>{description}</div>}
       </div>
     );

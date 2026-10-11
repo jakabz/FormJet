@@ -26,6 +26,7 @@ import { FieldErrors, FormValues, IFieldSchema } from '../models/IFieldSchema';
 import { FormMode, IFormConfig } from '../models/IFormConfig';
 import * as AttachmentService from '../services/AttachmentService';
 import * as ConfigService from '../services/ConfigService';
+import * as ImageService from '../services/ImageService';
 import * as ItemService from '../services/ItemService';
 import * as PermissionService from '../services/PermissionService';
 import * as SchemaService from '../services/SchemaService';
@@ -102,6 +103,8 @@ export interface IFormHostProps {
   mode: FormMode;
   listId: string;
   listTitle: string;
+  /** A lista szerverrelatív címe. */
+  listUrl: string;
   /** Új elem célmappájának szerverrelatív útvonala. */
   folderPath: string;
   itemId?: number;
@@ -145,6 +148,19 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
   const [attachments, setAttachments] = React.useState<IAttachmentsState>(EMPTY_ATTACHMENTS);
   // Az elem mentése sikerült, de egyes mellékletek művelete nem: a Mentés már csak a mellékleteket próbálja újra.
   const [attachmentRetryId, setAttachmentRetryId] = React.useState<number | undefined>();
+  // Kiválasztott, de még fel nem töltött képek; mentéskor, az elem mentése előtt töltődnek fel.
+  const [pendingImages, setPendingImages] = React.useState<Record<string, File>>({});
+  const setPendingImage = React.useCallback((fieldName: string, file: File | undefined): void => {
+    setPendingImages((current) => {
+      const next: Record<string, File> = { ...current };
+      if (file) {
+        next[fieldName] = file;
+      } else {
+        delete next[fieldName];
+      }
+      return next;
+    });
+  }, []);
 
   // Tervező: a draft a konfiguráció mély másolata; a mégse egyszerűen eldobja.
   const [draft, setDraft] = React.useState<IFormConfig | undefined>();
@@ -203,6 +219,13 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
       if (item && itemId !== undefined && locationFields.length > 0) {
         original = { ...original, ...(await ItemService.loadLocationValues(listId, itemId, locationFields)) };
       }
+      // Kép mezők: a képobjektum JSON-ja külön lekérdezésből.
+      const imageFields: string[] = schema
+        .filter((field) => field.TypeAsString === 'Thumbnail')
+        .map((field) => field.InternalName);
+      if (item && itemId !== undefined && imageFields.length > 0) {
+        original = { ...original, ...(await ItemService.loadImageValues(listId, itemId, imageFields)) };
+      }
 
       const hasAttachments: boolean = schema.some((field) => field.TypeAsString === ATTACHMENTS_FIELD);
       const existing: AttachmentService.IAttachmentFile[] =
@@ -211,6 +234,7 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
           : [];
       setAttachments({ existing, added: [], removed: [] });
       setAttachmentRetryId(undefined);
+      setPendingImages({});
 
       setValues(item ? original : getInitialValues(schema, config, props.cultureName));
       setLoaded({
@@ -264,9 +288,12 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
       itemId: mode === 'new' ? undefined : itemId,
       sourceValues: loaded?.original ?? {},
       attachments,
-      setAttachments
+      setAttachments,
+      listUrl: props.listUrl,
+      pendingImages,
+      setPendingImage
     }),
-    [props.cultureName, props.uiCultureName, mode, itemId, loaded, attachments]
+    [props.cultureName, props.uiCultureName, props.listUrl, mode, itemId, loaded, attachments, pendingImages, setPendingImage]
   );
 
   const onFieldChange = React.useCallback((name: string, value: string): void => {
@@ -374,6 +401,32 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
         }
       }
 
+      // A kiválasztott képek feltöltése az elem mentése előtt: a mező értéke a feltöltött fájlra hivatkozik.
+      // Hiba esetén a mentés megszakad, az elem nem íródik. A sikeresen feltöltött kép értéke a formon is
+      // a végleges lesz, így ismételt mentésnél nem töltődik fel újra.
+      const imageUploads: IResolvedField[] = editableFields.filter(
+        (field) => field.schema.TypeAsString === 'Thumbnail' && changed[field.name] !== undefined && pendingImages[field.name]
+      );
+      const uploadedImages: FormValues = {};
+      try {
+        for (let i: number = 0; i < imageUploads.length; i++) {
+          const name: string = imageUploads[i].name;
+          const uploaded: string = await ImageService.uploadImage(
+            listId,
+            mode === 'edit' ? itemId : undefined,
+            { name, id: imageUploads[i].schema.FieldId ?? '' },
+            pendingImages[name]
+          );
+          uploadedImages[name] = uploaded;
+          setValues((current) => ({ ...current, [name]: uploaded }));
+          setPendingImage(name, undefined);
+        }
+      } catch (e) {
+        setTopErrors([errorText(e, strings.ImageUploadFailed)]);
+        return;
+      }
+      const toSave: FormValues = { ...changed, ...uploadedImages };
+
       // 4. Mentés. Szerkesztésnél, ha csak a mellékletek változtak, az elemet nem írjuk.
       const result: ItemService.ISaveResult =
         mode === 'edit' && !fieldsChanged
@@ -385,7 +438,7 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
                 contentTypeId: loaded.contentTypeId,
                 folderPath: props.folderPath
               },
-              changed
+              toSave
             );
 
       // 5. Mezőnkénti hibák a mezők alá, a nem látható mezők hibái a felső üzenetsávba.

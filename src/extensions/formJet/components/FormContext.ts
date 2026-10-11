@@ -28,6 +28,11 @@ export interface IFormContext {
   sourceValues: FormValues;
   attachments: IAttachmentsState;
   setAttachments: (next: IAttachmentsState) => void;
+  /** A lista szerverrelatív címe (a mellékletként tárolt képek címéhez). */
+  listUrl?: string;
+  /** Kiválasztott, de még fel nem töltött képek, a mező InternalName-je szerint. */
+  pendingImages: Record<string, File>;
+  setPendingImage: (fieldName: string, file: File | undefined) => void;
 }
 
 export const FormContext: React.Context<IFormContext> = React.createContext<IFormContext>({
@@ -35,5 +40,7 @@ export const FormContext: React.Context<IFormContext> = React.createContext<IFor
   uiCultureName: 'en-US',
   sourceValues: {},
   attachments: EMPTY_ATTACHMENTS,
-  setAttachments: () => undefined
+  setAttachments: () => undefined,
+  pendingImages: {},
+  setPendingImage: () => undefined
 });

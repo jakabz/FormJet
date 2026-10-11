@@ -30,6 +30,8 @@ export interface IFieldSchema {
   CurrencyLocaleId?: number;
   /** URL mezőnél: képként jelenik meg (a mező „Kép” formátuma), nem hivatkozásként. */
   UrlImage?: boolean;
+  /** Kép (Thumbnail) mezőnél: a mező azonosítója (GUID); a feltöltött kép értékébe kerül. */
+  FieldId?: string;
 }
 
 /** Mezőértékek form-string formátumban, InternalName szerint. */

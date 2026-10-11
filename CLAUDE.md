@@ -41,6 +41,7 @@ src/extensions/formJet/
     FormStyle.ts             stílus: ellenőrzés (hex szín, színátmenet, számtartomány, felsorolt értékek), módonkénti feloldás, háttér CSS
     NumberFormat.ts          szám alapérték form-stringgé alakítása (tizedesjel a web kultúrája szerint, százalék); pénznem jele az LCID-ből
     RelatedList.ts           kapcsolódó elemek: beállítás ellenőrzése, párosító érték, CAML lekérdezés
+    ImageValue.ts            kép (Thumbnail) form-string (képobjektum JSON) értelmezése, előállítása, megjeleníthető cím
     LocationValue.ts         Location form-string (helyobjektum JSON) értelmezése, előállítása, cím formázása
     LookupValue.ts           Lookup / LookupMulti form-string (azonosítók) értelmezése és előállítása
     UrlValue.ts              URL mező form-string (`cím, leírás`) értelmezése és előállítása; biztonságos cím ellenőrzése
@@ -57,6 +58,7 @@ src/extensions/formJet/
     LookupService.ts         a keresőmező választható elemei a hivatkozott listából (gyorsítótárazva)
     PeopleService.ts         személyek és csoportok keresése (clientPeoplePickerSearchUser)
     RelatedListService.ts    a webhely listái, egy lista mezői, kapcsolódó elemek lekérdezése (renderListDataAsStream)
+    ImageService.ts          a kép mező fájljának feltöltése (`UploadImage`, a webhely eszköztárába)
     ItemService.ts           elem olvasása (FieldValuesForEdit / FieldValuesAsText), mentése (validateUpdateListItem)
   loc/                       en-us.js, hu-hu.js, myStrings.d.ts – minden felhasználói szöveg
   components/                React + Fluent UI v8
@@ -65,6 +67,7 @@ src/extensions/formJet/
     FieldRenderer.tsx        mezőtípus → vezérlő
     AttachmentsField.tsx     mellékletek: fájlok listája, hozzáadás, törlés; a változások mentéskor hajtódnak végre
     DateTimeField.tsx        DateTime mező: Fluent DatePicker (+ TimePicker, ha a mező időt is tárol)
+    ImageField.tsx           kép (Thumbnail) mező: előnézet, kiválasztás, csere, törlés; a feltöltés mentéskor történik
     LocationField.tsx        Location mező: Fluent TagPicker helykereséssel; a beírt szöveg egyéni helyként is menthető
     LookupField.tsx          Lookup mező: Fluent Dropdown; LookupMulti: jelölőnégyzetes lista vagy lenyíló lista (`lookupDisplay`)
     PeopleField.tsx          User / UserMulti mező: Fluent NormalPeoplePicker a SharePoint névkeresőjével
@@ -116,6 +119,7 @@ A típusok forrása: `models/IFormConfig.ts`. Példa: `samples/config-example.js
 - Lookup form-string: egyértékűnél a hivatkozott elem azonosítója (`5`), többértékűnél `5;#;#6;#`. Meglévő elemnél az értéket a `<mező>Id` tulajdonságból vesszük (`ItemService.loadLookupValues`), nem a `FieldValuesForEdit`-ből. Csak a listára mutató keresőmező szerkeszthető (`LookupListId`).
 - URL form-string: `cím, leírás` (a címben lévő vessző duplázva). Meglévő elemnél az értéket a mező `Url` / `Description` részéből vesszük (`ItemService.loadUrlValues`). Hivatkozásként vagy képként csak `http(s)://`, `mailto:` vagy webhelyen belüli cím jelenik meg (`isSafeUrl`).
 - Location form-string: a helyobjektum JSON-ja (`DisplayName`, `Address`, `Coordinates`, …); az ismeretlen tulajdonságokat is változatlanul visszaírjuk. A „Hely: város” típusú kísérő oszlopokat a SharePoint tölti ki, azok csak olvashatók. A keresés nem dokumentált Outlook végpontot használ (`LocationService`); ha nem érhető el, a mező egyéni (csak névvel rendelkező) helyet ment.
+- Kép (Thumbnail) form-string: a képobjektum JSON-ja (`type: thumbnail`, `fileName`, `serverRelativeUrl`, `id`, `fieldName`, `fieldId`, `serverUrl`). A kiválasztott kép a mentéskor, **az elem mentése előtt** töltődik fel (`ImageService.uploadImage`); hiba esetén az elem nem íródik. Feltöltésig a mező értéke egy `pending` jelző, a fájlt a `FormContext` tartja. Megjelenítéshez csak webhelyen belüli cím használható (`ImageValue.getImageUrl`).
 - A `Choices` mező REST verziótól függően tömb vagy `{ results: [] }`; a `SchemaService.normalizeChoices` kezeli.
 - A customizer a tartalomtípusra van kötve (`New/Edit/DisplayFormClientSideComponentId`). Grid nézetben és quick edit esetén a gyári felület fut.
 
@@ -139,6 +143,6 @@ A típusok forrása: `models/IFormConfig.ts`. Példa: `samples/config-example.js
 
 ## Nyitott feladatok
 
-- Managed metadata / Image mezők bekötése a `FieldRenderer`-ben.
+- Managed metadata mező bekötése a `FieldRenderer`-ben.
 - Drag & drop a tervezőben (`@dnd-kit/core`, `@dnd-kit/sortable`), vizuális feltételszerkesztő.
 - Jest egységtesztek az `engine/` modulokra.

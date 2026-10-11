@@ -331,6 +331,7 @@ A `validateUpdateListItem` minden mezőtípusra szöveges értéket vár. Új me
 | LookupMulti | Azonosító;#cím párok, a cím üresen hagyható | `5;#;#6;#` |
 | TaxonomyFieldType | `Címke\|TermGuid` | `Budapest\|3f2a…` |
 | Location | A helyobjektum JSON-ja | `{"DisplayName":"Budapest","Address":{"City":"Budapest","CountryOrRegion":"Magyarország"},"Coordinates":{"Latitude":47.49,"Longitude":19.04}}` |
+| Thumbnail (kép) | A képobjektum JSON-ja | `{"type":"thumbnail","fileName":"logo.png","serverRelativeUrl":"/sites/x/SiteAssets/Lists/<listaId>/logo.png","id":"<fájl GUID>",…}` |
 | URL | `cím, leírás`; a címben lévő vessző duplázva, leírás nélkül a cím ismétlődik | `https://contoso.com, Weboldal` |
 
 A DateTime értéket a `DateTimeField` (Fluent `DatePicker`, dátum + idő mezőnél `TimePicker`-rel) szerkeszti. A formátumot az `engine/DateFormat.ts` a web kultúrájából (`pageContext.cultureInfo.currentCultureName`) vezeti le a böngésző `Intl` API-jával, és ugyanezzel olvassa vissza a `FieldValuesForEdit` értékét. Időzóna-átváltás nincs: a kapott "falióra" értéket írjuk vissza. Ha egy tárolt érték nem értelmezhető dátumként, a mező szövegmezőként jelenik meg, hogy az érték ne vesszen el. Új nyelvű (kultúrájú) site-on érdemes egy mentést kipróbálni, mert a szerver .NET-formátuma ritkán eltérhet a böngészőétől.
@@ -356,6 +357,15 @@ A hely mezőt (`Location`) a `LocationField` szerkeszti egy keresővel (Fluent `
 - A címke melletti térkép ikon a kiválasztott helyet egy 600 × 500 képpontos felugró térképen mutatja (Fluent `Callout`, benne a Bing Térképek beágyazható térképe a hely koordinátáira középre állítva; `getLocationEmbedUrl`). A térkép alatti hivatkozás a helyet új lapon, a Bing Térképeken nyitja meg (`getLocationMapUrl`). Koordináták nélküli (egyéni) helynél nincs mit beágyazni, ilyenkor az ikon közvetlenül a térképes keresést nyitja meg új lapon. Csak olvasható módban is megjelenik.
 - A beágyazott térkép külső szolgáltatás (bing.com); a kéréssel a hely koordinátái kerülnek át, a neve nem. A Bing beágyazott térképe jelölőt nem mutat, a hely a térkép közepén van. Ha a szervezet tiltja a külső keretek betöltését, a térkép üres marad.
 - A cím részeinek kézi szerkesztése nincs.
+
+A kép mezőt (`Thumbnail`) az `ImageField` szerkeszti: előnézet, kép kiválasztása, cseréje, törlése.
+
+- A kiválasztott kép nem töltődik fel azonnal. A mező értéke addig egy `pending` jelző (`createPendingImageValue`), a fájlt a `FormHost` tartja (`pendingImages`), az előnézet helyi címről jelenik meg.
+- Mentéskor, **az elem mentése előtt** az `ImageService.uploadImage` feltölti a képet a SharePoint `UploadImage` hívásával (a webhely eszköztárába, a lista mappájába), és a mező értéke a feltöltött fájlra hivatkozó JSON lesz (`createImageValue`). Ha a feltöltés nem sikerül, a mentés megszakad, az elem nem íródik. Rejtett vagy csak olvasható mező képe nem töltődik fel.
+- A Mégse a kiválasztott képet eldobja, feltöltés nélkül. Ha a feltöltés sikerült, de az elem mentése utána elbukik, a kép az eszköztárban marad; ismételt mentésnél nem töltődik fel újra.
+- Megjelenítéshez csak webhelyen belüli (perjellel kezdődő) cím használható (`getImageUrl`). A SharePoint által az elem mellékleteként tárolt képeknél (`Reserved_ImageAttachment_…` fájlnév) a cím a lista és az elem azonosítójából áll össze.
+- A törlés csak a mező értékét üríti, a feltöltött fájlt nem törli az eszköztárból.
+- Meglévő elemnél az értéket az `ItemService.loadImageValues` tölti be.
 
 A keresőmezőt a `LookupField` szerkeszti: az egyértékű (`Lookup`) Fluent `Dropdown`-t kap, a többértékű (`LookupMulti`) a mező `lookupDisplay` beállítása szerint mindig nyitott jelölőnégyzetes listát (görgetés nélkül minden választható elem látszik) vagy többválasztós lenyíló listát; alapértelmezésben az elemszám dönt:
 

@@ -27,7 +27,7 @@ import { isRelatedComplete, parseRelated } from './RelatedList';
 import { parseFieldStyles, parseFormStyles, parseSectionStyles, resolveModeStyle } from './FormStyle';
 
 /** Mezőtípusok, amelyekhez a FieldRenderer szerkesztő vezérlőt ad. A többi csak olvasható. */
-const EDITABLE_TYPES: string[] = ['Text', 'Note', 'Number', 'Currency', 'Choice', 'MultiChoice', 'Boolean', 'DateTime', 'User', 'UserMulti', 'URL', 'Attachments', 'Location'];
+const EDITABLE_TYPES: string[] = ['Text', 'Note', 'Number', 'Currency', 'Choice', 'MultiChoice', 'Boolean', 'DateTime', 'User', 'UserMulti', 'URL', 'Attachments', 'Location', 'Thumbnail'];
 
 /** Típusok, amelyeknél a séma DefaultValue-ja New módban kezdőértékként használható. */
 const SCHEMA_DEFAULT_TYPES: string[] = ['Text', 'Note', 'Number', 'Currency', 'Choice', 'MultiChoice', 'Boolean'];

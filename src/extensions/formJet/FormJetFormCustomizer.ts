@@ -39,6 +39,7 @@ export default class FormJetFormCustomizer extends BaseFormCustomizer<IFormJetFo
       mode: toFormMode(this.displayMode),
       listId: list.guid.toString(),
       listTitle: list.title,
+      listUrl: list.serverRelativeUrl,
       // Új elem a megnyitott mappába kerül; mappa nélkül a lista gyökerébe.
       folderPath: this.context.folderInfo?.folderPath || list.serverRelativeUrl,
       itemId: this.context.itemId,

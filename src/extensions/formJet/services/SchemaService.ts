@@ -17,6 +17,7 @@ const EXCLUDED_TYPES: string[] = ['Computed'];
 const FOLDER_CONTENT_TYPE_PREFIX: string = '0x0120';
 
 interface IRawField {
+  Id?: string;
   InternalName: string;
   Title: string;
   TypeAsString: string;
@@ -107,7 +108,8 @@ export async function getFields(listId: string, contentTypeId: string): Promise<
       LookupField: isLookup(field) ? field.LookupField || undefined : undefined,
       Percentage: field.TypeAsString === 'Number' && field.ShowAsPercentage ? true : undefined,
       CurrencyLocaleId: field.TypeAsString === 'Currency' ? field.CurrencyLocaleId : undefined,
-      UrlImage: field.TypeAsString === 'URL' && field.DisplayFormat === 1 ? true : undefined
+      UrlImage: field.TypeAsString === 'URL' && field.DisplayFormat === 1 ? true : undefined,
+      FieldId: field.TypeAsString === 'Thumbnail' ? field.Id : undefined
     }));
 
   // A mellékletek pszeudo-mezőként szerepelnek a sémában, így a tervezőben bármelyik szekcióba elhelyezhetők.
