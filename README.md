@@ -6,6 +6,8 @@ SPFx Form Customizer, amely a SharePoint lista gyári New / Edit / Display formj
 - SPFx 1.23.2 (Heft), React 17, Fluent UI v8, PnPjs v4
 - Node.js 22 (`nvm use`)
 
+Felhasználói leírás (kitöltés és az űrlap megtervezése): [docs/FELHASZNALOI_LEIRAS.md](docs/FELHASZNALOI_LEIRAS.md).
+
 Részletes fejlesztői leírás: [docs/FEJLESZTOI_LEIRAS.md](docs/FEJLESZTOI_LEIRAS.md).
 
 ## Fejlesztés

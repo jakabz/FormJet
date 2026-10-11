@@ -11,6 +11,12 @@ Részletes fejlesztői leírás: `docs/FEJLESZTOI_LEIRAS.md` (séma referencia, 
 receptek új mezőtípushoz és operátorhoz, tesztmátrix). Ha a sémát, egy operátort vagy egy mezőtípus
 kezelését módosítod, azt a leírást is frissítsd.
 
+A felhasználóknak szóló magyar szövegekben (a `loc/hu-hu.js`-ben és a felhasználói leírásban) a „form” helyett mindig
+**űrlap** szerepel. A kódban, a kódkommentekben és a fejlesztői leírásban marad a „form” (pl. form-string, FormHost).
+
+Végfelhasználói leírás: `docs/FELHASZNALOI_LEIRAS.md` (kitöltőknek és az űrlapot tervező adminoknak, szakzsargon
+nélkül). Ha a felhasználó által látható viselkedés, felirat vagy tervezőbeli beállítás változik, ezt is frissítsd.
+
 ## Parancsok
 
 Az SPFx verziótól függ, hogy gulp (≤ 1.21) vagy Heft (1.22+) a build eszközlánc.
