@@ -19,6 +19,7 @@ import {
   LookupDisplay
 } from '../models/IFormConfig';
 import { FormValues, IFieldSchema } from '../models/IFieldSchema';
+import { contextValues } from './ConditionContext';
 import { evaluate, joinMultiValue, validateCondition } from './ConditionEngine';
 import { formatDateValue, parseDateValue, roundToTimeStep } from './DateFormat';
 import { engineStrings, format } from './EngineStrings';
@@ -116,8 +117,12 @@ export function resolveForm(
   schema: IFieldSchema[],
   config: IFormConfig,
   mode: FormMode,
-  values: FormValues
+  values: FormValues,
+  /** Azok a SharePoint csoportok, amelyeknek a felhasználó tagja (a csoporttagságra épülő feltételekhez). */
+  memberGroupIds: number[] = []
 ): IResolvedForm {
+  // A feltételek a mezőértékek mellett a környezeti változókat is látják (a form módja, csoporttagság).
+  const conditionValues: FormValues = { ...values, ...contextValues(config, mode, memberGroupIds) };
   const schemaByName: Record<string, IFieldSchema> = {};
   // A szövegelemek pszeudo-mezőként szerepelnek a sémában.
   withTextElements(schema, config).forEach((field) => {
@@ -134,7 +139,7 @@ export function resolveForm(
     const nothingToShow: boolean =
       section.fields.length === 0 && section.related !== undefined && !isRelatedComplete(related);
     const sectionVisible: boolean =
-      !nothingToShow && inMode(section.visibleIn, mode, true) && evaluate(section.visibleWhen, values);
+      !nothingToShow && inMode(section.visibleIn, mode, true) && evaluate(section.visibleWhen, conditionValues);
     const fields: IResolvedField[] = [];
 
     section.fields.forEach((placement) => {
@@ -152,18 +157,18 @@ export function resolveForm(
 
       const fieldConfig: IFieldConfig = config.fields[placement.field] ?? {};
       const visible: boolean =
-        sectionVisible && inMode(fieldConfig.visibleIn, mode, true) && evaluate(fieldConfig.visibleWhen, values);
+        sectionVisible && inMode(fieldConfig.visibleIn, mode, true) && evaluate(fieldConfig.visibleWhen, conditionValues);
       const readOnly: boolean =
         mode === 'display' ||
         !isEditableField(fieldSchema) ||
         inMode(fieldConfig.readOnlyIn, mode, false) ||
-        (fieldConfig.readOnlyWhen !== undefined && evaluate(fieldConfig.readOnlyWhen, values));
+        (fieldConfig.readOnlyWhen !== undefined && evaluate(fieldConfig.readOnlyWhen, conditionValues));
       // A kötelezőség csak szigorítható: a séma Required értéke mindig érvényes.
       const required: boolean =
         mode !== 'display' &&
         (fieldSchema.Required ||
           inMode(fieldConfig.requiredIn, mode, false) ||
-          (fieldConfig.requiredWhen !== undefined && evaluate(fieldConfig.requiredWhen, values)));
+          (fieldConfig.requiredWhen !== undefined && evaluate(fieldConfig.requiredWhen, conditionValues)));
 
       fields.push({
         name: placement.field,

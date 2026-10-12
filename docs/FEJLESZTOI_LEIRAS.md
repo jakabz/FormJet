@@ -344,6 +344,24 @@ Condition = { all: Condition[] } | { any: Condition[] } | { not: Condition }
 
 A feltételek a form **aktuális** értékeire futnak, nem a mentett értékekre.
 
+**Környezeti változók.** A `field` helyén a mezők mellett igaz / hamis értékű változók is állhatnak (`engine/ConditionContext.ts`); értékük a Boolean form-stringje (`1` / `0`), ezért az `eq` / `ne` operátorral és `true` / `false` értékkel vizsgálhatók, és a mezőfeltételekkel szabadon keverhetők. A szögletes zárójel miatt a nevük nem ütközhet mező belső nevével.
+
+| Változó | Igaz, ha |
+| --- | --- |
+| `[IsNewMode]`, `[IsEditMode]`, `[IsDisplayMode]` | A form új elem, szerkesztés, illetve megtekintés módban van. Mindig pontosan egy igaz. A tervező előnézetében az előnézet módját követik. |
+| `[Group:<azonosító>]` | A bejelentkezett felhasználó tagja az adott azonosítójú SharePoint csoportnak. |
+
+```json
+{ "all": [ { "field": "[IsEditMode]", "op": "eq", "value": true }, { "field": "[Group:5]", "op": "eq", "value": false } ] }
+```
+
+- A változók értékét a `resolveForm` teszi a feltételek elé (`contextValues`): a mezőértékeket kiegészíti velük, és azonos név esetén a változó az erősebb. A csoporttagságot a hívó adja át (`memberGroupIds`), a `resolveForm` szinkron marad.
+- A tagságot a `GroupService.getMembership` kérdezi le, csak a konfiguráció feltételeiben hivatkozott csoportokra (`collectGroupIds`): a `FormHost` a betöltéskor megvárja, tervezés közben pedig az újonnan hivatkozott csoportokra pótolja.
+- **Közvetlen tagság:** a felhasználó saját csoportlistája (`web.currentUser.groups`). **Közvetett tagság:** a többi csoportnál a csoport tagjai között keresünk címtárbeli tagot (`parseDirectoryClaim`): „Mindenki”, „Mindenki, kivéve a külső felhasználókat”, illetve Entra biztonsági vagy Microsoft 365 csoport. Az utóbbiaknál a felhasználó címtárbeli csoportjait a Microsoft Graph adja (`/me/transitiveMemberOf`, a felhasználó AAD tokenjével, `sp.getAadToken`).
+- Ha a Graph hívás nem sikerül (például a bérlőben nincs hozzá engedély), a közvetett tagság nem dönthető el: az érintett felhasználó nem tagnak számít, az admin pedig figyelmeztetést lát a formon (`GroupCheckIncomplete`). Nem kezelt esetek: a Microsoft 365 csoport *tulajdonosai* tagként felvéve (`_o` végű claim), és az a csoport, amelynek a tagjait a felhasználó nem láthatja.
+- A tervezőben a változók a feltételszerkesztő mezőlistájában szerepelnek (a `DesignerPanel` Boolean pszeudo-mezőként adja át őket), a csoportok a webhely csoportjaiból (`GroupService.getSiteGroups`).
+- **Ez nem jogosultsági ellenőrzés** (lásd 12. fejezet): a csoport alapján elrejtett vagy csak olvasható mező más úton ugyanúgy elérhető.
+
 **Szerkesztés a tervezőben.** A feltételeket a `ConditionEditor` szerkeszti, alapból vizuálisan: soronként egy mező, egy összehasonlítás és egy érték; több sornál választható, hogy minden vagy bármelyik feltételnek kell teljesülnie.
 
 - Vizuálisan a lapos feltételek szerkeszthetők: egyetlen mezőfeltétel, vagy mezőfeltételek `all` / `any` csoportja. A beágyazott csoportot vagy `not`-ot tartalmazó feltétel automatikusan JSON-ként jelenik meg; a „Szerkesztés JSON-ként” hivatkozással bármelyik feltétel átváltható.
@@ -573,5 +591,6 @@ Visszaállítás a gyári űrlapokra: ugyanez `-Unbind` kapcsolóval. A `FormCon
 ## 12. Biztonsági megfontolások
 
 - **A form nem jogosultsági határ.** Bármely mező, amelyre a felhasználónak írási joga van, más úton (grid nézet, REST, Power Automate) szerkeszthető. Ha egy mezőt védeni kell, azt elem- vagy listaszintű jogosultsággal, illetve külön listába szervezéssel kell megoldani.
+- A csoporttagságra épülő feltétel (`[Group:…]`) is csak a formot szabja testre: kliens oldalon értékelődik ki, a mezőt nem védi. Érzékeny adatot ne csak így rejts el.
 - A tervező kapcsoló elrejtése csak kényelmi funkció. A konfiguráció módosítását a `FormConfigurations` lista jogosultsága dönti el.
 - A konfiguráció JSON-ja nem tartalmazhat végrehajtható kódot, és a renderelő sem értelmez belőle HTML-t. Ezt a szabályt új funkcióknál is tartsd meg.

@@ -47,7 +47,12 @@ export default class FormJetFormCustomizer extends BaseFormCustomizer<IFormJetFo
       contentTypeId: this.context.contentType?.id,
       cultureName: cultureInfo.currentCultureName,
       uiCultureName: cultureInfo.currentUICultureName,
-      currentUser: { loginName: user.loginName, displayName: user.displayName, email: user.email },
+      currentUser: {
+        loginName: user.loginName,
+        displayName: user.displayName,
+        email: user.email,
+        isGuest: user.isExternalGuestUser
+      },
       onSaved: this._onSaved,
       onClosed: this._onClosed
     };

@@ -73,6 +73,8 @@ export interface ICurrentUser {
   loginName: string;
   displayName: string;
   email?: string;
+  /** Külső (vendég) felhasználó; a „Mindenki, kivéve a külső felhasználókat” tagságnál számít. */
+  isGuest?: boolean;
 }
 
 const ME_TOKEN: string = '[me]';

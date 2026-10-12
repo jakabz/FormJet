@@ -46,6 +46,7 @@ src/extensions/formJet/
   models/                    IFormConfig (konfigurációs séma), IFieldSchema (mezőséma, FormValues, FieldErrors)
   engine/                    TISZTA LOGIKA, SharePoint és React nélkül
     Attachments.ts           mellékletek: a pszeudo-mező neve, fájlnevek ellenőrzése, képfájl felismerése, fájlméret formázása
+    ConditionContext.ts      a feltételek környezeti változói: a form módja (`[IsNewMode]` …), csoporttagság (`[Group:5]`); a csoporttagok claimjeinek értelmezése
     ConditionEngine.ts       visibleWhen / readOnlyWhen / requiredWhen kiértékelése
     ConditionModel.ts        a vizuális feltételszerkesztő modellje: Condition ↔ szerkeszthető sorok
     DateFormat.ts            DateTime form-string ↔ Date a web kultúrája szerint
@@ -70,6 +71,7 @@ src/extensions/formJet/
     AttachmentService.ts     mellékletek listázása (mérettel), feltöltése és törlése (lomtárba), egymás után futtatva
     ConfigService.ts         konfiguráció olvasása / mentése ETag-gel (412 → ConfigConflictError); a konfigurációs lista létrehozása és jogosultsága
     SetupService.ts          a webhely listái és tartalomtípusai, a FormJet be- és kikapcsolása (a beállító webparthoz)
+    GroupService.ts          a webhely SharePoint csoportjai; a felhasználó tagsága (közvetlen + címtárbeli csoporton át, Microsoft Graph, AAD tokennel – nem PnPjs)
     LocationService.ts       helykeresés a Microsoft 365 helykeresőjével (Outlook végpont, AAD tokennel – nem PnPjs)
     LookupService.ts         a keresőmező választható elemei a hivatkozott listából (gyorsítótárazva)
     PeopleService.ts         személyek és csoportok keresése (clientPeoplePickerSearchUser)
@@ -130,6 +132,7 @@ A típusok forrása: `models/IFormConfig.ts`. Példa: `samples/config-example.js
 - Séma módosításakor emeld a `schemaVersion`-t, és bővítsd a `parseConfig`-ot migrációval a régi verzióról. A mentett konfigurációk éles listákban vannak, nem törhetnek el.
 - Új stílustulajdonság: típus az `IFormStyle` / `ISectionStyle` / `IFieldStyle`-ban + a `FormStyle.ts` megfelelő `*_STYLE_SPEC`-je + alkalmazás a `FormRenderer`-ben + vezérlő a `StylePanel`-ben + a fejlesztői leírás 6. fejezete. Opcionális mezőként nem kell sémaverziót emelni.
 - Szövegelemek (`texts`, `engine/TextElement.ts`): a formon megjelenő sima szöveg, amely mögött nincs SharePoint mező. `text:` előtagú azonosítóval pszeudo-mezőként kerül a sémába (`withTextElements`, `FormJetText` típus, csak olvasható), ezért mezőként helyezhető el, egyszer. A láthatósága és a stílusa a `fields` azonos kulcsú bejegyzésében van. Értéke nincs: a mentésbe nem kerülhet, feltétel nem hivatkozhat rá. A tartalom sima szöveg; HTML-ként megjeleníteni vagy formázhatóvá tenni egyeztetést igényel.
+- Környezeti változók a feltételekben (`engine/ConditionContext.ts`): a `field` helyén `[IsNewMode]`, `[IsEditMode]`, `[IsDisplayMode]` (a form módja) és `[Group:<azonosító>]` (SharePoint csoporttagság) is állhat, igen / nem (`1` / `0`) értékkel. A `resolveForm` teszi őket a mezőértékek mellé; a csoporttagságot a `FormHost` kérdezi le előre (`GroupService.getMembership`), a `resolveForm` szinkron marad. A csoporttagságra épülő feltétel sem jogosultsági határ (4. kulcsdöntés).
 - Új feltétel-operátor: `ConditionOperator` típus + `ConditionEngine.evalField` + felirat a `ConditionEditor` `operatorLabels` függvényében (és a loc fájlokban) + a JSON mód súgószövege (`ConditionHelp`) + teszt.
 
 ## SharePoint sajátosságok

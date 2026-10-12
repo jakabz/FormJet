@@ -12,6 +12,7 @@ import { mergeStyleSets } from '@fluentui/react/lib/Styling';
 import * as strings from 'FormJetFormCustomizerStrings';
 
 import { ATTACHMENTS_FIELD } from '../engine/Attachments';
+import { collectGroupIds } from '../engine/ConditionContext';
 import { isEmptyValue } from '../engine/ConditionEngine';
 import { format } from '../engine/EngineStrings';
 import { withTextElements } from '../engine/TextElement';
@@ -28,6 +29,7 @@ import { FieldErrors, FormValues, IFieldSchema } from '../models/IFieldSchema';
 import { FormMode, IFormConfig } from '../models/IFormConfig';
 import * as AttachmentService from '../services/AttachmentService';
 import * as ConfigService from '../services/ConfigService';
+import * as GroupService from '../services/GroupService';
 import * as ImageService from '../services/ImageService';
 import * as ItemService from '../services/ItemService';
 import * as PermissionService from '../services/PermissionService';
@@ -174,6 +176,11 @@ interface ILoaded {
   modified?: string;
 }
 
+interface IMembershipState extends GroupService.IMembership {
+  /** A már lekérdezett csoportok azonosítói. */
+  checked: number[];
+}
+
 function errorText(error: unknown, fallback: string): string {
   return error instanceof Error && error.message ? `${fallback} (${error.message})` : fallback;
 }
@@ -212,6 +219,9 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
   const [designerTab, setDesignerTab] = React.useState<DesignerTab>('layout');
   const [selectedField, setSelectedField] = React.useState<string | undefined>();
   const [designError, setDesignError] = React.useState<string | undefined>();
+  // A felhasználó SharePoint csoporttagsága a feltételekben hivatkozott (már lekérdezett) csoportokra.
+  const [membership, setMembership] = React.useState<IMembershipState>({ checked: [], memberOf: [], incomplete: false });
+  const [siteGroups, setSiteGroups] = React.useState<GroupService.ISiteGroup[] | undefined>();
   // A rögzített tervező panel a görgetett terület tetejénél kezdődik, hogy ne takarja a SharePoint fejlécét.
   const [panelElement, setPanelElement] = React.useState<HTMLDivElement | null>(null);
   const [panelTop, setPanelTop] = React.useState<number>(0);
@@ -304,6 +314,13 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
       setAttachmentRetryId(undefined);
       setPendingImages({});
 
+      // A csoporttagságra épülő feltételekhez a tagságot a megjelenítés előtt kérdezzük le, hogy a form ne ugorjon.
+      const groupIds: number[] = collectGroupIds(config);
+      const groupResult: GroupService.IMembership = await GroupService.getMembership(groupIds, !!currentUser.isGuest).catch(
+        () => ({ memberOf: [], incomplete: true })
+      );
+      setMembership({ checked: groupIds, memberOf: groupResult.memberOf, incomplete: groupResult.incomplete });
+
       setValues(item ? original : getInitialValues(schema, config, props.cultureName, undefined, currentUser));
       setLoaded({
         schema,
@@ -318,7 +335,17 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
     } catch (e) {
       setLoadError(errorText(e, TEXT.loadFailed));
     }
-  }, [mode, listId, itemId, props.contentTypeId, props.cultureName, currentUser.loginName, currentUser.displayName, currentUser.email]);
+  }, [
+    mode,
+    listId,
+    itemId,
+    props.contentTypeId,
+    props.cultureName,
+    currentUser.loginName,
+    currentUser.displayName,
+    currentUser.email,
+    currentUser.isGuest
+  ]);
 
   React.useEffect(() => {
     load().catch(() => undefined);
@@ -332,9 +359,38 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
 
   // Minden értékváltozáskor újraszámoljuk a feltételeket. Olcsó művelet; ne kerüljön bele aszinkron hívás.
   const resolved: IResolvedForm | undefined = React.useMemo(
-    () => (loaded && activeConfig ? resolveForm(loaded.schema, activeConfig, activeMode, values) : undefined),
-    [loaded, activeConfig, activeMode, values]
+    () => (loaded && activeConfig ? resolveForm(loaded.schema, activeConfig, activeMode, values, membership.memberOf) : undefined),
+    [loaded, activeConfig, activeMode, values, membership]
   );
+
+  // Tervezés közben új csoportra is épülhet feltétel: az előnézethez ennek a tagságát is lekérdezzük.
+  const draftGroupKey: string = draft ? collectGroupIds(draft).join(',') : '';
+  React.useEffect(() => {
+    const missing: number[] = draftGroupKey === '' ? [] : draftGroupKey.split(',').map(Number).filter((id) => membership.checked.indexOf(id) === -1);
+    if (missing.length === 0) {
+      return;
+    }
+    GroupService.getMembership(missing, !!currentUser.isGuest)
+      .catch(() => ({ memberOf: [], incomplete: true }))
+      .then((result) =>
+        setMembership((current) => ({
+          checked: current.checked.concat(missing.filter((id) => current.checked.indexOf(id) === -1)),
+          memberOf: current.memberOf.concat(result.memberOf.filter((id) => current.memberOf.indexOf(id) === -1)),
+          incomplete: current.incomplete || result.incomplete
+        }))
+      )
+      .catch(() => undefined);
+  }, [draftGroupKey]);
+
+  // A webhely csoportjai a feltételszerkesztőhöz; a tervező első megnyitásakor töltjük be.
+  React.useEffect(() => {
+    if (draft && !siteGroups) {
+      GroupService.getSiteGroups()
+        .catch(() => [])
+        .then(setSiteGroups)
+        .catch(() => undefined);
+    }
+  }, [draft !== undefined]);
 
   // A FieldValuesAsText szöveg csak addig érvényes, amíg az érték nem változott a betöltés óta.
   const displayValues: FormValues = React.useMemo(() => {
@@ -647,6 +703,7 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
               draft={activeDraft}
               // A szövegelemek a tervezőben mezőként választhatók ki és helyezhetők el.
               schema={withTextElements(loaded.schema, activeDraft)}
+              siteGroups={siteGroups ?? []}
               tab={designerTab}
               onTabChange={setDesignerTab}
               selectedField={selectedField}
@@ -693,6 +750,9 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
       <div className={classes.messages}>
         {isAdmin && loaded.configWarning && (
           <MessageBar messageBarType={MessageBarType.warning}>{loaded.configWarning}</MessageBar>
+        )}
+        {isAdmin && membership.incomplete && (
+          <MessageBar messageBarType={MessageBarType.warning}>{strings.GroupCheckIncomplete}</MessageBar>
         )}
         {isAdmin && resolved.missingFields.length > 0 && (
           <MessageBar messageBarType={MessageBarType.warning}>

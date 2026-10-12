@@ -123,6 +123,11 @@ declare interface IFormJetFormCustomizerStrings {
   ConditionAdd: string;
   ConditionRemove: string;
   ConditionFieldPlaceholder: string;
+  ConditionVarIsNew: string;
+  ConditionVarIsEdit: string;
+  ConditionVarIsDisplay: string;
+  ConditionVarGroup: string;
+  GroupCheckIncomplete: string;
   ConditionOperator: string;
   ConditionValue: string;
   ConditionValuesPlaceholder: string;

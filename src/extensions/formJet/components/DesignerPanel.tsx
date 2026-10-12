@@ -15,6 +15,7 @@ import { mergeStyleSets } from '@fluentui/react/lib/Styling';
 import * as strings from 'FormJetFormCustomizerStrings';
 
 import { ATTACHMENTS_FIELD } from '../engine/Attachments';
+import { groupVariable, MODE_VARIABLES } from '../engine/ConditionContext';
 import { format } from '../engine/EngineStrings';
 import { parseConfig, unplacedFields } from '../engine/LayoutResolver';
 import { addTextElement, isTextElement, removeTextElement } from '../engine/TextElement';
@@ -31,6 +32,7 @@ import {
   LOOKUP_CHECKLIST_MAX,
   LookupDisplay
 } from '../models/IFormConfig';
+import { ISiteGroup } from '../services/GroupService';
 import { AccordionCard } from './AccordionCard';
 import { ConditionEditor } from './ConditionEditor';
 import { RelatedListEditor } from './RelatedListEditor';
@@ -75,6 +77,8 @@ export interface IDesignerPanelProps {
   selectedField?: string;
   onSelectField: (name: string | undefined) => void;
   onChange: (draft: IFormConfig) => void;
+  /** A webhely SharePoint csoportjai; a feltételekben a tagságuk vizsgálható. */
+  siteGroups: ISiteGroup[];
   /** A még el nem helyezett mezők behúzható listája (a húzd-és-ejtsd felülettől); hiányában szöveges felsorolás látszik. */
   unplacedPalette?: React.ReactNode;
 }
@@ -205,6 +209,26 @@ export const DesignerPanel: React.FC<IDesignerPanelProps> = (props) => {
   // A feltételek és a kapcsolódó elemek csak valódi mezőre hivatkozhatnak; a szövegelemnek nincs értéke.
   const realFields: IFieldSchema[] = schema.filter((f) => !isTextElement(f));
 
+  // A feltételekben a mezők mellett a környezeti változók is választhatók (a form módja, csoporttagság);
+  // igen / nem értékűek, ezért a feltételszerkesztő Boolean mezőként kezeli őket.
+  const conditionFields: IFieldSchema[] = React.useMemo(() => {
+    const variable = (name: string, title: string): IFieldSchema => ({
+      InternalName: name,
+      Title: title,
+      TypeAsString: 'Boolean',
+      Required: false,
+      ReadOnlyField: true
+    });
+    return realFields.concat(
+      [
+        variable(MODE_VARIABLES.new, strings.ConditionVarIsNew),
+        variable(MODE_VARIABLES.edit, strings.ConditionVarIsEdit),
+        variable(MODE_VARIABLES.display, strings.ConditionVarIsDisplay)
+      ],
+      props.siteGroups.map((group) => variable(groupVariable(group.id), format(strings.ConditionVarGroup, group.title)))
+    );
+  }, [schema, props.siteGroups]);
+
   const unplaced: IFieldSchema[] = unplacedFields(schema, draft);
   const unplacedOptions: IDropdownOption[] = unplaced.map((f) => ({
     key: f.InternalName,
@@ -273,7 +297,7 @@ export const DesignerPanel: React.FC<IDesignerPanelProps> = (props) => {
         onChange={(visibleIn) => updateSection(index, { visibleIn })}
       />
       <ConditionEditor
-        schema={realFields}
+        schema={conditionFields}
         label={strings.VisibleWhen}
         value={section.visibleWhen}
         onChange={(visibleWhen) => updateSection(index, { visibleWhen })}
@@ -383,7 +407,7 @@ export const DesignerPanel: React.FC<IDesignerPanelProps> = (props) => {
             />
             <ConditionEditor
               key={`${selectedField}:VisibleWhen`}
-              schema={realFields}
+              schema={conditionFields}
               label={strings.VisibleWhen}
               value={config.visibleWhen}
               onChange={(visibleWhen) => updateField(selectedField, { visibleWhen })}
@@ -480,21 +504,21 @@ export const DesignerPanel: React.FC<IDesignerPanelProps> = (props) => {
             </div>
             <ConditionEditor
               key={`${selectedField}:VisibleWhen`}
-              schema={realFields}
+              schema={conditionFields}
               label={strings.VisibleWhen}
               value={config.visibleWhen}
               onChange={(visibleWhen) => updateField(selectedField, { visibleWhen })}
             />
             <ConditionEditor
               key={`${selectedField}:ReadOnlyWhen`}
-              schema={realFields}
+              schema={conditionFields}
               label={strings.ReadOnlyWhen}
               value={config.readOnlyWhen}
               onChange={(readOnlyWhen) => updateField(selectedField, { readOnlyWhen })}
             />
             <ConditionEditor
               key={`${selectedField}:RequiredWhen`}
-              schema={realFields}
+              schema={conditionFields}
               label={strings.RequiredWhen}
               value={config.requiredWhen}
               onChange={(requiredWhen) => updateField(selectedField, { requiredWhen })}

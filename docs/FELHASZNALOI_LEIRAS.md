@@ -263,6 +263,26 @@ Több feltételnél megjelenik egy választó: **Minden feltétel teljesül** va
 
 **Példa:** az „Indoklás” mező csak akkor látszódjon és legyen kötelező, ha az összeg 500 000 fölött van. Az Indoklás mezőnél a *Látható, ha* és a *Kötelező, ha* beállításhoz is vedd fel: `Összeg` – `nagyobb, mint` – `500000`.
 
+### Az űrlap módja és a csoporttagság a feltételekben
+
+A feltétel sorában a mezők listájának végén olyan elemek is választhatók, amelyek nem mezők. Mindegyik értéke **Igen** vagy **Nem**, ezért az `egyenlő` összehasonlítással és az Igen / Nem értékkel vizsgálhatók:
+
+| Választható elem | Igen, ha |
+| --- | --- |
+| Űrlap módja: új elem | Az űrlap új elem felvételére nyílt meg. |
+| Űrlap módja: szerkesztés | Az űrlap meglévő elem szerkesztésére nyílt meg. |
+| Űrlap módja: megtekintés | Az űrlap megtekintésre nyílt meg. |
+| Csoporttag: *csoport neve* | Az űrlapot megnyitó felhasználó tagja a webhely adott SharePoint csoportjának. |
+
+Ezeknek több feltétel összefűzésénél van igazán értelme. **Példa:** a „Jóváhagyó megjegyzése” mező szerkesztéskor csak a Jóváhagyók csoport tagjainak legyen írható. A mező *Csak olvasható, ha* beállításánál vedd fel, „Minden feltétel teljesül” mellett: `Űrlap módja: szerkesztés` – `egyenlő` – `Igen`, és `Csoporttag: Jóváhagyók` – `egyenlő` – `Nem`.
+
+Tudnivalók a csoporttagságról:
+
+- **Ez nem védelem.** A csoport alapján elrejtett vagy csak olvashatóvá tett mezőt a felhasználó más úton (például a lista rácsnézetében) ugyanúgy láthatja és módosíthatja. Érzékeny adatot a lista jogosultságaival védj.
+- Az számít, hogy a felhasználó ténylegesen tagja-e a csoportnak; ez a webhely adminisztrátorára is igaz. A tervező előnézete is a te tagságod szerint mutatja az űrlapot.
+- Az is tagnak számít, aki egy a SharePoint csoportba felvett címtárbeli (Entra vagy Microsoft 365) csoporton keresztül tag. Ha ezt az űrlap nem tudja ellenőrizni, az adminisztrátorok figyelmeztetést látnak az űrlap tetején; ilyenkor az így tag felhasználók nem tagnak számítanak.
+- A csoport átnevezése után a feltétel tovább működik. Törölt csoportnál a feltétel úgy viselkedik, mintha senki nem lenne tagja.
+
 A címke melletti **Szerkesztés JSON-ként** hivatkozással a feltétel szövegesen is szerkeszthető. Az egymásba ágyazott feltételcsoportok csak így szerkeszthetők; ezek maguktól szöveges formában jelennek meg.
 
 ## 8. Megjelenés (stílus)
