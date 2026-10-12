@@ -29,6 +29,8 @@ interface IRawField {
   DefaultValue?: string | null; // eslint-disable-line @rushstack/no-new-null
   Choices?: unknown;
   FillInChoice?: boolean;
+  /** Choice mezőnél: 0 = legördülő lista, 1 = választógombok. */
+  EditFormat?: number;
   MaxLength?: number;
   RichText?: boolean;
   NumberOfLines?: number;
@@ -106,6 +108,7 @@ export async function getFields(listId: string, contentTypeId: string): Promise<
       DefaultValue: field.DefaultValue || undefined,
       Choices: normalizeChoices(field.Choices),
       FillInChoice: field.FillInChoice,
+      ChoiceRadio: field.TypeAsString === 'Choice' && field.EditFormat === 1 ? true : undefined,
       MaxLength: field.MaxLength,
       RichText: field.RichText,
       NumberOfLines: field.NumberOfLines,

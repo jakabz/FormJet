@@ -1,6 +1,8 @@
 // Mezőtípus → vezérlő. Új mezőtípus bekötése: docs/FEJLESZTOI_LEIRAS.md, 8. fejezet.
 
 import * as React from 'react';
+import { Checkbox } from '@fluentui/react/lib/Checkbox';
+import { ChoiceGroup, IChoiceGroupOption } from '@fluentui/react/lib/ChoiceGroup';
 import { ComboBox, IComboBoxOption } from '@fluentui/react/lib/ComboBox';
 import { Dropdown, IDropdownOption } from '@fluentui/react/lib/Dropdown';
 import { Label } from '@fluentui/react/lib/Label';
@@ -37,6 +39,16 @@ const PERCENT_SIGN: string = '%';
 
 const classes = mergeStyleSets({
   readOnlyValue: { padding: '6px 0', minHeight: 20, whiteSpace: 'pre-wrap', wordBreak: 'break-word' },
+  // Választógombok és jelölőnégyzetek: minden választható érték látszik, ugyanolyan keretben, mint a keresőmező listája.
+  optionList: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 6,
+    padding: '8px 10px',
+    border: '1px solid #8a8886',
+    borderRadius: 2,
+    background: '#ffffff'
+  },
   description: { fontSize: 12, color: '#605e5c', marginTop: 4 },
   error: { fontSize: 12, color: '#a4262c', marginTop: 4 }
 });
@@ -234,6 +246,27 @@ export const FieldRenderer: React.FC<IFieldRendererProps> = (props) => {
           </div>
         );
       }
+      if (schema.ChoiceRadio) {
+        const labelId: string = `formjet-label-${field.name}`;
+        return (
+          <div>
+            <Label id={labelId} required={required}>
+              {label}
+            </Label>
+            <div className={classes.optionList}>
+              <ChoiceGroup
+                ariaLabelledBy={labelId}
+                // Üres értéknél egyik gomb sincs kiválasztva; a null tartja vezéreltként a csoportot.
+                selectedKey={value === '' ? null : value}
+                options={choiceOptions(schema, [value], false) as IChoiceGroupOption[]}
+                styles={{ flexContainer: { display: 'flex', flexDirection: 'column', gap: 6 } }}
+                onChange={(_, option) => set(option ? option.key : '')}
+              />
+            </div>
+            {footer}
+          </div>
+        );
+      }
       return (
         <div>
           <Dropdown
@@ -252,21 +285,22 @@ export const FieldRenderer: React.FC<IFieldRendererProps> = (props) => {
       const selected: string[] = splitMultiValue(value);
       return (
         <div>
-          <Dropdown
-            label={label}
-            required={required}
-            multiSelect
-            selectedKeys={selected}
-            placeholder={placeholder}
-            options={choiceOptions(schema, selected, false)}
-            onChange={(_, option) => {
-              if (!option) {
-                return;
-              }
+          <Label required={required}>{label}</Label>
+          <div className={classes.optionList} role="group" aria-label={label}>
+            {choiceOptions(schema, selected, false).map((option) => {
               const key: string = String(option.key);
-              set(joinMultiValue(option.selected ? [...selected, key] : selected.filter((item) => item !== key)));
-            }}
-          />
+              return (
+                <Checkbox
+                  key={key}
+                  label={option.text}
+                  checked={selected.indexOf(key) !== -1}
+                  onChange={(_, checked) =>
+                    set(joinMultiValue(checked ? [...selected, key] : selected.filter((item) => item !== key)))
+                  }
+                />
+              );
+            })}
+          </div>
           {footer}
         </div>
       );

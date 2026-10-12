@@ -53,7 +53,9 @@ Az egysoros és a többsoros szövegmezőbe egyszerűen gépelhetsz. A formázot
 
 ### Választás
 
-Egy érték esetén legördülő listából választasz. Több érték esetén a listában több elemet is bejelölhetsz.
+Egy érték esetén legördülő listából vagy választógombok közül választasz, attól függően, hogy a SharePoint oszlop beállításainál melyik megjelenítés van megadva. Több érték esetén jelölőnégyzeteket látsz, ezekből többet is bejelölhetsz.
+
+Ha az oszlopnál saját érték beírása is engedélyezett, mindig legördülő listát kapsz, amelybe gépelni is lehet. A kiválasztott választógomb nem törölhető, csak másikra cserélhető.
 
 ### Igen / Nem
 

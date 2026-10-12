@@ -11,6 +11,8 @@ export interface IFieldSchema {
   DefaultValue?: string;
   Choices?: string[];
   FillInChoice?: boolean;
+  /** Choice mezőnél: választógombokként jelenik meg (az oszlop „Választógombok” beállítása), nem legördülő listaként. */
+  ChoiceRadio?: boolean;
   MaxLength?: number;
   RichText?: boolean;
   NumberOfLines?: number;
