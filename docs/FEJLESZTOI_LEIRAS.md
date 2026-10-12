@@ -188,10 +188,36 @@ A tartalomtípus mezői közül a rejtett és a számított megjelenítő (`Comp
 | `requiredIn` | `FormMode[]` | egyik sem | Kötelezőség módonként. **Csak szigorít.** |
 | `visibleWhen`, `readOnlyWhen`, `requiredWhen` | `Condition` | – | Feltételes változatok. |
 | `defaultValue` | string | – | Kezdőérték New módban, form-string formátumban. Dátum mezőnél `[today]`, ISO dátum vagy a web formátuma szerinti dátum is megadható. Személy mezőnél `[me]`, e-mail-cím vagy ezek pontosvesszővel elválasztott listája is. |
+| `conditional` | `{ label?, description?, placeholder?, defaultValue? }`, mindegyik `IConditionalValue[]` | – | Feltételes értékek (lásd lent). |
 | `attachmentsDisplay` | `'list'` \| `'compact'` | `list` | A mellékletek megjelenítése: soronként egy fájl, vagy tömören, egymás mellett. Csak az `Attachments` mezőnél. |
 | `lookupDisplay` | `'auto'` \| `'checklist'` \| `'dropdown'` | `auto` | Többértékű keresőmező megjelenítése: mindig nyitott jelölőnégyzetes lista vagy lenyíló lista. `auto`: legfeljebb 8 választható elemnél jelölőnégyzetes lista, efelett lenyíló. |
 
 Egy mező akkor látszik, ha a szekciója látszik, **és** a mező `visibleIn`, **és** `visibleWhen` feltétele is teljesül. Ami nincs egyetlen szekcióban sem, az nem jelenik meg.
+
+### Feltételes értékek (`IFieldConfig.conditional`)
+
+A mező címkéje, leírása, helykitöltő szövege és kezdőértéke feltételtől függően más lehet. Beállításonként szabályok sorrendezett listája adható meg:
+
+```json
+"fields": {
+  "Title": {
+    "label": "Megnevezés",
+    "conditional": {
+      "label": [
+        { "when": { "field": "Category", "op": "eq", "value": "Informatika" }, "value": "Eszköz neve" },
+        { "when": { "field": "[IsDisplayMode]", "op": "eq", "value": true }, "value": "Megnevezés (lezárva)" }
+      ]
+    }
+  }
+}
+```
+
+- **Az első teljesülő szabály értéke érvényes** (`ConditionalValue.pickConditionalValue`); ha egyik sem teljesül, a beállítás alapértéke (`label`, `description`, …, illetve a séma szerinti érték). A `when` nélküli szabály félkész, nem érvényesül (a tervezőben szerkesztés közben fordul elő).
+- A `when` ugyanaz a `Condition`, mint a láthatóságnál: mezőértékre, a form módjára és csoporttagságra is épülhet.
+- A címke, a leírás és a helykitöltő a `resolveForm`-ban oldódik fel, tehát kitöltés közben azonnal követi az értékeket. Az üres érték a leírásnál és a helykitöltőnél „nincs szöveg”-et jelent (a séma leírását is eltünteti); üres címke helyett a beállított címke, illetve a mező címe látszik.
+- A **kezdőérték** szabályai New módban, a megnyitáskor értékelődnek ki egyszer (`getInitialValues`): az alap kezdőértékeken, a form módján és a csoporttagságon. A kiválasztott érték ugyanazon az átalakításon megy át, mint a `defaultValue` (`[today]`, `[me]`, …); az üres érték a kezdőértéket törli.
+- Opcionális bővítés, sémaverzió-emelés nem kellett. A `parseConfig` ellenőrzi a szerkezetet és a feltételeket (`parseConditional`); az ismeretlen kulcsok kimaradnak.
+- A tervezőben a Mező fül négy szövegmezője melletti gomb (`ConditionalValueEditor.tsx`) felugró ablakban szerkeszti a szabályokat; a gombon jelvény mutatja az érvényes szabályok számát. Szövegelemnél nincs ilyen beállítás.
 
 ### Szövegelemek (ITextElement)
 

@@ -155,10 +155,28 @@ export interface ISectionConfig {
   fields: IFieldPlacement[];
 }
 
+/** A mező feltételhez köthető szöveges beállításai. */
+export type ConditionalProperty = 'label' | 'description' | 'placeholder' | 'defaultValue';
+
+export const CONDITIONAL_PROPERTIES: ConditionalProperty[] = ['label', 'description', 'placeholder', 'defaultValue'];
+
+/** Feltételes érték: ha a feltétel teljesül, a beállítás ezt az értéket veszi fel. */
+export interface IConditionalValue {
+  /** Hiányában a szabály félkész, és nem érvényesül. */
+  when?: Condition;
+  value: string;
+}
+
 export interface IFieldConfig {
   label?: string;
   description?: string;
   placeholder?: string;
+  /**
+   * Feltételes értékek beállításonként, sorrendben: az első teljesülő szabály értéke érvényes, ha egyik sem
+   * teljesül, a beállítás alapértéke (`label`, `description`, …). A kezdőérték szabályai New módban,
+   * a megnyitáskor értékelődnek ki egyszer.
+   */
+  conditional?: Partial<Record<ConditionalProperty, IConditionalValue[]>>;
   /** Hiányában mindhárom módban látszik. */
   visibleIn?: FormMode[];
   readOnlyIn?: FormMode[];

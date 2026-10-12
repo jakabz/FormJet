@@ -5,7 +5,7 @@
 // Tiszta logika: nem importálhat services/-ből, components/-ből, @pnp/*-ból vagy @microsoft/*-ból.
 
 import { FormValues } from '../models/IFieldSchema';
-import { Condition, FormMode, IFormConfig } from '../models/IFormConfig';
+import { Condition, ConditionalProperty, FormMode, IFormConfig } from '../models/IFormConfig';
 
 /** A form módját jelző változók; közülük mindig pontosan egy igaz. */
 export const MODE_VARIABLES: Record<FormMode, string> = {
@@ -56,6 +56,10 @@ export function collectGroupIds(config: IFormConfig): number[] {
     collectFromCondition(config.fields[name].visibleWhen, found);
     collectFromCondition(config.fields[name].readOnlyWhen, found);
     collectFromCondition(config.fields[name].requiredWhen, found);
+    const conditional = config.fields[name].conditional ?? {};
+    (Object.keys(conditional) as ConditionalProperty[]).forEach((property) =>
+      (conditional[property] ?? []).forEach((rule) => collectFromCondition(rule.when, found))
+    );
   });
   return found.sort((a, b) => a - b);
 }

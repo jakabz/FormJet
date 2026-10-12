@@ -236,6 +236,24 @@ Egyes mezőtípusoknál további beállítás is megjelenik:
 
 Személy mezőnél a beírt e-mail-címet a SharePoint a mentéskor keresi meg. Ha a cím nem létező felhasználóé, a kitöltő a mentéskor hibaüzenetet kap ennél a mezőnél, ezért a beállítás után érdemes egy próbaelemmel ellenőrizni.
 
+### Feltételtől függő címke, leírás, helykitöltő és kezdőérték
+
+A Címke, a Leírás, a Helykitöltő szöveg és a Kezdőérték új elemnél mező mellett egy elágazás ikonú gomb áll. Ezzel adhatod meg, hogy bizonyos feltétel esetén más legyen az érték, mint amit a mezőbe írtál.
+
+1. Kattints a gombra: felugró ablak nyílik.
+2. A **Szabály hozzáadása** gombbal vegyél fel egy szabályt.
+3. A **Ha** résznél állítsd össze a feltételt (ugyanúgy, mint a láthatóságnál, lásd [7. fejezet](#7-feltételek)), alatta pedig írd be, mi legyen ilyenkor az érték.
+4. Zárd be az ablakot. A változás az előnézetben azonnal látszik.
+
+Tudnivalók:
+
+- Több szabálynál **az első olyan érvényes, amelynek a feltétele teljesül**; a sorrend a szabály fejlécében lévő nyilakkal változtatható. Ha egyik sem teljesül, a mezőbe írt érték marad.
+- Ha egy beállításnak van szabálya, a gomb kék, és egy kis szám mutatja, hány szabály tartozik hozzá.
+- A címke, a leírás és a helykitöltő kitöltés közben is azonnal követi a feltételt. Üres értékű szabállyal a leírás és a helykitöltő el is tüntethető.
+- A **kezdőérték** szabályai csak egyszer értékelődnek ki, amikor az űrlap új elemhez megnyílik; itt főleg a csoporttagságra épülő feltételnek van értelme (például más kezdőérték a Jóváhagyóknak). Az érték formátuma ugyanaz, mint a kezdőértéknél (lásd lent).
+
+**Példa:** a „Megnevezés” mező címkéje legyen „Eszköz neve”, ha a kategória Informatika. A Címke melletti gombnál vegyél fel egy szabályt: `Kategória` – `egyenlő` – `Informatika`, akkor: `Eszköz neve`.
+
 ### A kötelezőségről
 
 A kötelezőség csak szigorítható. Ha egy oszlop a SharePointban kötelező, az űrlapon nem tehető opcionálissá; fordítva viszont egy nem kötelező oszlop az űrlapon kötelezővé tehető.

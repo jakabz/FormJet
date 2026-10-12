@@ -19,6 +19,7 @@ import {
   LookupDisplay
 } from '../models/IFormConfig';
 import { FormValues, IFieldSchema } from '../models/IFieldSchema';
+import { parseConditional, pickConditionalValue } from './ConditionalValue';
 import { contextValues } from './ConditionContext';
 import { evaluate, joinMultiValue, validateCondition } from './ConditionEngine';
 import { formatDateValue, parseDateValue, roundToTimeStep } from './DateFormat';
@@ -156,6 +157,7 @@ export function resolveForm(
       placed[placement.field] = true;
 
       const fieldConfig: IFieldConfig = config.fields[placement.field] ?? {};
+      const conditional: IFieldConfig['conditional'] = fieldConfig.conditional;
       const visible: boolean =
         sectionVisible && inMode(fieldConfig.visibleIn, mode, true) && evaluate(fieldConfig.visibleWhen, conditionValues);
       const readOnly: boolean =
@@ -173,9 +175,11 @@ export function resolveForm(
       fields.push({
         name: placement.field,
         schema: fieldSchema,
-        label: fieldConfig.label || fieldSchema.Title,
-        description: fieldConfig.description ?? fieldSchema.Description,
-        placeholder: fieldConfig.placeholder,
+        // Feltételes érték: az első teljesülő szabály felülírja a beállítás alapértékét.
+        label: pickConditionalValue(conditional?.label, conditionValues) || fieldConfig.label || fieldSchema.Title,
+        description:
+          pickConditionalValue(conditional?.description, conditionValues) ?? fieldConfig.description ?? fieldSchema.Description,
+        placeholder: pickConditionalValue(conditional?.placeholder, conditionValues) ?? fieldConfig.placeholder,
         text: config.texts?.[placement.field]?.content,
         lookupDisplay: fieldConfig.lookupDisplay ?? 'auto',
         attachmentsDisplay: fieldConfig.attachmentsDisplay ?? 'list',
@@ -281,11 +285,41 @@ export function getInitialValues(
   config: IFormConfig,
   culture: string = 'en-US',
   now: Date = new Date(),
-  currentUser?: ICurrentUser
+  currentUser?: ICurrentUser,
+  /** Azok a SharePoint csoportok, amelyeknek a felhasználó tagja (a kezdőérték feltételeihez). */
+  memberGroupIds: number[] = []
+): FormValues {
+  const base: FormValues = computeInitialValues(schema, config, {}, culture, now, currentUser);
+  // A feltételes kezdőértékek a megnyitáskor értékelődnek ki egyszer: az alap kezdőértékeken,
+  // a form módján (új elem) és a csoporttagságon.
+  const conditionValues: FormValues = { ...base, ...contextValues(config, 'new', memberGroupIds) };
+  const overrides: Record<string, string> = {};
+  schema.forEach((field) => {
+    const picked: string | undefined = pickConditionalValue(
+      config.fields[field.InternalName]?.conditional?.defaultValue,
+      conditionValues
+    );
+    if (picked !== undefined) {
+      overrides[field.InternalName] = picked;
+    }
+  });
+  return Object.keys(overrides).length === 0
+    ? base
+    : computeInitialValues(schema, config, overrides, culture, now, currentUser);
+}
+
+/** A kezdőértékek; az `overrides` mezőnként felülírja a konfigurációban megadott kezdőértéket. */
+function computeInitialValues(
+  schema: IFieldSchema[],
+  config: IFormConfig,
+  overrides: Record<string, string>,
+  culture: string,
+  now: Date,
+  currentUser: ICurrentUser | undefined
 ): FormValues {
   const values: FormValues = {};
   schema.forEach((field) => {
-    const configured: string | undefined = config.fields[field.InternalName]?.defaultValue;
+    const configured: string | undefined = overrides[field.InternalName] ?? config.fields[field.InternalName]?.defaultValue;
     if (field.TypeAsString === 'DateTime') {
       const raw: string | undefined = configured ?? field.DefaultValue;
       const value: string | undefined = raw ? resolveDateDefault(raw, culture, field.DateOnly !== false, now) : undefined;
@@ -431,6 +465,8 @@ function parseFieldConfig(input: unknown, name: string): IFieldConfig {
   if (requiredWhen) field.requiredWhen = requiredWhen;
   const style = parseFieldStyles(input.style, `${path}.style`);
   if (style) field.style = style;
+  const conditional = parseConditional(input.conditional, `${path}.conditional`);
+  if (conditional) field.conditional = conditional;
   return field;
 }
 

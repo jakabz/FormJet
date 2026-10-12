@@ -128,6 +128,18 @@ declare interface IFormJetFormCustomizerStrings {
   ConditionVarIsDisplay: string;
   ConditionVarGroup: string;
   GroupCheckIncomplete: string;
+  ConditionalValueButton: string;
+  ConditionalValueButtonActive: string;
+  ConditionalValueTitle: string;
+  ConditionalValueHint: string;
+  ConditionalValueDefaultHint: string;
+  ConditionalValueRule: string;
+  ConditionalValueWhen: string;
+  ConditionalValueValue: string;
+  ConditionalValueAdd: string;
+  ConditionalValueRemove: string;
+  ConditionalValueMoveUp: string;
+  ConditionalValueMoveDown: string;
   ConditionOperator: string;
   ConditionValue: string;
   ConditionValuesPlaceholder: string;

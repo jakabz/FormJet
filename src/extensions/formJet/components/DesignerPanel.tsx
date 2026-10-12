@@ -15,6 +15,7 @@ import { mergeStyleSets } from '@fluentui/react/lib/Styling';
 import * as strings from 'FormJetFormCustomizerStrings';
 
 import { ATTACHMENTS_FIELD } from '../engine/Attachments';
+import { setConditionalValues } from '../engine/ConditionalValue';
 import { groupVariable, MODE_VARIABLES } from '../engine/ConditionContext';
 import { format } from '../engine/EngineStrings';
 import { parseConfig, unplacedFields } from '../engine/LayoutResolver';
@@ -22,6 +23,7 @@ import { addTextElement, isTextElement, removeTextElement } from '../engine/Text
 import { IFieldSchema } from '../models/IFieldSchema';
 import {
   AttachmentsDisplay,
+  ConditionalProperty,
   FORM_MODES,
   FormMode,
   IFieldConfig,
@@ -34,6 +36,7 @@ import {
 } from '../models/IFormConfig';
 import { ISiteGroup } from '../services/GroupService';
 import { AccordionCard } from './AccordionCard';
+import { ConditionalValueField } from './ConditionalValueEditor';
 import { ConditionEditor } from './ConditionEditor';
 import { RelatedListEditor } from './RelatedListEditor';
 import { StylePanel } from './StylePanel';
@@ -374,6 +377,31 @@ export const DesignerPanel: React.FC<IDesignerPanelProps> = (props) => {
     }));
     const fieldSchema: IFieldSchema | undefined = schema.find((f) => f.InternalName === selectedField);
     const config: IFieldConfig = (selectedField && draft.fields[selectedField]) || {};
+    /** Egy szöveges beállítás a feltételes értékek gombjával. */
+    const conditionalField = (
+      property: ConditionalProperty,
+      label: string,
+      input: JSX.Element,
+      hint?: string
+    ): JSX.Element | undefined =>
+      selectedField === undefined ? undefined : (
+        <ConditionalValueField
+          key={`${selectedField}:${property}`}
+          label={label}
+          fieldTitle={fieldSchema?.Title ?? selectedField}
+          rules={config.conditional?.[property] ?? []}
+          schema={conditionFields}
+          hint={hint}
+          onChange={(rules) =>
+            props.onChange({
+              ...draft,
+              fields: { ...draft.fields, [selectedField]: setConditionalValues(config, property, rules) }
+            })
+          }
+        >
+          {input}
+        </ConditionalValueField>
+      );
     return (
       <div className={classes.tab}>
         <Dropdown
@@ -429,29 +457,49 @@ export const DesignerPanel: React.FC<IDesignerPanelProps> = (props) => {
               {fieldSchema.Required ? ' · ' + strings.SpRequired : ''}
               {fieldSchema.ReadOnlyField ? ' · ' + strings.SpReadOnly : ''}
             </div>
-            <TextField
-              label={strings.FieldLabel}
-              placeholder={fieldSchema.Title}
-              value={config.label ?? ''}
-              onChange={(_, v) => updateField(selectedField, { label: v })}
-            />
-            <TextField
-              label={strings.Description}
-              placeholder={fieldSchema.Description}
-              value={config.description ?? ''}
-              onChange={(_, v) => updateField(selectedField, { description: v })}
-            />
-            <TextField
-              label={strings.PlaceholderText}
-              value={config.placeholder ?? ''}
-              onChange={(_, v) => updateField(selectedField, { placeholder: v })}
-            />
-            <TextField
-              label={strings.DefaultValue}
-              description={strings.DefaultValueHint}
-              value={config.defaultValue ?? ''}
-              onChange={(_, v) => updateField(selectedField, { defaultValue: v })}
-            />
+            {/* A négy szöveges beállítás feltételhez is köthető: a mező melletti gomb a szabályokat nyitja meg. */}
+            {conditionalField(
+              'label',
+              strings.FieldLabel,
+              <TextField
+                label={strings.FieldLabel}
+                placeholder={fieldSchema.Title}
+                value={config.label ?? ''}
+                onChange={(_, v) => updateField(selectedField, { label: v })}
+              />
+            )}
+            {conditionalField(
+              'description',
+              strings.Description,
+              <TextField
+                label={strings.Description}
+                placeholder={fieldSchema.Description}
+                value={config.description ?? ''}
+                onChange={(_, v) => updateField(selectedField, { description: v })}
+              />
+            )}
+            {conditionalField(
+              'placeholder',
+              strings.PlaceholderText,
+              <TextField
+                label={strings.PlaceholderText}
+                value={config.placeholder ?? ''}
+                onChange={(_, v) => updateField(selectedField, { placeholder: v })}
+              />
+            )}
+            <div>
+              {conditionalField(
+                'defaultValue',
+                strings.DefaultValue,
+                <TextField
+                  label={strings.DefaultValue}
+                  value={config.defaultValue ?? ''}
+                  onChange={(_, v) => updateField(selectedField, { defaultValue: v })}
+                />,
+                `${strings.ConditionalValueDefaultHint} ${strings.DefaultValueHint}`
+              )}
+              <div className={classes.hint}>{strings.DefaultValueHint}</div>
+            </div>
             {fieldSchema.TypeAsString === ATTACHMENTS_FIELD && (
               <Dropdown
                 label={strings.AttachmentsDisplay}

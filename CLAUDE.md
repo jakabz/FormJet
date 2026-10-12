@@ -46,6 +46,7 @@ src/extensions/formJet/
   models/                    IFormConfig (konfigurációs séma), IFieldSchema (mezőséma, FormValues, FieldErrors)
   engine/                    TISZTA LOGIKA, SharePoint és React nélkül
     Attachments.ts           mellékletek: a pszeudo-mező neve, fájlnevek ellenőrzése, képfájl felismerése, fájlméret formázása
+    ConditionalValue.ts      feltételes értékek (címke, leírás, helykitöltő, kezdőérték): az első teljesülő szabály kiválasztása, a `conditional` ellenőrzése
     ConditionContext.ts      a feltételek környezeti változói: a form módja (`[IsNewMode]` …), csoporttagság (`[Group:5]`); a csoporttagok claimjeinek értelmezése
     ConditionEngine.ts       visibleWhen / readOnlyWhen / requiredWhen kiértékelése
     ConditionModel.ts        a vizuális feltételszerkesztő modellje: Condition ↔ szerkeszthető sorok
@@ -86,6 +87,7 @@ src/extensions/formJet/
     DesignCanvas.tsx         a tervező húzd-és-ejtsd felülete: áthelyezhető előnézet + a nem elhelyezett mezők behúzható listája (dnd-kit, lazy chunk)
     FieldRenderer.tsx        mezőtípus → vezérlő
     AttachmentsField.tsx     mellékletek: fájlok listája miniatűrrel és mérettel, hozzáadás (fájlválasztó vagy ráhúzás), törlés; a változások mentéskor hajtódnak végre
+    ConditionalValueEditor.tsx  a Mező fül szöveges beállításai melletti gomb + felugró ablak a feltételes értékek szabályaihoz
     ConditionEditor.tsx      feltételszerkesztő a tervezőben: vizuális sorok, összetett feltételnél JSON
     DateTimeField.tsx        DateTime mező: Fluent DatePicker (+ TimePicker, ha a mező időt is tárol)
     ImageField.tsx           kép (Thumbnail) mező: előnézet, kiválasztás, csere, törlés; a feltöltés mentéskor történik
@@ -133,6 +135,7 @@ A típusok forrása: `models/IFormConfig.ts`. Példa: `samples/config-example.js
 - Új stílustulajdonság: típus az `IFormStyle` / `ISectionStyle` / `IFieldStyle`-ban + a `FormStyle.ts` megfelelő `*_STYLE_SPEC`-je + alkalmazás a `FormRenderer`-ben + vezérlő a `StylePanel`-ben + a fejlesztői leírás 6. fejezete. Opcionális mezőként nem kell sémaverziót emelni.
 - Szövegelemek (`texts`, `engine/TextElement.ts`): a formon megjelenő sima szöveg, amely mögött nincs SharePoint mező. `text:` előtagú azonosítóval pszeudo-mezőként kerül a sémába (`withTextElements`, `FormJetText` típus, csak olvasható), ezért mezőként helyezhető el, egyszer. A láthatósága és a stílusa a `fields` azonos kulcsú bejegyzésében van. Értéke nincs: a mentésbe nem kerülhet, feltétel nem hivatkozhat rá. A tartalom sima szöveg; HTML-ként megjeleníteni vagy formázhatóvá tenni egyeztetést igényel.
 - Környezeti változók a feltételekben (`engine/ConditionContext.ts`): a `field` helyén `[IsNewMode]`, `[IsEditMode]`, `[IsDisplayMode]` (a form módja) és `[Group:<azonosító>]` (SharePoint csoporttagság) is állhat, igen / nem (`1` / `0`) értékkel. A `resolveForm` teszi őket a mezőértékek mellé; a csoporttagságot a `FormHost` kérdezi le előre (`GroupService.getMembership`), a `resolveForm` szinkron marad. A csoporttagságra épülő feltétel sem jogosultsági határ (4. kulcsdöntés).
+- Feltételes értékek (`IFieldConfig.conditional`, `engine/ConditionalValue.ts`): a címke, a leírás, a helykitöltő és a kezdőérték szabálylistát kaphat (`{ when, value }`), az első teljesülő szabály érvényes, egyébként az alapérték. A címke, a leírás és a helykitöltő a `resolveForm`-ban oldódik fel; a kezdőérték szabályai csak New módban, a megnyitáskor értékelődnek ki (`getInitialValues`).
 - Új feltétel-operátor: `ConditionOperator` típus + `ConditionEngine.evalField` + felirat a `ConditionEditor` `operatorLabels` függvényében (és a loc fájlokban) + a JSON mód súgószövege (`ConditionHelp`) + teszt.
 
 ## SharePoint sajátosságok

@@ -321,7 +321,9 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
       );
       setMembership({ checked: groupIds, memberOf: groupResult.memberOf, incomplete: groupResult.incomplete });
 
-      setValues(item ? original : getInitialValues(schema, config, props.cultureName, undefined, currentUser));
+      setValues(
+        item ? original : getInitialValues(schema, config, props.cultureName, undefined, currentUser, groupResult.memberOf)
+      );
       setLoaded({
         schema,
         contentTypeId: resolvedContentTypeId,
