@@ -23,6 +23,7 @@ import {
   normalizeHexColor,
   StyleScope
 } from '../engine/FormStyle';
+import { isTextElement } from '../engine/TextElement';
 import { IFieldSchema } from '../models/IFieldSchema';
 import {
   GradientType,
@@ -485,12 +486,22 @@ export const StylePanel: React.FC<IStylePanelProps> = (props) => {
         {fieldSchema && (
           <>
             <BoxFields style={fieldStyle} inherited={fieldBase} onChange={setFieldStyle} />
-            <ColorField
-              label={strings.StyleLabelColor}
-              value={fieldStyle.labelColor}
-              inherited={fieldBase.labelColor}
-              onChange={(labelColor) => setFieldStyle({ labelColor })}
-            />
+            {/* A szövegelemnek nincs címkéje; ott a szöveg színe állítható. */}
+            {isTextElement(fieldSchema) ? (
+              <ColorField
+                label={strings.StyleTextColor}
+                value={fieldStyle.textColor}
+                inherited={fieldBase.textColor}
+                onChange={(textColor) => setFieldStyle({ textColor })}
+              />
+            ) : (
+              <ColorField
+                label={strings.StyleLabelColor}
+                value={fieldStyle.labelColor}
+                inherited={fieldBase.labelColor}
+                onChange={(labelColor) => setFieldStyle({ labelColor })}
+              />
+            )}
           </>
         )}
       </AccordionCard>

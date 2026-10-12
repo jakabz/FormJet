@@ -18,6 +18,7 @@ import { joinMultiValue, splitMultiValue } from '../engine/ConditionEngine';
 import { IResolvedField } from '../engine/LayoutResolver';
 import { formatLocationValue } from '../engine/LocationValue';
 import { getCurrencyAffix, ICurrencyAffix } from '../engine/NumberFormat';
+import { isTextElement } from '../engine/TextElement';
 import { formatUserValue } from '../engine/UserValue';
 import { IFieldSchema } from '../models/IFieldSchema';
 import { AttachmentsField } from './AttachmentsField';
@@ -39,6 +40,8 @@ const PERCENT_SIGN: string = '%';
 
 const classes = mergeStyleSets({
   readOnlyValue: { padding: '6px 0', minHeight: 20, whiteSpace: 'pre-wrap', wordBreak: 'break-word' },
+  // A sortörések megmaradnak; üresen is van magassága, hogy a tervezőben kijelölhető legyen.
+  textElement: { minHeight: 20, whiteSpace: 'pre-wrap', wordBreak: 'break-word' },
   // Választógombok és jelölőnégyzetek: minden választható érték látszik, ugyanolyan keretben, mint a keresőmező listája.
   optionList: {
     display: 'flex',
@@ -117,6 +120,11 @@ export const FieldRenderer: React.FC<IFieldRendererProps> = (props) => {
       )}
     </>
   );
+
+  // Szövegelem: nincs mögötte mező, csak a tervezőben megadott szöveg jelenik meg (címke nélkül).
+  if (isTextElement(schema)) {
+    return <div className={classes.textElement}>{field.text ?? ''}</div>;
+  }
 
   // Rich text Note: szerkesztve és csak olvashatóként is a TipTap jeleníti meg a HTML-t.
   if (schema.TypeAsString === 'Note' && schema.RichText && (!field.readOnly || value !== '')) {

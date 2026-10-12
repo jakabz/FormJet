@@ -55,7 +55,7 @@ const FORM_STYLE_SPEC: StyleSpec = {
   sectionHeader: SECTION_HEADER_STYLES
 };
 const SECTION_STYLE_SPEC: StyleSpec = { ...BOX_STYLE_SPEC, headerColor: 'color' };
-const FIELD_STYLE_SPEC: StyleSpec = { ...BOX_STYLE_SPEC, labelColor: 'color' };
+const FIELD_STYLE_SPEC: StyleSpec = { ...BOX_STYLE_SPEC, labelColor: 'color', textColor: 'color' };
 
 export function isHexColor(value: unknown): value is string {
   return typeof value === 'string' && HEX_COLOR.test(value);

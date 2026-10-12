@@ -21,6 +21,7 @@ export interface IEngineStrings {
   InvalidListId: string;
   InvalidFieldName: string;
   InvalidGradientColors: string;
+  InvalidText: string;
 }
 
 const DEFAULT_STRINGS: IEngineStrings = {
@@ -41,7 +42,8 @@ const DEFAULT_STRINGS: IEngineStrings = {
   InvalidOption: '{0}: the allowed values are {1}.',
   InvalidListId: '{0}: must be a list id (GUID).',
   InvalidFieldName: '{0}: must be the internal name of a field.',
-  InvalidGradientColors: '{0}: must contain exactly two hex colors.'
+  InvalidGradientColors: '{0}: must contain exactly two hex colors.',
+  InvalidText: '{0}: the id of a text element must start with "text:", and the element must have a "name".'
 };
 
 let current: IEngineStrings = DEFAULT_STRINGS;

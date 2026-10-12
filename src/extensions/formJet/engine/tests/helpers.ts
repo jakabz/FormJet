@@ -44,7 +44,7 @@ export function loadSampleConfig(): IFormConfig {
 /** Minimális, érvényes konfiguráció szövege a megadott részekkel kiegészítve. */
 export function configJson(patch: Record<string, unknown> = {}): string {
   return JSON.stringify({
-    schemaVersion: 1,
+    schemaVersion: 2,
     listId: '',
     contentTypeId: '',
     sections: [{ id: 's', columns: 1, fields: [] }],

@@ -14,6 +14,7 @@ import * as strings from 'FormJetFormCustomizerStrings';
 import { ATTACHMENTS_FIELD } from '../engine/Attachments';
 import { isEmptyValue } from '../engine/ConditionEngine';
 import { format } from '../engine/EngineStrings';
+import { withTextElements } from '../engine/TextElement';
 import { ICurrentUser } from '../engine/UserValue';
 import {
   createDefaultConfig,
@@ -644,7 +645,8 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
           <div className={classes.panelScroll}>
             <DesignerPanel
               draft={activeDraft}
-              schema={loaded.schema}
+              // A szövegelemek a tervezőben mezőként választhatók ki és helyezhetők el.
+              schema={withTextElements(loaded.schema, activeDraft)}
               tab={designerTab}
               onTabChange={setDesignerTab}
               selectedField={selectedField}
@@ -710,7 +712,12 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
         <FormContext.Provider value={formContext}>
           {/* Amíg a húzd-és-ejtsd csomagrész töltődik, a sima előnézet látszik. */}
           <React.Suspense fallback={renderDesignLayout(draft, <FormRenderer {...rendererProps} />, undefined)}>
-            <DesignCanvas rendererProps={rendererProps} draft={draft} schema={loaded.schema} onChange={setDraft}>
+            <DesignCanvas
+              rendererProps={rendererProps}
+              draft={draft}
+              schema={withTextElements(loaded.schema, draft)}
+              onChange={setDraft}
+            >
               {(parts) => renderDesignLayout(draft, parts.preview, parts.palette)}
             </DesignCanvas>
           </React.Suspense>

@@ -5,7 +5,8 @@ export type FormMode = 'new' | 'edit' | 'display';
 
 export const FORM_MODES: FormMode[] = ['new', 'edit', 'display'];
 
-export const CONFIG_SCHEMA_VERSION: 1 = 1;
+// 1 → 2: szövegelemek (`texts`). A szerkezet csak bővült, az 1-es konfiguráció változtatás nélkül érvényes.
+export const CONFIG_SCHEMA_VERSION: 2 = 2;
 
 export type ConditionOperator = 'eq' | 'ne' | 'gt' | 'lt' | 'contains' | 'in' | 'empty' | 'notEmpty';
 
@@ -96,6 +97,8 @@ export interface ISectionStyle extends IBoxStyle {
 
 export interface IFieldStyle extends IBoxStyle {
   labelColor?: string;
+  /** A cella szövegének színe; a tervezőben szövegelemnél állítható. */
+  textColor?: string;
 }
 
 /** Módonkénti stílus: a `base` minden módban érvényes, a mód kulcsa csak az eltérést tartalmazza. */
@@ -173,8 +176,20 @@ export interface IFieldConfig {
   style?: IModeStyles<IFieldStyle>;
 }
 
+/**
+ * Szövegelem: a formon megjelenő, formázás nélküli szöveg, amely mögött nincs SharePoint mező.
+ * A szekciókban mezőként helyezhető el (egyszer); a láthatósága és a stílusa a `fields` azonos kulcsú
+ * bejegyzésében van.
+ */
+export interface ITextElement {
+  /** Megnevezés; a tervezőben ezzel azonosítható, a formon nem látszik. */
+  name: string;
+  /** A formon megjelenő szöveg; a sortörések megmaradnak. */
+  content?: string;
+}
+
 export interface IFormConfig {
-  schemaVersion: 1;
+  schemaVersion: 2;
   listId: string;
   contentTypeId: string;
   title?: string;
@@ -184,4 +199,6 @@ export interface IFormConfig {
   sections: ISectionConfig[];
   /** Kulcs: a mező InternalName-je. */
   fields: Record<string, IFieldConfig>;
+  /** Szövegelemek. Kulcs: az elem azonosítója (`text:` előtaggal), a szekciókban ezzel hivatkozható. */
+  texts?: Record<string, ITextElement>;
 }

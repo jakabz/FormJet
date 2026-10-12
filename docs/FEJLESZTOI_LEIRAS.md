@@ -157,13 +157,14 @@ A tartalomtípus mezői közül a rejtett és a számított megjelenítő (`Comp
 
 | Tulajdonság | Típus | Kötelező | Jelentés |
 | --- | --- | --- | --- |
-| `schemaVersion` | `1` | igen | Sémaverzió, a migráció alapja. |
+| `schemaVersion` | `2` | igen | Sémaverzió, a migráció alapja. Az `1`-es konfigurációt a `parseConfig` átalakítás nélkül elfogadja (a 2-es csak a `texts` résszel bővült), és a tervező mentésekor 2-esként íródik vissza. |
 | `listId` | string | igen | A cél lista GUID-ja. |
 | `contentTypeId` | string | igen | A lista tartalomtípusának azonosítója. |
 | `title` | string | nem | A form fejléce. |
 | `labelPosition` | `'top'` \| `'left'` | nem | Címkék helye. Alapértelmezés: `top`. A `left` még nincs megvalósítva a renderelőben. |
 | `sections` | `ISectionConfig[]` | igen | Szekciók megjelenési sorrendben. |
 | `fields` | `Record<InternalName, IFieldConfig>` | igen | Mezőnkénti beállítások. |
+| `texts` | `Record<azonosító, ITextElement>` | nem | Szövegelemek (lásd lent). |
 
 ### ISectionConfig
 
@@ -192,6 +193,27 @@ A tartalomtípus mezői közül a rejtett és a számított megjelenítő (`Comp
 
 Egy mező akkor látszik, ha a szekciója látszik, **és** a mező `visibleIn`, **és** `visibleWhen` feltétele is teljesül. Ami nincs egyetlen szekcióban sem, az nem jelenik meg.
 
+### Szövegelemek (ITextElement)
+
+A szövegelem a formon megjelenő, formázás nélküli szöveg, amely mögött nincs SharePoint mező.
+
+| Tulajdonság | Típus | Kötelező | Jelentés |
+| --- | --- | --- | --- |
+| `name` | string | igen | Megnevezés; csak a tervezőben látszik. |
+| `content` | string | nem | A formon megjelenő szöveg; a sortörések megmaradnak. |
+
+```json
+"texts": { "text:1": { "name": "Kitöltési útmutató", "content": "Az összeget forintban add meg." } },
+"sections": [{ "id": "s", "columns": 1, "fields": [{ "field": "text:1" }] }],
+"fields": { "text:1": { "visibleIn": ["new", "edit"], "style": { "base": { "background": "#fff4ce", "textColor": "#323130" } } } }
+```
+
+- Az azonosító `text:` előtagú (`text:<betűk, számok, _ , ->`); a kettőspont miatt nem ütközhet mező belső nevével. A tervező sorszámozva adja ki (`TextElement.addTextElement`).
+- A szövegelem **pszeudo-mező**, mint a mellékletek: a `TextElement.withTextElements` `FormJetText` típusú, csak olvasható mezőként teszi a sémába, ezért a szekciókban ugyanúgy helyezhető el és húzható, mint egy mező, és ugyanúgy csak egyszer szerepelhet. A `resolveForm` és az `unplacedFields` maga is elvégzi ezt a kiegészítést; a `FormHost` a tervező paneljének és a húzd-és-ejtsd felületnek adja át a kiegészített sémát.
+- A láthatóság (`visibleIn`, `visibleWhen`) és a stílus a `fields` azonos kulcsú bejegyzésében van; a többi `IFieldConfig` beállításnak szövegelemnél nincs hatása. A megjelenő szöveg az `IResolvedField.text`-be kerül, a `FieldRenderer` címke nélkül, `pre-wrap` szövegként írja ki (HTML-ként soha).
+- Mivel csak olvasható és nincs értéke, a mentésbe nem kerülhet be, feltétel nem hivatkozhat rá (a `DesignerPanel` a feltételszerkesztőnek a szövegelemek nélküli sémát adja), és kezdőértéke sincs.
+- Törlés: `TextElement.removeTextElement` (az elhelyezést, a `fields` bejegyzést és magát az elemet is eltávolítja). Ha egy elhelyezés nem létező szövegelemre mutat, az a „nem létező mezők” figyelmeztetésben jelenik meg.
+
 ### Stílus
 
 A form (`IFormConfig.style`), a szekció (`ISectionConfig.style`) és a mező (`IFieldConfig.style`) is kaphat stílust. Mindhárom szerkezete azonos:
@@ -214,6 +236,7 @@ A `base` minden módban érvényes; a `new` / `edit` / `display` kulcs csak az e
 | Form | `sectionHeader` | `underline` \| `bar` \| `plain` | Szekciófejléc: aláhúzott, színes sáv vagy egyszerű. |
 | Szekció | `headerColor` | hex szín | A szekció fejlécének színe; hiányában a form `accentColor` értéke. |
 | Mező | `labelColor` | hex szín | A mező címkéjének színe. |
+| Mező | `textColor` | hex szín | A cella szövegének színe. A tervező csak szövegelemnél kínálja fel (ott a címke színe helyett); a vezérlők saját szövegszínét nem írja át. |
 
 Háttér és keret – a formon, a szekción és a mezőn egyaránt megadható (`IBoxStyle`):
 
@@ -451,6 +474,7 @@ A felület angolul és magyarul érhető el; a nyelvet az SPFx a felhasználó S
 
 - **Visszafelé kompatibilis bővítés** (új opcionális mező): nem kell verzióemelés. A `LayoutResolver`-ben legyen alapértelmezés a hiányzó értékre.
 - **Törő változás** (átnevezés, szerkezetváltás): `schemaVersion` emelés, és a `parseConfig`-ban migráció a régi verzióról. A régi konfigurációk éles listákban vannak, mentés nélkül is működniük kell.
+- Verziók: **1** – kiinduló szerkezet; **2** – szövegelemek (`texts`). A 2-es új konfigurációrészt hozott, ezért kapott új verziót; az 1-es szerkezet változatlanul érvényes, átalakítás nincs. A 2-esként mentett konfigurációt a korábbi csomag (például a böngészőben még gyorsítótárazott régi változat) ismeretlen verzióként elutasítja, és az alapértelmezett elrendezést mutatja.
 
 ### Tervező funkció hozzáadása
 

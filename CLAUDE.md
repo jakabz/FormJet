@@ -55,6 +55,7 @@ src/extensions/formJet/
     ImageValue.ts            kép (Thumbnail) form-string (képobjektum JSON) értelmezése, előállítása, megjeleníthető cím
     LocationValue.ts         Location form-string (helyobjektum JSON) értelmezése, előállítása, cím formázása
     LookupValue.ts           Lookup / LookupMulti form-string (azonosítók) értelmezése és előállítása
+    TextElement.ts           szövegelemek (mező nélküli sima szöveg a formon): pszeudo-mező a sémában, felvétel, törlés, a `texts` ellenőrzése
     TaxonomyValue.ts         felügyelt metaadat form-string (`Címke|TermGuid;`) értelmezése és előállítása
     UrlValue.ts              URL mező form-string (`cím, leírás`) értelmezése és előállítása; biztonságos cím ellenőrzése
     UserValue.ts             User / UserMulti form-string (JSON tömb `Key`-jel) értelmezése és előállítása
@@ -128,6 +129,7 @@ A típusok forrása: `models/IFormConfig.ts`. Példa: `samples/config-example.js
 
 - Séma módosításakor emeld a `schemaVersion`-t, és bővítsd a `parseConfig`-ot migrációval a régi verzióról. A mentett konfigurációk éles listákban vannak, nem törhetnek el.
 - Új stílustulajdonság: típus az `IFormStyle` / `ISectionStyle` / `IFieldStyle`-ban + a `FormStyle.ts` megfelelő `*_STYLE_SPEC`-je + alkalmazás a `FormRenderer`-ben + vezérlő a `StylePanel`-ben + a fejlesztői leírás 6. fejezete. Opcionális mezőként nem kell sémaverziót emelni.
+- Szövegelemek (`texts`, `engine/TextElement.ts`): a formon megjelenő sima szöveg, amely mögött nincs SharePoint mező. `text:` előtagú azonosítóval pszeudo-mezőként kerül a sémába (`withTextElements`, `FormJetText` típus, csak olvasható), ezért mezőként helyezhető el, egyszer. A láthatósága és a stílusa a `fields` azonos kulcsú bejegyzésében van. Értéke nincs: a mentésbe nem kerülhet, feltétel nem hivatkozhat rá. A tartalom sima szöveg; HTML-ként megjeleníteni vagy formázhatóvá tenni egyeztetést igényel.
 - Új feltétel-operátor: `ConditionOperator` típus + `ConditionEngine.evalField` + felirat a `ConditionEditor` `operatorLabels` függvényében (és a loc fájlokban) + a JSON mód súgószövege (`ConditionHelp`) + teszt.
 
 ## SharePoint sajátosságok

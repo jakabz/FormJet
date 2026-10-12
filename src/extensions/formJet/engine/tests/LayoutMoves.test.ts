@@ -2,7 +2,7 @@ import { IFormConfig } from '../../models/IFormConfig';
 import { addFieldToSection, findFieldSection, moveFieldToSection, moveSection, reorderField } from '../LayoutMoves';
 
 const config: IFormConfig = {
-  schemaVersion: 1,
+  schemaVersion: 2,
   listId: '',
   contentTypeId: '',
   sections: [

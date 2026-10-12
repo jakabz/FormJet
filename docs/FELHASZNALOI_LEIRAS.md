@@ -170,6 +170,19 @@ Az **Elrendezés** fül tetején, a **Nem elhelyezett mezők** alatt azok a mez�
 
 Ami nincs egyetlen szekcióban sem, az nem jelenik meg az űrlapon. A **mellékletek** is így vehetők fel: a mentett elrendezésekben a nem elhelyezett mezők között találod.
 
+### Szöveg elhelyezése az űrlapon
+
+Az űrlapra olyan szöveg is tehető, amely mögött nincs SharePoint oszlop: például útmutató, figyelmeztetés vagy magyarázat. Az ilyen szövegelemből bármennyi felvehető.
+
+1. Az **Elrendezés** fülön írd be **Az új szöveg megnevezése** mezőbe, hogyan hívod (például „Kitöltési útmutató”), majd kattints a **Szöveg hozzáadása** gombra. A megnevezés csak a tervezőben látszik, az űrlapon nem.
+2. A szövegelem a nyitott szekció végére kerül (ha egyik sincs nyitva, az utolsóéra), és megnyílik a **Mező** fül.
+3. A **Tartalom** mezőbe írd be az űrlapon megjelenő szöveget. Sima szöveg, formázás nélkül; a sortörések megmaradnak.
+4. A **Látható ezekben a módokban** jelölőkkel add meg, hogy új elemnél, szerkesztéskor és megtekintéskor látszódjon-e; a **Látható, ha** feltétellel mezőértékhez is kötheted.
+
+A szövegelem ezután ugyanúgy viselkedik, mint egy mező: húzással áthelyezhető, a szekció kártyáján állítható a szélessége, és a **Stílus** fülön háttérszínt, keretet és betűszínt kaphat. A Mező és a Stílus fül mezőlistájában a megnevezésével szerepel.
+
+Egy szövegelem egyszer helyezhető el. Ha kiveszed a szekcióból, a nem elhelyezett mezők közé kerül; végleg a Mező fül **Szövegelem törlése** gombjával törölhető. A szövegelem csak megjelenik: a listába semmit nem ment, és feltételben nem lehet rá hivatkozni.
+
 ### A szekció beállításai
 
 Az Elrendezés fülön minden szekciónak van egy kártyája; a fejlécére kattintva nyílik ki (egyszerre egy van nyitva).
@@ -274,6 +287,7 @@ Ha egy mód stílusát szerkeszted, az előnézet módját is állítsd ugyanarr
 | Űrlap | Kiemelő szín (a cím és a szekciófejlécek színe), maximális szélesség, térköz (szellős / tömör), szekciófejléc típusa (aláhúzott / színes sáv / egyszerű) |
 | Szekció | Fejléc színe |
 | Mező | Címke színe |
+| Szövegelem | Betűszín (a címke színe helyett) |
 | Mindhárom | Háttér (egyszínű, lineáris vagy sugaras színátmenet), keretszín, keret vastagsága, lekerekítés |
 
 A színeket a színválasztóval vagy kóddal (`#0078d4`) adhatod meg. Színátmenetnél kezdő és záró színt választasz, lineárisnál az irányt is.

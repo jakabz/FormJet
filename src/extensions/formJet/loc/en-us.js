@@ -176,6 +176,13 @@ define([], function() {
     "StyleBorderColor": "Border color",
     "StyleHeaderColor": "Header color",
     "StyleLabelColor": "Label color",
+    "StyleTextColor": "Text color",
+    "TextElementAdd": "Add text",
+    "TextElementNewName": "Name of the new text",
+    "TextElementName": "Name",
+    "TextElementContent": "Content",
+    "TextElementHint": "Text element: shown only on the form, nothing is saved to the list. The name is visible only in the designer.",
+    "TextElementDelete": "Delete text element",
     "StyleMaxWidth": "Maximum width (px)",
     "StyleMaxWidthError": "Enter a number between {0} and {1}.",
     "StyleDensity": "Spacing",
@@ -264,7 +271,8 @@ define([], function() {
       "InvalidOption": "{0}: the allowed values are {1}.",
       "InvalidListId": "{0}: must be a list id (GUID).",
       "InvalidFieldName": "{0}: must be the internal name of a field.",
-      "InvalidGradientColors": "{0}: must contain exactly two hex colors."
+      "InvalidGradientColors": "{0}: must contain exactly two hex colors.",
+      "InvalidText": "{0}: the id of a text element must start with \"text:\", and the element must have a \"name\"."
     }
   }
 });

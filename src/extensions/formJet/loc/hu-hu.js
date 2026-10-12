@@ -176,6 +176,13 @@ define([], function() {
     "StyleBorderColor": "Keretszín",
     "StyleHeaderColor": "Fejléc színe",
     "StyleLabelColor": "Címke színe",
+    "StyleTextColor": "Betűszín",
+    "TextElementAdd": "Szöveg hozzáadása",
+    "TextElementNewName": "Az új szöveg megnevezése",
+    "TextElementName": "Megnevezés",
+    "TextElementContent": "Tartalom",
+    "TextElementHint": "Szövegelem: csak az űrlapon jelenik meg, a listába nem kerül semmi. A megnevezés csak a tervezőben látszik.",
+    "TextElementDelete": "Szövegelem törlése",
     "StyleMaxWidth": "Maximális szélesség (px)",
     "StyleMaxWidthError": "{0} és {1} közötti számot adj meg.",
     "StyleDensity": "Térköz",
@@ -264,7 +271,8 @@ define([], function() {
       "InvalidOption": "{0}: a megengedett értékek: {1}.",
       "InvalidListId": "{0}: listaazonosító (GUID) kell legyen.",
       "InvalidFieldName": "{0}: egy mező belső neve kell legyen.",
-      "InvalidGradientColors": "{0}: pontosan két hex színt kell tartalmaznia."
+      "InvalidGradientColors": "{0}: pontosan két hex színt kell tartalmaznia.",
+      "InvalidText": "{0}: a szövegelem azonosítójának „text:” előtaggal kell kezdődnie, és az elemnek kell „name” (megnevezés)."
     }
   }
 });

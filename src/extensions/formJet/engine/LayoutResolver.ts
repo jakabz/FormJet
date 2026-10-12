@@ -24,6 +24,7 @@ import { formatDateValue, parseDateValue, roundToTimeStep } from './DateFormat';
 import { engineStrings, format } from './EngineStrings';
 import { resolveNumberDefault } from './NumberFormat';
 import { parseTaxonomyValue, serializeTaxonomyValue } from './TaxonomyValue';
+import { parseTexts, withTextElements } from './TextElement';
 import { ICurrentUser, resolveUserDefault } from './UserValue';
 import { isRelatedComplete, parseRelated } from './RelatedList';
 import { parseFieldStyles, parseFormStyles, parseSectionStyles, resolveModeStyle } from './FormStyle';
@@ -42,6 +43,8 @@ export interface IResolvedField {
   label: string;
   description?: string;
   placeholder?: string;
+  /** Szövegelemnél a megjelenő szöveg. */
+  text?: string;
   /** Többértékű keresőmező megjelenítése. */
   lookupDisplay: LookupDisplay;
   /** A mellékletek megjelenítése. */
@@ -116,7 +119,8 @@ export function resolveForm(
   values: FormValues
 ): IResolvedForm {
   const schemaByName: Record<string, IFieldSchema> = {};
-  schema.forEach((field) => {
+  // A szövegelemek pszeudo-mezőként szerepelnek a sémában.
+  withTextElements(schema, config).forEach((field) => {
     schemaByName[field.InternalName] = field;
   });
 
@@ -167,6 +171,7 @@ export function resolveForm(
         label: fieldConfig.label || fieldSchema.Title,
         description: fieldConfig.description ?? fieldSchema.Description,
         placeholder: fieldConfig.placeholder,
+        text: config.texts?.[placement.field]?.content,
         lookupDisplay: fieldConfig.lookupDisplay ?? 'auto',
         attachmentsDisplay: fieldConfig.attachmentsDisplay ?? 'list',
         colSpan: Math.min(clampColumns(placement.colSpan), columns),
@@ -210,7 +215,7 @@ export function flattenFields(form: IResolvedForm): IResolvedField[] {
   return result;
 }
 
-/** A séma azon mezői, amelyek egyetlen szekcióban sem szerepelnek. */
+/** A séma azon mezői (és a konfiguráció azon szövegelemei), amelyek egyetlen szekcióban sem szerepelnek. */
 export function unplacedFields(schema: IFieldSchema[], config: IFormConfig): IFieldSchema[] {
   const placed: Record<string, boolean> = {};
   config.sections.forEach((section) => {
@@ -218,7 +223,7 @@ export function unplacedFields(schema: IFieldSchema[], config: IFormConfig): IFi
       placed[placement.field] = true;
     });
   });
-  return schema.filter((field) => !placed[field.InternalName]);
+  return withTextElements(schema, config).filter((field) => !placed[field.InternalName]);
 }
 
 /** Alapértelmezett elrendezés: minden mező egy szekcióban, egy oszlopban. */
@@ -440,7 +445,8 @@ export function parseConfig(raw: string): IParseConfigResult {
   }
 
   // Migráció: régebbi schemaVersion esetén itt kell az `input`-ot az aktuális szerkezetre alakítani.
-  if (input.schemaVersion !== CONFIG_SCHEMA_VERSION) {
+  // 1 → 2: csak a `texts` (szövegelemek) rész jött hozzá, az 1-es szerkezet átalakítás nélkül érvényes.
+  if (input.schemaVersion !== CONFIG_SCHEMA_VERSION && input.schemaVersion !== 1) {
     return { error: format(engineStrings().UnknownSchemaVersion, String(input.schemaVersion)) };
   }
 
@@ -478,6 +484,8 @@ export function parseConfig(raw: string): IParseConfigResult {
     if (input.labelPosition === 'top' || input.labelPosition === 'left') config.labelPosition = input.labelPosition;
     const style = parseFormStyles(input.style, 'style');
     if (style) config.style = style;
+    const texts = parseTexts(input.texts, 'texts');
+    if (texts) config.texts = texts;
     return { config };
   } catch (e) {
     return { error: e instanceof Error ? e.message : String(e) };

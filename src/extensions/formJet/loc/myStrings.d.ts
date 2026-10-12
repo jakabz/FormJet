@@ -180,6 +180,13 @@ declare interface IFormJetFormCustomizerStrings {
   StyleBorderColor: string;
   StyleHeaderColor: string;
   StyleLabelColor: string;
+  StyleTextColor: string;
+  TextElementAdd: string;
+  TextElementNewName: string;
+  TextElementName: string;
+  TextElementContent: string;
+  TextElementHint: string;
+  TextElementDelete: string;
   StyleMaxWidth: string;
   StyleMaxWidthError: string;
   StyleDensity: string;
@@ -272,6 +279,7 @@ declare interface IFormJetFormCustomizerStrings {
     InvalidListId: string;
     InvalidFieldName: string;
     InvalidGradientColors: string;
+    InvalidText: string;
   };
 }
 

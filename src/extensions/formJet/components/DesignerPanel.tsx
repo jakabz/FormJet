@@ -17,6 +17,7 @@ import * as strings from 'FormJetFormCustomizerStrings';
 import { ATTACHMENTS_FIELD } from '../engine/Attachments';
 import { format } from '../engine/EngineStrings';
 import { parseConfig, unplacedFields } from '../engine/LayoutResolver';
+import { addTextElement, isTextElement, removeTextElement } from '../engine/TextElement';
 import { IFieldSchema } from '../models/IFieldSchema';
 import {
   AttachmentsDisplay,
@@ -26,6 +27,7 @@ import {
   IFieldPlacement,
   IFormConfig,
   ISectionConfig,
+  ITextElement,
   LOOKUP_CHECKLIST_MAX,
   LookupDisplay
 } from '../models/IFormConfig';
@@ -60,6 +62,8 @@ const classes = mergeStyleSets({
   rowName: { flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'pointer' },
   modes: { display: 'flex', gap: 16, flexWrap: 'wrap' },
   hint: { fontSize: 12, color: '#605e5c' },
+  addText: { display: 'flex', alignItems: 'flex-end', gap: 8 },
+  addTextName: { flex: 1, minWidth: 0 },
   spanDropdown: { width: 64 }
 });
 
@@ -141,6 +145,7 @@ export const DesignerPanel: React.FC<IDesignerPanelProps> = (props) => {
   const [jsonError, setJsonError] = React.useState<string | undefined>();
   // Az Elrendezés fülön egyszerre egy szekciókártya van nyitva; alapból az első.
   const [openSection, setOpenSection] = React.useState<string | undefined>(draft.sections[0]?.id);
+  const [newTextName, setNewTextName] = React.useState<string>('');
 
   React.useEffect(() => {
     setJsonText(JSON.stringify(draft, undefined, 2));
@@ -177,6 +182,28 @@ export const DesignerPanel: React.FC<IDesignerPanelProps> = (props) => {
     const field: IFieldConfig = compact({ ...(draft.fields[name] ?? {}), ...patch });
     props.onChange({ ...draft, fields: { ...draft.fields, [name]: field } });
   };
+
+  const updateText = (id: string, patch: Partial<ITextElement>): void => {
+    const current: ITextElement = draft.texts?.[id] ?? { name: '' };
+    const text: ITextElement = { ...current, ...patch };
+    if (text.content === undefined) {
+      delete text.content;
+    }
+    props.onChange({ ...draft, texts: { ...(draft.texts ?? {}), [id]: text } });
+  };
+
+  /** Új szövegelem a megadott megnevezéssel, a nyitott (ennek hiányában az utolsó) szekció végére. */
+  const addText = (): void => {
+    const added = addTextElement(draft, newTextName.trim(), openSection);
+    props.onChange(added.config);
+    setNewTextName('');
+    // A tartalom a Mező fülön adható meg.
+    props.onSelectField(added.id);
+    props.onTabChange('field');
+  };
+
+  // A feltételek és a kapcsolódó elemek csak valódi mezőre hivatkozhatnak; a szövegelemnek nincs értéke.
+  const realFields: IFieldSchema[] = schema.filter((f) => !isTextElement(f));
 
   const unplaced: IFieldSchema[] = unplacedFields(schema, draft);
   const unplacedOptions: IDropdownOption[] = unplaced.map((f) => ({
@@ -246,14 +273,14 @@ export const DesignerPanel: React.FC<IDesignerPanelProps> = (props) => {
         onChange={(visibleIn) => updateSection(index, { visibleIn })}
       />
       <ConditionEditor
-        schema={schema}
+        schema={realFields}
         label={strings.VisibleWhen}
         value={section.visibleWhen}
         onChange={(visibleWhen) => updateSection(index, { visibleWhen })}
       />
       <RelatedListEditor
         value={section.related}
-        schema={schema}
+        schema={realFields}
         onChange={(related) => updateSection(index, { related })}
       />
 
@@ -332,7 +359,46 @@ export const DesignerPanel: React.FC<IDesignerPanelProps> = (props) => {
           selectedKey={selectedField ?? null}
           onChange={(_, option) => props.onSelectField(option ? String(option.key) : undefined)}
         />
-        {selectedField && fieldSchema && (
+        {selectedField && fieldSchema && isTextElement(fieldSchema) && (
+          <>
+            <div className={classes.hint}>{strings.TextElementHint}</div>
+            <TextField
+              label={strings.TextElementName}
+              value={draft.texts?.[selectedField]?.name ?? ''}
+              onChange={(_, v) => updateText(selectedField, { name: v ?? '' })}
+            />
+            <TextField
+              label={strings.TextElementContent}
+              multiline
+              autoAdjustHeight
+              rows={4}
+              value={draft.texts?.[selectedField]?.content ?? ''}
+              onChange={(_, v) => updateText(selectedField, { content: v || undefined })}
+            />
+            <ModeCheckboxes
+              label={strings.VisibleInModes}
+              value={config.visibleIn}
+              missingMeansAll
+              onChange={(visibleIn) => updateField(selectedField, { visibleIn })}
+            />
+            <ConditionEditor
+              key={`${selectedField}:VisibleWhen`}
+              schema={realFields}
+              label={strings.VisibleWhen}
+              value={config.visibleWhen}
+              onChange={(visibleWhen) => updateField(selectedField, { visibleWhen })}
+            />
+            <DefaultButton
+              iconProps={{ iconName: 'Delete' }}
+              text={strings.TextElementDelete}
+              onClick={() => {
+                props.onChange(removeTextElement(draft, selectedField));
+                props.onSelectField(undefined);
+              }}
+            />
+          </>
+        )}
+        {selectedField && fieldSchema && !isTextElement(fieldSchema) && (
           <>
             <div className={classes.hint}>
               {format(strings.FieldType, fieldSchema.TypeAsString)}
@@ -414,21 +480,21 @@ export const DesignerPanel: React.FC<IDesignerPanelProps> = (props) => {
             </div>
             <ConditionEditor
               key={`${selectedField}:VisibleWhen`}
-              schema={schema}
+              schema={realFields}
               label={strings.VisibleWhen}
               value={config.visibleWhen}
               onChange={(visibleWhen) => updateField(selectedField, { visibleWhen })}
             />
             <ConditionEditor
               key={`${selectedField}:ReadOnlyWhen`}
-              schema={schema}
+              schema={realFields}
               label={strings.ReadOnlyWhen}
               value={config.readOnlyWhen}
               onChange={(readOnlyWhen) => updateField(selectedField, { readOnlyWhen })}
             />
             <ConditionEditor
               key={`${selectedField}:RequiredWhen`}
-              schema={schema}
+              schema={realFields}
               label={strings.RequiredWhen}
               value={config.requiredWhen}
               onChange={(requiredWhen) => updateField(selectedField, { requiredWhen })}
@@ -472,6 +538,20 @@ export const DesignerPanel: React.FC<IDesignerPanelProps> = (props) => {
                   : format(strings.UnplacedFieldsList, unplaced.map((f) => f.Title).join(', '))}
               </div>
             )}
+          </div>
+          <div className={classes.addText}>
+            <TextField
+              className={classes.addTextName}
+              label={strings.TextElementNewName}
+              value={newTextName}
+              onChange={(_, v) => setNewTextName(v ?? '')}
+            />
+            <DefaultButton
+              iconProps={{ iconName: 'InsertTextBox' }}
+              text={strings.TextElementAdd}
+              disabled={newTextName.trim() === ''}
+              onClick={addText}
+            />
           </div>
           {draft.sections.map(renderSection)}
           <DefaultButton iconProps={{ iconName: 'Add' }} text={strings.NewSection} onClick={addSection} />

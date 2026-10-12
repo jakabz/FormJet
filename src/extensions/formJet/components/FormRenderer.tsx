@@ -100,6 +100,7 @@ function cellClass(colSpan: number, style: IFieldStyle): string {
       selectors: { [NARROW_SCREEN]: { gridColumn: '1 / -1' } }
     },
     boxStyle(style, 8),
+    style.textColor ? { color: style.textColor } : undefined,
     style.labelColor ? { selectors: { '& .ms-Label': { color: style.labelColor } } } : undefined
   );
 }
