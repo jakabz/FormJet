@@ -67,6 +67,64 @@ export function serializeUserValue(entries: IUserEntry[]): string {
   return JSON.stringify(entries.map((entry) => ({ Key: entry.key, DisplayText: entry.text })));
 }
 
+/** A bejelentkezett felhasználó adatai a `[me]` kezdőérték feloldásához. */
+export interface ICurrentUser {
+  /** Bejelentkezési név (UPN) vagy teljes claims név. */
+  loginName: string;
+  displayName: string;
+  email?: string;
+}
+
+const ME_TOKEN: string = '[me]';
+/** A SharePoint Online felhasználói claims előtagja; a névkereső találatainak kulcsa is ilyen alakú. */
+const CLAIMS_PREFIX: string = 'i:0#.f|membership|';
+
+function currentUserEntry(user: ICurrentUser): IUserEntry {
+  const login: string = user.loginName.trim();
+  return {
+    key: login.indexOf('|') !== -1 ? login : CLAIMS_PREFIX + login,
+    text: user.displayName || login,
+    secondaryText: user.email || undefined
+  };
+}
+
+/**
+ * Személy mező kezdőértéke form-stringként. A forrás lehet kész form-string (JSON tömb), vagy pontosvesszővel
+ * elválasztott lista, amelynek elemei: `[me]` (a bejelentkezett felhasználó), e-mail-cím, bejelentkezési név
+ * vagy csoportnév. Az e-mail-címet és a nevet a SharePoint mentéskor oldja fel. Egyértékű mezőnél csak az első
+ * elem számít. Üres szöveg, ha nincs használható elem.
+ */
+export function resolveUserDefault(raw: string, multiple: boolean, currentUser?: ICurrentUser): string {
+  let entries: IUserEntry[] = [];
+  let isJson: boolean = false;
+  try {
+    isJson = Array.isArray(JSON.parse(raw));
+  } catch {
+    isJson = false;
+  }
+  if (isJson) {
+    entries = parseUserValue(raw);
+  } else {
+    raw
+      .split(';')
+      .map((part) => part.trim())
+      .filter((part) => part !== '')
+      .forEach((part) => {
+        let entry: IUserEntry | undefined;
+        if (part.toLowerCase() === ME_TOKEN) {
+          entry = currentUser && currentUser.loginName.trim() !== '' ? currentUserEntry(currentUser) : undefined;
+        } else {
+          entry = { key: part, text: part };
+        }
+        const key: string | undefined = entry?.key.toLowerCase();
+        if (entry && !entries.some((item) => item.key.toLowerCase() === key)) {
+          entries.push(entry);
+        }
+      });
+  }
+  return serializeUserValue(multiple ? entries : entries.slice(0, 1));
+}
+
 /** A kiválasztottak neve szövegként (csak olvasható megjelenítéshez). */
 export function formatUserValue(value: string | undefined): string {
   return parseUserValue(value)

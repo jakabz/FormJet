@@ -14,6 +14,7 @@ import * as strings from 'FormJetFormCustomizerStrings';
 import { ATTACHMENTS_FIELD } from '../engine/Attachments';
 import { isEmptyValue } from '../engine/ConditionEngine';
 import { format } from '../engine/EngineStrings';
+import { ICurrentUser } from '../engine/UserValue';
 import {
   createDefaultConfig,
   flattenFields,
@@ -116,6 +117,8 @@ export interface IFormHostProps {
   cultureName: string;
   /** A felület nyelve. */
   uiCultureName: string;
+  /** A bejelentkezett felhasználó; a személy mezők `[me]` kezdőértékéhez. */
+  currentUser: ICurrentUser;
   onSaved: () => void;
   onClosed: () => void;
 }
@@ -138,7 +141,7 @@ function errorText(error: unknown, fallback: string): string {
 }
 
 export const FormHost: React.FC<IFormHostProps> = (props) => {
-  const { mode, listId, itemId } = props;
+  const { mode, listId, itemId, currentUser } = props;
 
   const [loaded, setLoaded] = React.useState<ILoaded | undefined>();
   const [loadError, setLoadError] = React.useState<string | undefined>();
@@ -246,7 +249,7 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
       setAttachmentRetryId(undefined);
       setPendingImages({});
 
-      setValues(item ? original : getInitialValues(schema, config, props.cultureName));
+      setValues(item ? original : getInitialValues(schema, config, props.cultureName, undefined, currentUser));
       setLoaded({
         schema,
         contentTypeId: resolvedContentTypeId,
@@ -260,7 +263,7 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
     } catch (e) {
       setLoadError(errorText(e, TEXT.loadFailed));
     }
-  }, [mode, listId, itemId, props.contentTypeId, props.cultureName]);
+  }, [mode, listId, itemId, props.contentTypeId, props.cultureName, currentUser.loginName, currentUser.displayName, currentUser.email]);
 
   React.useEffect(() => {
     load().catch(() => undefined);

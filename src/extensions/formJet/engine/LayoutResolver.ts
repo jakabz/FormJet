@@ -24,6 +24,7 @@ import { formatDateValue, parseDateValue, roundToTimeStep } from './DateFormat';
 import { engineStrings, format } from './EngineStrings';
 import { resolveNumberDefault } from './NumberFormat';
 import { parseTaxonomyValue, serializeTaxonomyValue } from './TaxonomyValue';
+import { ICurrentUser, resolveUserDefault } from './UserValue';
 import { isRelatedComplete, parseRelated } from './RelatedList';
 import { parseFieldStyles, parseFormStyles, parseSectionStyles, resolveModeStyle } from './FormStyle';
 
@@ -262,13 +263,15 @@ export function resolveDateDefault(raw: string, culture: string, dateOnly: boole
 
 /**
  * Kezdőértékek New módban: a konfig defaultValue-ja, ennek hiányában a séma DefaultValue-ja
- * (egyszerű típusoknál és dátumnál). A dátum a web kultúrája szerinti form-stringgé alakul.
+ * (egyszerű típusoknál és dátumnál). A dátum a web kultúrája szerinti form-stringgé alakul;
+ * személy mezőnél a `[me]` a bejelentkezett felhasználó (`currentUser`).
  */
 export function getInitialValues(
   schema: IFieldSchema[],
   config: IFormConfig,
   culture: string = 'en-US',
-  now: Date = new Date()
+  now: Date = new Date(),
+  currentUser?: ICurrentUser
 ): FormValues {
   const values: FormValues = {};
   schema.forEach((field) => {
@@ -277,6 +280,11 @@ export function getInitialValues(
       const raw: string | undefined = configured ?? field.DefaultValue;
       const value: string | undefined = raw ? resolveDateDefault(raw, culture, field.DateOnly !== false, now) : undefined;
       if (value !== undefined) {
+        values[field.InternalName] = value;
+      }
+    } else if (configured !== undefined && (field.TypeAsString === 'User' || field.TypeAsString === 'UserMulti')) {
+      const value: string = resolveUserDefault(configured, field.TypeAsString === 'UserMulti', currentUser);
+      if (value !== '') {
         values[field.InternalName] = value;
       }
     } else if (configured !== undefined) {

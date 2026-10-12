@@ -250,6 +250,22 @@ describe('LayoutResolver – kezdőértékek', () => {
     expect(resolveDateDefault('2026-12-24T12:00:00Z', 'hu-HU', true, now)).toBe('2026. 12. 24.');
   });
 
+  it('személy: a [me] a bejelentkezett felhasználó; nélküle a mező üres marad', () => {
+    const schema = [field('P', 'User'), field('PM', 'UserMulti')];
+    const config = parseConfig(
+      configJson({ fields: { P: { defaultValue: '[me]' }, PM: { defaultValue: '[me];bela@contoso.com' } } })
+    ).config as IFormConfig;
+    const me = { loginName: 'anna@contoso.com', displayName: 'Kiss Anna' };
+    const meEntry = { Key: 'i:0#.f|membership|anna@contoso.com', DisplayText: 'Kiss Anna' };
+    expect(getInitialValues(schema, config, 'hu-HU', now, me)).toEqual({
+      P: JSON.stringify([meEntry]),
+      PM: JSON.stringify([meEntry, { Key: 'bela@contoso.com', DisplayText: 'bela@contoso.com' }])
+    });
+    expect(getInitialValues(schema, config, 'hu-HU', now)).toEqual({
+      PM: JSON.stringify([{ Key: 'bela@contoso.com', DisplayText: 'bela@contoso.com' }])
+    });
+  });
+
   it('felügyelt metaadat: a belső sorszámos alapértékből form-string lesz', () => {
     const schema = [
       field('One', 'TaxonomyFieldType', { TermSetId: termA, DefaultValue: `3;#Budapest|${termA}` }),

@@ -156,7 +156,7 @@ define([], function() {
     "FieldLabel": "Label",
     "PlaceholderText": "Placeholder text",
     "DefaultValue": "Default value for new items",
-    "DefaultValueHint": "For multiple choices: ;#A;#B;#, for yes/no fields: 1 or 0, for dates: [today] or a date in the site's format; otherwise the value itself.",
+    "DefaultValueHint": "For multiple choices: ;#A;#B;#, for yes/no fields: 1 or 0, for dates: [today] or a date in the site's format, for person fields: [me] (the signed-in user) or an email address, separated by semicolons for multiple people; otherwise the value itself.",
     "LookupDisplay": "Display of the choices",
     "LookupDisplayAuto": "Automatic (checklist up to {0} items, dropdown above)",
     "LookupDisplayChecklist": "Checklist, always open",

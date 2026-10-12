@@ -35,6 +35,7 @@ export default class FormJetFormCustomizer extends BaseFormCustomizer<IFormJetFo
   public render(): void {
     const list = this.context.list;
     const cultureInfo = this.context.pageContext.cultureInfo;
+    const user = this.context.pageContext.user;
     const props: IFormHostProps = {
       mode: toFormMode(this.displayMode),
       listId: list.guid.toString(),
@@ -46,6 +47,7 @@ export default class FormJetFormCustomizer extends BaseFormCustomizer<IFormJetFo
       contentTypeId: this.context.contentType?.id,
       cultureName: cultureInfo.currentCultureName,
       uiCultureName: cultureInfo.currentUICultureName,
+      currentUser: { loginName: user.loginName, displayName: user.displayName, email: user.email },
       onSaved: this._onSaved,
       onClosed: this._onClosed
     };

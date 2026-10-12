@@ -121,6 +121,7 @@ A generált `config/serve.json` Form Customizer konfigurációját állítsd a t
    - `ItemService.load` – Edit/Display módban az elem értékei (`FieldValuesForEdit`, `FieldValuesAsText`, `Modified`).
 4. New módban a kezdőértékek: a konfig `defaultValue`-ja, ennek hiányában egyszerű típusoknál a séma `DefaultValue`-ja.
    Dátum mezőnél a `[today]` a mai napot jelenti (dátum + idő mezőnél a mostani időpontot, az időválasztó 5 perces lépésközére kerekítve), a SharePoint által ISO alakban tárolt rögzített dátum pedig a web kultúrája szerinti form-stringgé alakul (`resolveDateDefault`); a számított alapérték (pl. `=Today+7`) nincs kezelve.
+   Személy mezőnél (`User`, `UserMulti`) a konfig `defaultValue`-ját a `UserValue.resolveUserDefault` alakítja form-stringgé: kész JSON tömb, vagy pontosvesszővel elválasztott lista, amelynek elemei `[me]` (a bejelentkezett felhasználó, a `pageContext.user`-ből, `i:0#.f|membership|<loginName>` kulccsal), e-mail-cím, bejelentkezési név vagy csoportnév. Az e-mail-cím és a név változatlanul kerül a `Key`-be, a SharePoint mentéskor oldja fel. Egyértékű mezőnél csak az első elem számít.
 5. Minden értékváltozáskor a `resolveForm` újraszámolja a feltételeket. Ez olcsó művelet; ne tegyél bele aszinkron hívást.
 
 ### Mentés (`FormHost.save`)
@@ -185,7 +186,7 @@ A tartalomtípus mezői közül a rejtett és a számított megjelenítő (`Comp
 | `readOnlyIn` | `FormMode[]` | egyik sem | Csak olvasható módonként. Display módban minden csak olvasható. |
 | `requiredIn` | `FormMode[]` | egyik sem | Kötelezőség módonként. **Csak szigorít.** |
 | `visibleWhen`, `readOnlyWhen`, `requiredWhen` | `Condition` | – | Feltételes változatok. |
-| `defaultValue` | string | – | Kezdőérték New módban, form-string formátumban. Dátum mezőnél `[today]`, ISO dátum vagy a web formátuma szerinti dátum is megadható. |
+| `defaultValue` | string | – | Kezdőérték New módban, form-string formátumban. Dátum mezőnél `[today]`, ISO dátum vagy a web formátuma szerinti dátum is megadható. Személy mezőnél `[me]`, e-mail-cím vagy ezek pontosvesszővel elválasztott listája is. |
 | `attachmentsDisplay` | `'list'` \| `'compact'` | `list` | A mellékletek megjelenítése: soronként egy fájl, vagy tömören, egymás mellett. Csak az `Attachments` mezőnél. |
 | `lookupDisplay` | `'auto'` \| `'checklist'` \| `'dropdown'` | `auto` | Többértékű keresőmező megjelenítése: mindig nyitott jelölőnégyzetes lista vagy lenyíló lista. `auto`: legfeljebb 8 választható elemnél jelölőnégyzetes lista, efelett lenyíló. |
 

@@ -217,6 +217,9 @@ Egyes mezőtípusoknál további beállítás is megjelenik:
 | Igen / Nem | `1` (igen) vagy `0` (nem) | `1` |
 | Több választás | Az értékek `;#` jelek között | `;#A;#B;#` |
 | Dátum | `[today]` a mai naphoz, vagy egy dátum a webhely formátumában | `[today]` |
+| Személy | `[me]` az űrlapot éppen kitöltő felhasználóhoz, vagy egy e-mail-cím; több személyt fogadó mezőnél pontosvesszővel elválasztva több is megadható | `[me]` vagy `anna@contoso.com; [me]` |
+
+Személy mezőnél a beírt e-mail-címet a SharePoint a mentéskor keresi meg. Ha a cím nem létező felhasználóé, a kitöltő a mentéskor hibaüzenetet kap ennél a mezőnél, ezért a beállítás után érdemes egy próbaelemmel ellenőrizni.
 
 ### A kötelezőségről
 

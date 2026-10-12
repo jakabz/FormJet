@@ -156,7 +156,7 @@ define([], function() {
     "FieldLabel": "Címke",
     "PlaceholderText": "Helykitöltő szöveg",
     "DefaultValue": "Kezdőérték új elemnél",
-    "DefaultValueHint": "Több választásnál: ;#A;#B;#, igen/nem mezőnél: 1 vagy 0, dátumnál: [today] vagy a webhely formátuma szerinti dátum; egyébként maga az érték.",
+    "DefaultValueHint": "Több választásnál: ;#A;#B;#, igen/nem mezőnél: 1 vagy 0, dátumnál: [today] vagy a webhely formátuma szerinti dátum, személy mezőnél: [me] (a bejelentkezett felhasználó) vagy e-mail-cím, több személynél pontosvesszővel elválasztva; egyébként maga az érték.",
     "LookupDisplay": "A választható elemek megjelenítése",
     "LookupDisplayAuto": "Automatikus ({0} elemig jelölőnégyzetes lista, efelett lenyíló)",
     "LookupDisplayChecklist": "Jelölőnégyzetes lista, mindig nyitva",
