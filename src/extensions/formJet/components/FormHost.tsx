@@ -69,6 +69,21 @@ const PREVIEW_OPTIONS: IDropdownOption[] = [
 
 const DEFAULT_FORM_WIDTH: number = 960;
 const DESIGNER_MIN_HEIGHT: number = 480;
+const DESIGNER_PANEL_WIDTH: number = 400;
+/** Ennél keskenyebb ablakban a tervező panel nem rögzített, hanem a form alá kerül. */
+const DESIGNER_NARROW: string = '@media (max-width: 899px)';
+const DESIGNER_PANEL_TOP_VAR: string = '--formjet-panel-top';
+
+/** A legközelebbi görgethető szülő felső széle az ablakban (a SharePoint fejlécének alja); 0, ha az ablak görög. */
+function getScrollAreaTop(element: HTMLElement): number {
+  for (let parent: HTMLElement | null = element.parentElement; parent; parent = parent.parentElement) {
+    const overflowY: string = window.getComputedStyle(parent).overflowY;
+    if ((overflowY === 'auto' || overflowY === 'scroll') && parent !== document.body && parent !== document.documentElement) {
+      return Math.max(0, Math.round(parent.getBoundingClientRect().top));
+    }
+  }
+  return 0;
+}
 
 const classes = mergeStyleSets({
   root: { padding: '16px 24px 24px', boxSizing: 'border-box' },
@@ -76,17 +91,38 @@ const classes = mergeStyleSets({
   header: { display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', marginBottom: 16 },
   title: { flex: 1, margin: 0, fontSize: 24, fontWeight: 600 },
   messages: { display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 },
-  // Tervező mód: a sor (és így az oldal) magasságát az előnézet adja. A tervező panel tartalma
-  // abszolút pozícionált, ezért nem növeli a sort, hanem a form magasságához igazodva görgethető.
-  designLayout: { display: 'flex', gap: 24, alignItems: 'stretch', flexWrap: 'wrap' },
-  preview: { flex: '1 1 480px', minWidth: 0 },
+  // Tervező mód: az előnézet az oldallal együtt görög, a tervező panel az ablak jobb széléhez rögzített,
+  // teljes magasságú, és a saját tartalmát görgeti. Az előnézet a panel szélességével beljebb húzódik.
+  designLayout: {
+    paddingRight: DESIGNER_PANEL_WIDTH,
+    selectors: { [DESIGNER_NARROW]: { paddingRight: 0 } }
+  },
+  preview: { minWidth: 0 },
   panel: {
-    flex: '0 1 400px',
-    minWidth: 300,
-    // Rövid formnál (vagy keskeny képernyőn, a form alá tördelve) is maradjon használható magasság.
-    minHeight: DESIGNER_MIN_HEIGHT,
-    position: 'relative',
-    borderLeft: '1px solid #edebe9'
+    position: 'fixed',
+    // A SharePoint fejléce alatt kezdődik; a változót a FormHost állítja be a görgetett terület helyéből.
+    top: `var(${DESIGNER_PANEL_TOP_VAR}, 0px)`,
+    right: 0,
+    bottom: 0,
+    width: DESIGNER_PANEL_WIDTH,
+    zIndex: 10,
+    boxSizing: 'border-box',
+    background: '#ffffff',
+    borderLeft: '1px solid #edebe9',
+    selectors: {
+      // Keskeny képernyőn nem fér el az előnézet mellett: a form alá kerül, saját görgetéssel.
+      [DESIGNER_NARROW]: {
+        position: 'relative',
+        top: 'auto',
+        width: 'auto',
+        height: '70vh',
+        minHeight: DESIGNER_MIN_HEIGHT,
+        marginTop: 24,
+        zIndex: 'auto',
+        borderLeft: 'none',
+        borderTop: '1px solid #edebe9'
+      }
+    }
   },
   panelInner: {
     position: 'absolute',
@@ -96,7 +132,8 @@ const classes = mergeStyleSets({
     left: 0,
     display: 'flex',
     flexDirection: 'column',
-    paddingLeft: 24
+    padding: '16px 16px 16px 24px',
+    selectors: { [DESIGNER_NARROW]: { padding: '16px 0 0' } }
   },
   panelScroll: { flex: 1, minHeight: 0, overflowY: 'auto', paddingRight: 8 },
   panelActions: { display: 'flex', gap: 8, paddingTop: 12, borderTop: '1px solid #edebe9' },
@@ -174,6 +211,23 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
   const [designerTab, setDesignerTab] = React.useState<DesignerTab>('layout');
   const [selectedField, setSelectedField] = React.useState<string | undefined>();
   const [designError, setDesignError] = React.useState<string | undefined>();
+  // A rögzített tervező panel a görgetett terület tetejénél kezdődik, hogy ne takarja a SharePoint fejlécét.
+  const [panelElement, setPanelElement] = React.useState<HTMLDivElement | null>(null);
+  const [panelTop, setPanelTop] = React.useState<number>(0);
+  React.useEffect(() => {
+    if (!panelElement) {
+      return undefined;
+    }
+    const measure = (): void => setPanelTop(getScrollAreaTop(panelElement));
+    measure();
+    window.addEventListener('resize', measure);
+    // A fejléc magassága görgetéskor is változhat (összecsukódó fejléc); a scroll esemény nem buborékol, ezért capture.
+    window.addEventListener('scroll', measure, true);
+    return () => {
+      window.removeEventListener('resize', measure);
+      window.removeEventListener('scroll', measure, true);
+    };
+  }, [panelElement]);
 
   const load = React.useCallback(async (): Promise<void> => {
     setLoaded(undefined);
@@ -581,7 +635,11 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
         />
         {preview}
       </div>
-      <div className={classes.panel}>
+      <div
+        className={classes.panel}
+        ref={setPanelElement}
+        style={{ [DESIGNER_PANEL_TOP_VAR]: `${panelTop}px` } as React.CSSProperties}
+      >
         <div className={classes.panelInner}>
           <div className={classes.panelScroll}>
             <DesignerPanel

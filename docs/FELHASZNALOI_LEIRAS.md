@@ -125,7 +125,7 @@ Ha szerkesztéskor semmin nem változtattál, a **Mentés** egyszerűen bezárja
 Az űrlap jobb felső sarkában lévő **Tervező** kapcsolót csak a webhely adminisztrátorai látják. Bekapcsolva az űrlap két részre oszlik:
 
 - **Balra az előnézet:** pontosan azt mutatja, amit a felhasználók látni fognak. A rejtett szekciók és mezők halványan látszanak, hogy szerkeszteni tudd őket.
-- **Jobbra a tervező panel** négy füllel: Elrendezés, Mező, Stílus, JSON.
+- **Jobbra a tervező panel** négy füllel: Elrendezés, Mező, Stílus, JSON. A panel az ablak jobb széléhez rögzített és teljes magasságú: az oldal görgetésekor a helyén marad, a hosszabb tartalmát a saját görgetősávjával éred el. Keskeny ablakban az előnézet alá kerül.
 
 Az előnézet fölötti **Előnézet módja** választóval megnézheted, hogyan fest az űrlap új elemnél, szerkesztéskor és megtekintéskor. Az előnézet mezőibe írhatsz is, így a feltételek hatását azonnal kipróbálhatod.
 
