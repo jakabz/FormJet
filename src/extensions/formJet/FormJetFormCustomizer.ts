@@ -36,6 +36,8 @@ export default class FormJetFormCustomizer extends BaseFormCustomizer<IFormJetFo
     const list = this.context.list;
     const cultureInfo = this.context.pageContext.cultureInfo;
     const user = this.context.pageContext.user;
+    // A felhasználó webhelyen belüli azonosítóját csak a régi lapkontextus adja meg.
+    const legacyUserId: unknown = (this.context.pageContext.legacyPageContext as { userId?: unknown } | undefined)?.userId;
     const props: IFormHostProps = {
       mode: toFormMode(this.displayMode),
       listId: list.guid.toString(),
@@ -51,7 +53,8 @@ export default class FormJetFormCustomizer extends BaseFormCustomizer<IFormJetFo
         loginName: user.loginName,
         displayName: user.displayName,
         email: user.email,
-        isGuest: user.isExternalGuestUser
+        isGuest: user.isExternalGuestUser,
+        id: typeof legacyUserId === 'number' ? legacyUserId : undefined
       },
       onSaved: this._onSaved,
       onClosed: this._onClosed

@@ -189,7 +189,7 @@ Az Elrendezés fülön minden szekciónak van egy kártyája; a fejlécére katt
 
 | Beállítás | Jelentés |
 | --- | --- |
-| Cím, Leírás | A szekció fejléce és az alatta megjelenő rövid szöveg. |
+| Cím, Leírás | A szekció fejléce és az alatta megjelenő rövid szöveg. A mellettük lévő elágazás ikonú gombbal feltételtől függő érték is megadható, ugyanúgy, mint a mező címkéjénél (lásd [6. fejezet](#feltételtől-függő-címke-leírás-helykitöltő-és-kezdőérték)); üres értékű szabállyal a cím és a leírás el is tüntethető. |
 | Oszlopok száma | 1–4. Ennyi mező fér egymás mellé; keskeny képernyőn a mezők egymás alá kerülnek. |
 | Becsukható, Alapból csukva | A felhasználó becsukhatja-e a szekciót, és csukva nyíljon-e meg. |
 | Látható ezekben a módokban | Új elem / Szerkesztés / Megtekintés. |
@@ -290,6 +290,7 @@ A feltétel sorában a mezők listájának végén olyan elemek is választható
 | Űrlap módja: új elem | Az űrlap új elem felvételére nyílt meg. |
 | Űrlap módja: szerkesztés | Az űrlap meglévő elem szerkesztésére nyílt meg. |
 | Űrlap módja: megtekintés | Az űrlap megtekintésre nyílt meg. |
+| A felhasználó az elem létrehozója | Az űrlapot megnyitó felhasználó hozta létre az elemet. Új elemnél mindig Igen. |
 | Csoporttag: *csoport neve* | Az űrlapot megnyitó felhasználó tagja a webhely adott SharePoint csoportjának. |
 
 Ezeknek több feltétel összefűzésénél van igazán értelme. **Példa:** a „Jóváhagyó megjegyzése” mező szerkesztéskor csak a Jóváhagyók csoport tagjainak legyen írható. A mező *Csak olvasható, ha* beállításánál vedd fel, „Minden feltétel teljesül” mellett: `Űrlap módja: szerkesztés` – `egyenlő` – `Igen`, és `Csoporttag: Jóváhagyók` – `egyenlő` – `Nem`.

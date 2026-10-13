@@ -172,6 +172,7 @@ A tartalomtípus mezői közül a rejtett és a számított megjelenítő (`Comp
 | --- | --- | --- | --- |
 | `id` | string | – | Egyedi azonosító a konfiguráción belül. |
 | `title`, `description` | string | – | Fejléc és leírás. |
+| `conditional` | `{ title?, description? }`, mindegyik `IConditionalValue[]` | – | A cím és a leírás feltételes értékei (lásd „Feltételes értékek”). |
 | `columns` | 1–4 | – | Rácsoszlopok száma. |
 | `collapsible`, `collapsed` | boolean | false | Becsukható-e, és alapból csukva van-e. |
 | `visibleIn` | `FormMode[]` | mindhárom | Mely módokban látszik. |
@@ -218,6 +219,7 @@ A mező címkéje, leírása, helykitöltő szövege és kezdőértéke feltéte
 - A **kezdőérték** szabályai New módban, a megnyitáskor értékelődnek ki egyszer (`getInitialValues`): az alap kezdőértékeken, a form módján és a csoporttagságon. A kiválasztott érték ugyanazon az átalakításon megy át, mint a `defaultValue` (`[today]`, `[me]`, …); az üres érték a kezdőértéket törli.
 - Opcionális bővítés, sémaverzió-emelés nem kellett. A `parseConfig` ellenőrzi a szerkezetet és a feltételeket (`parseConditional`); az ismeretlen kulcsok kimaradnak.
 - A tervezőben a Mező fül négy szövegmezője melletti gomb (`ConditionalValueEditor.tsx`) felugró ablakban szerkeszti a szabályokat; a gombon jelvény mutatja az érvényes szabályok számát. Szövegelemnél nincs ilyen beállítás.
+- **Szekció:** ugyanez a szerkezet az `ISectionConfig.conditional`-ban a `title` és a `description` tulajdonságra (`SECTION_CONDITIONAL_PROPERTIES`), a szekció kártyáján ugyanazzal a gombbal. Itt az üres érték a címet is eltünteti (a szekciónak nem kötelező címe lenni). A `ConditionalValue.ts` függvényei a mezőre és a szekcióra közösek (`IConditionalHolder`).
 
 ### Szövegelemek (ITextElement)
 
@@ -375,6 +377,7 @@ A feltételek a form **aktuális** értékeire futnak, nem a mentett értékekre
 | Változó | Igaz, ha |
 | --- | --- |
 | `[IsNewMode]`, `[IsEditMode]`, `[IsDisplayMode]` | A form új elem, szerkesztés, illetve megtekintés módban van. Mindig pontosan egy igaz. A tervező előnézetében az előnézet módját követik. |
+| `[IsAuthor]` | A bejelentkezett felhasználó hozta létre a megnyitott elemet. New módban mindig igaz (a kitöltő lesz a létrehozó). Az elem `AuthorId`-ját az `ItemService.load` adja, a felhasználó azonosítóját a `pageContext.legacyPageContext.userId`; ha valamelyik nem ismert, az érték hamis. A `resolveForm` `isAuthor` paraméterében érkezik. |
 | `[Group:<azonosító>]` | A bejelentkezett felhasználó tagja az adott azonosítójú SharePoint csoportnak. |
 
 ```json

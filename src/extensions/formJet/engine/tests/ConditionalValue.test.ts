@@ -1,5 +1,5 @@
 import { IFieldSchema } from '../../models/IFieldSchema';
-import { IConditionalValue, IFormConfig } from '../../models/IFormConfig';
+import { IConditionalValue, IFieldConfig, IFormConfig } from '../../models/IFormConfig';
 import { countConditionalValues, pickConditionalValue, setConditionalValues } from '../ConditionalValue';
 import { collectGroupIds } from '../ConditionContext';
 import { getInitialValues, parseConfig, resolveForm } from '../LayoutResolver';
@@ -37,7 +37,8 @@ describe('ConditionalValue – feltételes címke, leírás, helykitöltő és k
 
   it('setConditionalValues / countConditionalValues: az üres lista és az üres rész kimarad', () => {
     const rule: IConditionalValue = { when: { field: 'A', op: 'empty' }, value: 'x' };
-    const withRules = setConditionalValues({ label: 'Cím' }, 'label', [rule, { value: 'félkész' }]);
+    const fieldConfig: IFieldConfig = { label: 'Cím' };
+    const withRules = setConditionalValues(fieldConfig, 'label', [rule, { value: 'félkész' }]);
     expect(withRules).toEqual({ label: 'Cím', conditional: { label: [rule, { value: 'félkész' }] } });
     expect(countConditionalValues(withRules, 'label')).toBe(1);
     expect(countConditionalValues(withRules, 'description')).toBe(0);
@@ -89,6 +90,41 @@ describe('ConditionalValue – feltételes címke, leírás, helykitöltő és k
     expect(getField(resolveForm(schema, config, 'edit', {}, [5]), 'Title').description).toBe('');
     expect(getField(resolveForm(schema, config, 'edit', { Title: 'x' }), 'Category').label).toBe('Category');
     expect(collectGroupIds(config)).toEqual([5]);
+  });
+
+  it('szekció: a cím és a leírás a feltétel szerint változik; üres értékkel el is tüntethető', () => {
+    const config = load({
+      sections: [
+        {
+          id: 'a',
+          title: 'Adatok',
+          description: 'alap leírás',
+          columns: 1,
+          fields: [{ field: 'Title' }],
+          conditional: {
+            title: [
+              { when: { field: '[IsNewMode]', op: 'eq', value: true }, value: 'Új igénylés' },
+              { when: { field: '[Group:9]', op: 'eq', value: true }, value: '' }
+            ],
+            description: [{ when: { field: 'Title', op: 'notEmpty' }, value: 'kitöltve' }],
+            ismeretlen: [{ value: 'x' }]
+          }
+        }
+      ]
+    });
+    expect(Object.keys(config.sections[0].conditional ?? {})).toEqual(['title', 'description']);
+    const base = resolveForm(schema, config, 'edit', {}).sections[0];
+    expect([base.title, base.description]).toEqual(['Adatok', 'alap leírás']);
+    const created = resolveForm(schema, config, 'new', { Title: 'x' }).sections[0];
+    expect([created.title, created.description]).toEqual(['Új igénylés', 'kitöltve']);
+    expect(resolveForm(schema, config, 'edit', {}, [9]).sections[0].title).toBe('');
+    expect(collectGroupIds(config)).toEqual([9]);
+
+    const section = config.sections[0];
+    expect(setConditionalValues(setConditionalValues(section, 'title', []), 'description', []).conditional).toBeUndefined();
+    expect(
+      parseConfig(configJson({ sections: [{ id: 'a', columns: 1, fields: [], conditional: { title: {} } }] })).error
+    ).toContain('sections[0].conditional.title');
   });
 
   it('getInitialValues: a feltételes kezdőérték a megnyitáskor érvényesül, típus szerint átalakítva', () => {

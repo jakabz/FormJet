@@ -4,6 +4,7 @@
 import {
   ATTACHMENTS_DISPLAYS,
   AttachmentsDisplay,
+  CONDITIONAL_PROPERTIES,
   CONFIG_SCHEMA_VERSION,
   FORM_MODES,
   FormMode,
@@ -16,7 +17,8 @@ import {
   ISectionConfig,
   ISectionStyle,
   LOOKUP_DISPLAYS,
-  LookupDisplay
+  LookupDisplay,
+  SECTION_CONDITIONAL_PROPERTIES
 } from '../models/IFormConfig';
 import { FormValues, IFieldSchema } from '../models/IFieldSchema';
 import { parseConditional, pickConditionalValue } from './ConditionalValue';
@@ -120,10 +122,12 @@ export function resolveForm(
   mode: FormMode,
   values: FormValues,
   /** Azok a SharePoint csoportok, amelyeknek a felhasználó tagja (a csoporttagságra épülő feltételekhez). */
-  memberGroupIds: number[] = []
+  memberGroupIds: number[] = [],
+  /** A bejelentkezett felhasználó hozta-e létre a megnyitott elemet (az `[IsAuthor]` változóhoz). */
+  isAuthor: boolean = false
 ): IResolvedForm {
-  // A feltételek a mezőértékek mellett a környezeti változókat is látják (a form módja, csoporttagság).
-  const conditionValues: FormValues = { ...values, ...contextValues(config, mode, memberGroupIds) };
+  // A feltételek a mezőértékek mellett a környezeti változókat is látják (a form módja, csoporttagság, létrehozó).
+  const conditionValues: FormValues = { ...values, ...contextValues(config, mode, memberGroupIds, isAuthor) };
   const schemaByName: Record<string, IFieldSchema> = {};
   // A szövegelemek pszeudo-mezőként szerepelnek a sémában.
   withTextElements(schema, config).forEach((field) => {
@@ -193,8 +197,9 @@ export function resolveForm(
 
     return {
       id: section.id,
-      title: section.title,
-      description: section.description,
+      // Feltételes érték: az első teljesülő szabály felülírja a címet, illetve a leírást (üres értékkel el is tünteti).
+      title: pickConditionalValue(section.conditional?.title, conditionValues) ?? section.title,
+      description: pickConditionalValue(section.conditional?.description, conditionValues) ?? section.description,
       columns,
       collapsible: !!section.collapsible,
       collapsed: !!section.collapsible && !!section.collapsed,
@@ -419,6 +424,8 @@ function parseSection(input: unknown, index: number): ISectionConfig {
   if (style) section.style = style;
   const related = parseRelated(input.related, `${path}.related`);
   if (related) section.related = related;
+  const conditional = parseConditional(input.conditional, `${path}.conditional`, SECTION_CONDITIONAL_PROPERTIES);
+  if (conditional) section.conditional = conditional;
   return section;
 }
 
@@ -465,7 +472,7 @@ function parseFieldConfig(input: unknown, name: string): IFieldConfig {
   if (requiredWhen) field.requiredWhen = requiredWhen;
   const style = parseFieldStyles(input.style, `${path}.style`);
   if (style) field.style = style;
-  const conditional = parseConditional(input.conditional, `${path}.conditional`);
+  const conditional = parseConditional(input.conditional, `${path}.conditional`, CONDITIONAL_PROPERTIES);
   if (conditional) field.conditional = conditional;
   return field;
 }

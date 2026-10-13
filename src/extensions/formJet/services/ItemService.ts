@@ -20,6 +20,8 @@ export interface IItemData {
   /** Az ütközésvizsgálat alapja. */
   modified: string;
   contentTypeId?: string;
+  /** Az elem létrehozójának azonosítója a webhelyen. */
+  authorId?: number;
 }
 
 export interface ISaveTarget {
@@ -54,7 +56,11 @@ export function decodeKeys(input: Record<string, unknown>): FormValues {
 export async function load(listId: string, itemId: number): Promise<IItemData> {
   const item = getSP().web.lists.getById(listId).items.getById(itemId);
   const [meta, forEdit, asText] = await Promise.all([
-    item.select('Id', 'Modified', 'ContentTypeId')() as Promise<{ Modified: string; ContentTypeId?: string }>,
+    item.select('Id', 'Modified', 'ContentTypeId', 'AuthorId')() as Promise<{
+      Modified: string;
+      ContentTypeId?: string;
+      AuthorId?: number;
+    }>,
     item.fieldValuesForEdit() as Promise<Record<string, unknown>>,
     item.fieldValuesAsText() as Promise<Record<string, unknown>>
   ]);
@@ -62,7 +68,8 @@ export async function load(listId: string, itemId: number): Promise<IItemData> {
     values: decodeKeys(forEdit),
     displayValues: decodeKeys(asText),
     modified: meta.Modified,
-    contentTypeId: meta.ContentTypeId
+    contentTypeId: meta.ContentTypeId,
+    authorId: meta.AuthorId
   };
 }
 

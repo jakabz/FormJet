@@ -142,6 +142,11 @@ export interface ISectionConfig {
   id: string;
   title?: string;
   description?: string;
+  /**
+   * A cím és a leírás feltételes értékei, sorrendben: az első teljesülő szabály értéke érvényes,
+   * ha egyik sem teljesül, a `title`, illetve a `description`.
+   */
+  conditional?: Partial<Record<SectionConditionalProperty, IConditionalValue[]>>;
   /** Rácsoszlopok száma, 1–4. */
   columns: number;
   collapsible?: boolean;
@@ -159,6 +164,11 @@ export interface ISectionConfig {
 export type ConditionalProperty = 'label' | 'description' | 'placeholder' | 'defaultValue';
 
 export const CONDITIONAL_PROPERTIES: ConditionalProperty[] = ['label', 'description', 'placeholder', 'defaultValue'];
+
+/** A szekció feltételhez köthető szöveges beállításai. */
+export type SectionConditionalProperty = 'title' | 'description';
+
+export const SECTION_CONDITIONAL_PROPERTIES: SectionConditionalProperty[] = ['title', 'description'];
 
 /** Feltételes érték: ha a feltétel teljesül, a beállítás ezt az értéket veszi fel. */
 export interface IConditionalValue {

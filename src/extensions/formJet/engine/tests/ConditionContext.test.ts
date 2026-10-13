@@ -51,6 +51,7 @@ describe('ConditionContext – a form módja és a csoporttagság a feltételekb
 
   it('contextValues: pontosan egy módváltozó igaz; minden hivatkozott csoport kap értéket', () => {
     expect(contextValues(config, 'edit', [7, 99])).toEqual({
+      '[IsAuthor]': '0',
       '[IsNewMode]': '0',
       '[IsEditMode]': '1',
       '[IsDisplayMode]': '0',
@@ -78,6 +79,20 @@ describe('ConditionContext – a form módja és a csoporttagság a feltételekb
     expect(resolveForm(schema, config, 'edit', {}).sections[1].visible).toBe(false);
     expect(resolveForm(schema, config, 'edit', {}, [7]).sections[1].visible).toBe(true);
     expect(resolveForm(schema, config, 'edit', { '[Group:7]': '1' }).sections[1].visible).toBe(false);
+  });
+
+  it('[IsAuthor]: igaz, ha a felhasználó az elem létrehozója; új elemnél mindig igaz', () => {
+    const authorConfig = load({
+      sections: [{ id: 'a', columns: 1, fields: [{ field: 'Title' }] }],
+      fields: { Title: { readOnlyWhen: { field: '[IsAuthor]', op: 'eq', value: false } } }
+    });
+    expect(contextValues(authorConfig, 'edit', [], true)['[IsAuthor]']).toBe('1');
+    expect(contextValues(authorConfig, 'display', [])['[IsAuthor]']).toBe('0');
+    expect(contextValues(authorConfig, 'new', [], false)['[IsAuthor]']).toBe('1');
+    // Szerkesztéskor csak a létrehozó írhatja a mezőt.
+    expect(getField(resolveForm(schema, authorConfig, 'edit', {}), 'Title').readOnly).toBe(true);
+    expect(getField(resolveForm(schema, authorConfig, 'edit', {}, [], true), 'Title').readOnly).toBe(false);
+    expect(getField(resolveForm(schema, authorConfig, 'new', {}), 'Title').readOnly).toBe(false);
   });
 
   it('parseDirectoryClaim: a címtárbeli csoportok és a „Mindenki” jellegű tagok felismerése', () => {

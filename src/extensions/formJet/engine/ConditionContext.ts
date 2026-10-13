@@ -1,11 +1,12 @@
 // A feltételek környezeti változói: a form módja és a felhasználó SharePoint csoporttagsága.
+// A felhasználó és az elem létrehozójának egyezése is ilyen változó (`[IsAuthor]`).
 // A feltételekben mezőként hivatkozhatók (`[IsNewMode]`, `[Group:5]`), értékük igen / nem (`1` / `0`),
 // így a meglévő operátorokkal vizsgálhatók és a mezőfeltételekkel szabadon keverhetők.
 // A szögletes zárójel miatt a nevük nem ütközhet SharePoint mező belső nevével.
 // Tiszta logika: nem importálhat services/-ből, components/-ből, @pnp/*-ból vagy @microsoft/*-ból.
 
 import { FormValues } from '../models/IFieldSchema';
-import { Condition, ConditionalProperty, FormMode, IFormConfig } from '../models/IFormConfig';
+import { Condition, FormMode, IConditionalValue, IFormConfig } from '../models/IFormConfig';
 
 /** A form módját jelző változók; közülük mindig pontosan egy igaz. */
 export const MODE_VARIABLES: Record<FormMode, string> = {
@@ -13,6 +14,9 @@ export const MODE_VARIABLES: Record<FormMode, string> = {
   edit: '[IsEditMode]',
   display: '[IsDisplayMode]'
 };
+
+/** Igaz, ha a bejelentkezett felhasználó hozta létre az elemet (új elemnél mindig igaz). */
+export const AUTHOR_VARIABLE: string = '[IsAuthor]';
 
 const GROUP_VARIABLE: RegExp = /^\[Group:(\d+)\]$/;
 
@@ -51,15 +55,21 @@ function collectFromCondition(condition: Condition | undefined, found: number[])
 /** Azok a SharePoint csoportok, amelyek tagságára a konfiguráció bármelyik feltétele hivatkozik. */
 export function collectGroupIds(config: IFormConfig): number[] {
   const found: number[] = [];
-  config.sections.forEach((section) => collectFromCondition(section.visibleWhen, found));
+  // A feltételes értékek (címke, cím, leírás, …) szabályainak feltételei.
+  const collectFromRules = (conditional: Record<string, IConditionalValue[] | undefined> | undefined): void => {
+    Object.keys(conditional ?? {}).forEach((property) =>
+      (conditional?.[property] ?? []).forEach((rule) => collectFromCondition(rule.when, found))
+    );
+  };
+  config.sections.forEach((section) => {
+    collectFromCondition(section.visibleWhen, found);
+    collectFromRules(section.conditional);
+  });
   Object.keys(config.fields).forEach((name) => {
     collectFromCondition(config.fields[name].visibleWhen, found);
     collectFromCondition(config.fields[name].readOnlyWhen, found);
     collectFromCondition(config.fields[name].requiredWhen, found);
-    const conditional = config.fields[name].conditional ?? {};
-    (Object.keys(conditional) as ConditionalProperty[]).forEach((property) =>
-      (conditional[property] ?? []).forEach((rule) => collectFromCondition(rule.when, found))
-    );
+    collectFromRules(config.fields[name].conditional);
   });
   return found.sort((a, b) => a - b);
 }
@@ -68,8 +78,15 @@ export function collectGroupIds(config: IFormConfig): number[] {
  * A környezeti változók értékei a feltételek kiértékeléséhez. A konfigurációban hivatkozott minden csoport
  * kap értéket: `1`, ha a felhasználó tagja, különben `0`.
  */
-export function contextValues(config: IFormConfig, mode: FormMode, memberGroupIds: number[]): FormValues {
+export function contextValues(
+  config: IFormConfig,
+  mode: FormMode,
+  memberGroupIds: number[],
+  isAuthor: boolean = false
+): FormValues {
   const values: FormValues = {};
+  // Új elemnél a kitöltő lesz a létrehozó, ezért ott mindig igaz.
+  values[AUTHOR_VARIABLE] = mode === 'new' || isAuthor ? TRUE_VALUE : FALSE_VALUE;
   (Object.keys(MODE_VARIABLES) as FormMode[]).forEach((key) => {
     values[MODE_VARIABLES[key]] = key === mode ? TRUE_VALUE : FALSE_VALUE;
   });

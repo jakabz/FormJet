@@ -108,7 +108,7 @@ const classes = mergeStyleSets({
     right: 0,
     bottom: 0,
     width: DESIGNER_PANEL_WIDTH,
-    zIndex: 10,
+    zIndex: 100,
     boxSizing: 'border-box',
     background: '#ffffff',
     borderLeft: '1px solid #edebe9',
@@ -174,6 +174,8 @@ interface ILoaded {
   original: FormValues;
   displayValues: FormValues;
   modified?: string;
+  /** A bejelentkezett felhasználó hozta-e létre a megnyitott elemet. */
+  isAuthor: boolean;
 }
 
 interface IMembershipState extends GroupService.IMembership {
@@ -332,7 +334,9 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
         configWarning: configResult.warning,
         original,
         displayValues: item ? item.displayValues : {},
-        modified: item?.modified
+        modified: item?.modified,
+        // Új elemnél nincs még létrehozó; ott a motor a kitöltőt tekinti annak.
+        isAuthor: !!item && item.authorId !== undefined && item.authorId === currentUser.id
       });
     } catch (e) {
       setLoadError(errorText(e, TEXT.loadFailed));
@@ -346,7 +350,8 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
     currentUser.loginName,
     currentUser.displayName,
     currentUser.email,
-    currentUser.isGuest
+    currentUser.isGuest,
+    currentUser.id
   ]);
 
   React.useEffect(() => {
@@ -361,7 +366,10 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
 
   // Minden értékváltozáskor újraszámoljuk a feltételeket. Olcsó művelet; ne kerüljön bele aszinkron hívás.
   const resolved: IResolvedForm | undefined = React.useMemo(
-    () => (loaded && activeConfig ? resolveForm(loaded.schema, activeConfig, activeMode, values, membership.memberOf) : undefined),
+    () =>
+      loaded && activeConfig
+        ? resolveForm(loaded.schema, activeConfig, activeMode, values, membership.memberOf, loaded.isAuthor)
+        : undefined,
     [loaded, activeConfig, activeMode, values, membership]
   );
 

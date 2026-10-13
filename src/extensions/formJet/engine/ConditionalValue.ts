@@ -1,15 +1,10 @@
-// Feltételes értékek: a mező címkéje, leírása, helykitöltő szövege és kezdőértéke feltételtől függően más lehet.
+// Feltételes értékek: a mező címkéje, leírása, helykitöltő szövege és kezdőértéke, valamint a szekció címe és leírása
+// feltételtől függően más lehet.
 // Beállításonként szabályok sorrendezett listája; az első teljesülő szabály értéke érvényes.
 // Tiszta logika: nem importálhat services/-ből, components/-ből, @pnp/*-ból vagy @microsoft/*-ból.
 
 import { FormValues } from '../models/IFieldSchema';
-import {
-  Condition,
-  CONDITIONAL_PROPERTIES,
-  ConditionalProperty,
-  IConditionalValue,
-  IFieldConfig
-} from '../models/IFormConfig';
+import { Condition, IConditionalValue } from '../models/IFormConfig';
 import { evaluate, validateCondition } from './ConditionEngine';
 import { engineStrings, format } from './EngineStrings';
 
@@ -33,24 +28,29 @@ export function pickConditionalValue(rules: IConditionalValue[] | undefined, val
   return undefined;
 }
 
-/** A mező adott beállításának érvényes (feltétellel rendelkező) szabályai. */
-export function countConditionalValues(config: IFieldConfig | undefined, property: ConditionalProperty): number {
+/** Feltételes értékeket hordozó beállítás (mező vagy szekció); a `K` a feltételhez köthető tulajdonságok neve. */
+export interface IConditionalHolder<K extends string> {
+  conditional?: Partial<Record<K, IConditionalValue[]>>;
+}
+
+/** A mező vagy szekció adott beállításának érvényes (feltétellel rendelkező) szabályai. */
+export function countConditionalValues<K extends string>(config: IConditionalHolder<K> | undefined, property: K): number {
   return (config?.conditional?.[property] ?? []).filter((rule) => rule.when !== undefined).length;
 }
 
-/** A mező adott beállításának szabályai lecserélve; az üres lista és az üres `conditional` kimarad a konfigurációból. */
-export function setConditionalValues(
-  config: IFieldConfig,
-  property: ConditionalProperty,
+/** A mező vagy szekció adott beállításának szabályai lecserélve; az üres lista és az üres `conditional` kimarad a konfigurációból. */
+export function setConditionalValues<K extends string, T extends IConditionalHolder<K>>(
+  config: T,
+  property: K,
   rules: IConditionalValue[]
-): IFieldConfig {
-  const conditional: Partial<Record<ConditionalProperty, IConditionalValue[]>> = { ...(config.conditional ?? {}) };
+): T {
+  const conditional: Partial<Record<K, IConditionalValue[]>> = { ...(config.conditional ?? {}) };
   if (rules.length > 0) {
     conditional[property] = rules;
   } else {
     delete conditional[property];
   }
-  const next: IFieldConfig = { ...config };
+  const next: T = { ...config };
   if (Object.keys(conditional).length > 0) {
     next.conditional = conditional;
   } else {
@@ -59,16 +59,23 @@ export function setConditionalValues(
   return next;
 }
 
-/** A konfiguráció `conditional` részének ellenőrzése; hibás tartalomra kivételt dob (a parseConfig kezeli). */
-export function parseConditional(input: unknown, path: string): IFieldConfig['conditional'] {
+/**
+ * A konfiguráció egy `conditional` részének ellenőrzése a megadott tulajdonságokra (mező vagy szekció);
+ * hibás tartalomra kivételt dob (a parseConfig kezeli).
+ */
+export function parseConditional<K extends string>(
+  input: unknown,
+  path: string,
+  properties: K[]
+): Partial<Record<K, IConditionalValue[]>> | undefined {
   if (input === undefined) {
     return undefined;
   }
   if (!isRecord(input)) {
     throw new Error(format(engineStrings().MustBeObject, path));
   }
-  const result: Partial<Record<ConditionalProperty, IConditionalValue[]>> = {};
-  CONDITIONAL_PROPERTIES.forEach((property) => {
+  const result: Partial<Record<K, IConditionalValue[]>> = {};
+  properties.forEach((property) => {
     const rules: unknown = input[property];
     if (rules === undefined) {
       return;

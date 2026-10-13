@@ -16,7 +16,7 @@ import * as strings from 'FormJetFormCustomizerStrings';
 
 import { ATTACHMENTS_FIELD } from '../engine/Attachments';
 import { setConditionalValues } from '../engine/ConditionalValue';
-import { groupVariable, MODE_VARIABLES } from '../engine/ConditionContext';
+import { AUTHOR_VARIABLE, groupVariable, MODE_VARIABLES } from '../engine/ConditionContext';
 import { format } from '../engine/EngineStrings';
 import { parseConfig, unplacedFields } from '../engine/LayoutResolver';
 import { addTextElement, isTextElement, removeTextElement } from '../engine/TextElement';
@@ -32,7 +32,8 @@ import {
   ISectionConfig,
   ITextElement,
   LOOKUP_CHECKLIST_MAX,
-  LookupDisplay
+  LookupDisplay,
+  SectionConditionalProperty
 } from '../models/IFormConfig';
 import { ISiteGroup } from '../services/GroupService';
 import { AccordionCard } from './AccordionCard';
@@ -226,7 +227,8 @@ export const DesignerPanel: React.FC<IDesignerPanelProps> = (props) => {
       [
         variable(MODE_VARIABLES.new, strings.ConditionVarIsNew),
         variable(MODE_VARIABLES.edit, strings.ConditionVarIsEdit),
-        variable(MODE_VARIABLES.display, strings.ConditionVarIsDisplay)
+        variable(MODE_VARIABLES.display, strings.ConditionVarIsDisplay),
+        variable(AUTHOR_VARIABLE, strings.ConditionVarIsAuthor)
       ],
       props.siteGroups.map((group) => variable(groupVariable(group.id), format(strings.ConditionVarGroup, group.title)))
     );
@@ -237,6 +239,33 @@ export const DesignerPanel: React.FC<IDesignerPanelProps> = (props) => {
     key: f.InternalName,
     text: `${f.Title} (${f.InternalName})`
   }));
+
+  /** A szekció egy szöveges beállítása a feltételes értékek gombjával. */
+  const sectionConditionalField = (
+    index: number,
+    property: SectionConditionalProperty,
+    label: string,
+    input: JSX.Element
+  ): JSX.Element => {
+    const section: ISectionConfig = draft.sections[index];
+    return (
+      <ConditionalValueField
+        key={`${section.id}:${property}`}
+        label={label}
+        fieldTitle={section.title || section.id}
+        rules={section.conditional?.[property] ?? []}
+        schema={conditionFields}
+        onChange={(rules) =>
+          props.onChange({
+            ...draft,
+            sections: replaceAt(draft.sections, index, setConditionalValues(section, property, rules))
+          })
+        }
+      >
+        {input}
+      </ConditionalValueField>
+    );
+  };
 
   const renderSection = (section: ISectionConfig, index: number): JSX.Element => (
     <AccordionCard
@@ -266,12 +295,23 @@ export const DesignerPanel: React.FC<IDesignerPanelProps> = (props) => {
         </>
       }
     >
-      <TextField label={strings.SectionTitle} value={section.title ?? ''} onChange={(_, v) => updateSection(index, { title: v })} />
-      <TextField
-        label={strings.Description}
-        value={section.description ?? ''}
-        onChange={(_, v) => updateSection(index, { description: v })}
-      />
+      {/* A cím és a leírás feltételhez is köthető, ugyanúgy, mint a mező címkéje. */}
+      {sectionConditionalField(
+        index,
+        'title',
+        strings.SectionTitle,
+        <TextField label={strings.SectionTitle} value={section.title ?? ''} onChange={(_, v) => updateSection(index, { title: v })} />
+      )}
+      {sectionConditionalField(
+        index,
+        'description',
+        strings.Description,
+        <TextField
+          label={strings.Description}
+          value={section.description ?? ''}
+          onChange={(_, v) => updateSection(index, { description: v })}
+        />
+      )}
       <Dropdown
         label={strings.ColumnCount}
         options={COLUMN_OPTIONS}
