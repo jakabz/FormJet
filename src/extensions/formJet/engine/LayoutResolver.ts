@@ -4,6 +4,7 @@
 import {
   ATTACHMENTS_DISPLAYS,
   AttachmentsDisplay,
+  ButtonAction,
   CONDITIONAL_PROPERTIES,
   CONFIG_SCHEMA_VERSION,
   FORM_MODES,
@@ -28,7 +29,7 @@ import { formatDateValue, parseDateValue, roundToTimeStep } from './DateFormat';
 import { engineStrings, format } from './EngineStrings';
 import { resolveNumberDefault } from './NumberFormat';
 import { parseTaxonomyValue, serializeTaxonomyValue } from './TaxonomyValue';
-import { parseTexts, withTextElements } from './TextElement';
+import { isButtonElement, isLayoutElement, parseTexts, withTextElements } from './TextElement';
 import { ICurrentUser, resolveUserDefault } from './UserValue';
 import { isRelatedComplete, parseRelated } from './RelatedList';
 import { parseFieldStyles, parseFormStyles, parseSectionStyles, resolveModeStyle } from './FormStyle';
@@ -49,6 +50,8 @@ export interface IResolvedField {
   placeholder?: string;
   /** Szövegelemnél a megjelenő szöveg. */
   text?: string;
+  /** Gombnál a megnyitandó cím, az ikon és a műveletek; a letiltást a `readOnly` jelzi. */
+  button?: { url?: string; newTab: boolean; icon?: string; actions: ButtonAction[] };
   /** Többértékű keresőmező megjelenítése. */
   lookupDisplay: LookupDisplay;
   /** A mellékletek megjelenítése. */
@@ -164,14 +167,18 @@ export function resolveForm(
       const conditional: IFieldConfig['conditional'] = fieldConfig.conditional;
       const visible: boolean =
         sectionVisible && inMode(fieldConfig.visibleIn, mode, true) && evaluate(fieldConfig.visibleWhen, conditionValues);
-      const readOnly: boolean =
-        mode === 'display' ||
-        !isEditableField(fieldSchema) ||
+      const isButton: boolean = isButtonElement(fieldSchema);
+      // A gombnál a „csak olvasható” a letiltást jelenti: csak a beállítás dönt róla, megtekintéskor is működhet.
+      const configuredReadOnly: boolean =
         inMode(fieldConfig.readOnlyIn, mode, false) ||
         (fieldConfig.readOnlyWhen !== undefined && evaluate(fieldConfig.readOnlyWhen, conditionValues));
-      // A kötelezőség csak szigorítható: a séma Required értéke mindig érvényes.
+      const readOnly: boolean = isButton
+        ? configuredReadOnly
+        : mode === 'display' || !isEditableField(fieldSchema) || configuredReadOnly;
+      // A kötelezőség csak szigorítható: a séma Required értéke mindig érvényes. A mező nélküli elem soha nem kötelező.
       const required: boolean =
         mode !== 'display' &&
+        !isLayoutElement(fieldSchema) &&
         (fieldSchema.Required ||
           inMode(fieldConfig.requiredIn, mode, false) ||
           (fieldConfig.requiredWhen !== undefined && evaluate(fieldConfig.requiredWhen, conditionValues)));
@@ -185,6 +192,14 @@ export function resolveForm(
           pickConditionalValue(conditional?.description, conditionValues) ?? fieldConfig.description ?? fieldSchema.Description,
         placeholder: pickConditionalValue(conditional?.placeholder, conditionValues) ?? fieldConfig.placeholder,
         text: config.texts?.[placement.field]?.content,
+        button: isButton
+          ? {
+              url: config.texts?.[placement.field]?.url,
+              newTab: !!config.texts?.[placement.field]?.newTab,
+              icon: config.texts?.[placement.field]?.icon,
+              actions: config.texts?.[placement.field]?.actions ?? []
+            }
+          : undefined,
         lookupDisplay: fieldConfig.lookupDisplay ?? 'auto',
         attachmentsDisplay: fieldConfig.attachmentsDisplay ?? 'list',
         colSpan: Math.min(clampColumns(placement.colSpan), columns),
@@ -311,6 +326,30 @@ export function getInitialValues(
   return Object.keys(overrides).length === 0
     ? base
     : computeInitialValues(schema, config, overrides, culture, now, currentUser);
+}
+
+/**
+ * A tervezőben megadott érték (kezdőérték formátum) form-stringgé alakítva: dátumnál `[today]` vagy a web formátuma
+ * szerinti dátum, személynél `[me]` vagy e-mail-cím; egyébként maga az érték. A gomb „mező értékének beállítása”
+ * lépése használja; a nem értelmezhető dátum változatlan marad (a mentés jelzi a hibát).
+ */
+export function resolveFieldValue(
+  field: IFieldSchema,
+  raw: string,
+  culture: string,
+  now: Date,
+  currentUser?: ICurrentUser
+): string {
+  if (raw.trim() === '') {
+    return '';
+  }
+  if (field.TypeAsString === 'DateTime') {
+    return resolveDateDefault(raw, culture, field.DateOnly !== false, now) ?? raw;
+  }
+  if (field.TypeAsString === 'User' || field.TypeAsString === 'UserMulti') {
+    return resolveUserDefault(raw, field.TypeAsString === 'UserMulti', currentUser);
+  }
+  return raw;
 }
 
 /** A kezdőértékek; az `overrides` mezőnként felülírja a konfigurációban megadott kezdőértéket. */

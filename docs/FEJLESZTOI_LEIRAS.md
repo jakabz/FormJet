@@ -221,14 +221,19 @@ A mező címkéje, leírása, helykitöltő szövege és kezdőértéke feltéte
 - A tervezőben a Mező fül négy szövegmezője melletti gomb (`ConditionalValueEditor.tsx`) felugró ablakban szerkeszti a szabályokat; a gombon jelvény mutatja az érvényes szabályok számát. Szövegelemnél nincs ilyen beállítás.
 - **Szekció:** ugyanez a szerkezet az `ISectionConfig.conditional`-ban a `title` és a `description` tulajdonságra (`SECTION_CONDITIONAL_PROPERTIES`), a szekció kártyáján ugyanazzal a gombbal. Itt az üres érték a címet is eltünteti (a szekciónak nem kötelező címe lenni). A `ConditionalValue.ts` függvényei a mezőre és a szekcióra közösek (`IConditionalHolder`).
 
-### Szövegelemek (ITextElement)
+### Szövegelemek: felirat és gomb (ITextElement)
 
-A szövegelem a formon megjelenő, formázás nélküli szöveg, amely mögött nincs SharePoint mező.
+A `texts` mező nélküli elemeket tárol: a **felirat** a formon megjelenő, formázás nélküli szöveg, a **gomb** kattintásra egy címet nyit meg. Egyik mögött sincs SharePoint mező. (A felhasználói szövegekben a szövegelem neve „felirat”.)
 
 | Tulajdonság | Típus | Kötelező | Jelentés |
 | --- | --- | --- | --- |
-| `name` | string | igen | Megnevezés; csak a tervezőben látszik. |
-| `content` | string | nem | A formon megjelenő szöveg; a sortörések megmaradnak. |
+| `kind` | `'text'` \| `'button'` | nem | Az elem fajtája; hiányában felirat. Gombnál kötelező, és az azonosító `button:` előtagú. |
+| `name` | string | igen | Feliratnál megnevezés, csak a tervezőben látszik; gombnál a gomb felirata. |
+| `content` | string | nem | Csak felirat: a formon megjelenő szöveg; a sortörések megmaradnak. |
+| `url` | string | nem | Csak gomb: a megnyitandó cím. Csak `http(s)://`, `mailto:` vagy webhelyen belüli cím nyílik meg (`UrlValue.isSafeUrl`), más címmel a gomb nem navigál. |
+| `newTab` | boolean | nem | Csak gomb: a cím új lapon nyílik meg (`rel="noopener noreferrer"`). |
+| `icon` | string | nem | Csak gomb: Fluent UI ikonnév (`ButtonAction.isIconName`: csak betűk és számok); a hibás nevet a `parseConfig` elhagyja, az elrendezés érvényes marad. |
+| `actions` | `ButtonAction[]` | nem | Csak gomb: kattintásra sorban lefutó lépések. Ha van lépés, az `url` nem számít. |
 
 ```json
 "texts": { "text:1": { "name": "Kitöltési útmutató", "content": "Az összeget forintban add meg." } },
@@ -236,7 +241,25 @@ A szövegelem a formon megjelenő, formázás nélküli szöveg, amely mögött 
 "fields": { "text:1": { "visibleIn": ["new", "edit"], "style": { "base": { "background": "#fff4ce", "textColor": "#323130" } } } }
 ```
 
-- Az azonosító `text:` előtagú (`text:<betűk, számok, _ , ->`); a kettőspont miatt nem ütközhet mező belső nevével. A tervező sorszámozva adja ki (`TextElement.addTextElement`).
+- Az azonosító feliratnál `text:`, gombnál `button:` előtagú (`<előtag><betűk, számok, _ , ->`); a kettőspont miatt nem ütközhet mező belső nevével. A tervező fajtánként sorszámozva adja ki (`TextElement.addTextElement`). A `parseConfig` elutasítja, ha a fajta és az előtag nem egyezik.
+- **Gomb:** a sémában `FormJetButton` típusú pszeudo-mező (`isButtonElement`; a felirat és a gomb közös neve `isLayoutElement`). A `readOnlyIn` / `readOnlyWhen` a gomb **letiltását** jelenti (a tervezőben „Letiltva…” felirattal), és csak ez dönt róla: megtekintéskor is működhet, és nem számít, hogy a pszeudo-mező csak olvasható. Kötelező soha nem lehet. A cím az `IResolvedField.button`-ba kerül; a `FieldRenderer` Fluent `DefaultButton`-t rajzol `href`-fel, a tervezőben (`designing`) `href` nélkül. A gomb stílusa (háttér, keret, betűszín) magára a gombra vonatkozik, a cella keret és háttér nélkül marad.
+- A gomb a `FormHost.save`-ben akkor sem kerül az ellenőrzésbe vagy a `changed` objektumba, ha nincs letiltva (`isLayoutElement` kizárás).
+- **A gomb műveletei** (`engine/ButtonAction.ts`, szerkesztő: `ButtonActionsEditor.tsx`):
+
+  ```json
+  "actions": [
+    { "type": "setValue", "field": "Status", "value": "Jóváhagyva" },
+    { "type": "setValue", "field": "ApprovedOn", "value": "[today]" },
+    { "type": "save" }
+  ]
+  ```
+
+  - `setValue`: a mező értéke a kezdőérték formátumában, a `LayoutResolver.resolveFieldValue` alakítja form-stringgé (`[today]`, `[me]`, …). A mező nélküli (félkész) lépés megmarad, futáskor kimarad. `save`: a `FormHost.save`, sikeres mentés után `formSaved()`. `close`: `formClosed()` mentés nélkül.
+  - **Végrehajtás:** a `FormHost.runButtonActions` (a `FormContext.runButtonActions`-on át) a lépéseket sorban, `await`-tel futtatja. A beállított értékeket egy munkapéldányon gyűjti, és a mentést ezzel hívja (`save(false, working)`), mert a React állapot ekkor még nem frissült; a mentés a láthatóságot és a szerkeszthetőséget is erre számolja. A `save` és a `close` lezárja a sort (`effectiveActions`): új elemnél egy második mentés másolatot hozna létre, és a `formSaved()` a formot amúgy is bezárja. Sikertelen mentésnél a form nyitva marad.
+  - **A beállított mező rejtetten és csak olvashatóként is mentődik** (a 2. kulcsdöntés egyeztetett kivétele): a `runButtonActions` a mezőt felveszi a `buttonSetFields` halmazba, és a `save` ezeket a látható, szerkeszthető mezőkön felül is a `changed` objektumba teszi, ha az értékük eltér a betöltéskoritól. A halmaz az űrlap élettartamáig megmarad (ütközés utáni felülírásnál, javítás utáni újramentésnél is érvényes). Csak a SharePoint szerint írható, form-string értékű mező állítható be (`ButtonAction.isButtonSettableField`: nem csak olvasható, a form kezeli a típusát, nem melléklet és nem kép); más mezőnél a lépés kimarad.
+  - A lépésszerkesztő értékmezője a mező típusához igazodik (`ActionValueEditor`): választásnál a mező értékei közül (saját értéket engedő oszlopnál beírható is, üres választással törölhető), több választásnál több is (`;#A;#B;#`), igen/nem mezőnél Igen / Nem (`1` / `0`); egyébként szövegmező a kezdőérték formátumában. Másik mező választásakor az érték törlődik.
+  - Megtekintéskor a `setValue` és a `save` kimarad, csak a `close` fut le. Futás közben a gomb le van tiltva.
+  - Tetszőleges kód futtatása (`onClick` szkript) szándékosan nincs: a konfiguráció nem tartalmazhat végrehajtható kódot (12. fejezet). Új lépéstípus: `ButtonAction` típus + `BUTTON_ACTION_TYPES` + `parseButtonActions` + végrehajtás a `runButtonActions`-ban + választó a `ButtonActionsEditor`-ban + teszt.
 - A szövegelem **pszeudo-mező**, mint a mellékletek: a `TextElement.withTextElements` `FormJetText` típusú, csak olvasható mezőként teszi a sémába, ezért a szekciókban ugyanúgy helyezhető el és húzható, mint egy mező, és ugyanúgy csak egyszer szerepelhet. A `resolveForm` és az `unplacedFields` maga is elvégzi ezt a kiegészítést; a `FormHost` a tervező paneljének és a húzd-és-ejtsd felületnek adja át a kiegészített sémát.
 - A láthatóság (`visibleIn`, `visibleWhen`) és a stílus a `fields` azonos kulcsú bejegyzésében van; a többi `IFieldConfig` beállításnak szövegelemnél nincs hatása. A megjelenő szöveg az `IResolvedField.text`-be kerül, a `FieldRenderer` címke nélkül, `pre-wrap` szövegként írja ki (HTML-ként soha).
 - Mivel csak olvasható és nincs értéke, a mentésbe nem kerülhet be, feltétel nem hivatkozhat rá (a `DesignerPanel` a feltételszerkesztőnek a szövegelemek nélküli sémát adja), és kezdőértéke sincs.

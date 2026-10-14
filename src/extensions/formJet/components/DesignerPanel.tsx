@@ -5,7 +5,9 @@
 import * as React from 'react';
 import { DefaultButton, IconButton, PrimaryButton } from '@fluentui/react/lib/Button';
 import { Checkbox } from '@fluentui/react/lib/Checkbox';
+import { Dialog, DialogFooter, DialogType } from '@fluentui/react/lib/Dialog';
 import { Dropdown, IDropdownOption } from '@fluentui/react/lib/Dropdown';
+import { Icon } from '@fluentui/react/lib/Icon';
 import { Label } from '@fluentui/react/lib/Label';
 import { MessageBar, MessageBarType } from '@fluentui/react/lib/MessageBar';
 import { Pivot, PivotItem } from '@fluentui/react/lib/Pivot';
@@ -15,11 +17,13 @@ import { mergeStyleSets } from '@fluentui/react/lib/Styling';
 import * as strings from 'FormJetFormCustomizerStrings';
 
 import { ATTACHMENTS_FIELD } from '../engine/Attachments';
+import { isButtonSettableField, isIconName } from '../engine/ButtonAction';
 import { setConditionalValues } from '../engine/ConditionalValue';
 import { AUTHOR_VARIABLE, groupVariable, MODE_VARIABLES } from '../engine/ConditionContext';
 import { format } from '../engine/EngineStrings';
 import { parseConfig, unplacedFields } from '../engine/LayoutResolver';
-import { addTextElement, isTextElement, removeTextElement } from '../engine/TextElement';
+import { addTextElement, isButtonElement, isLayoutElement, isTextElement, removeTextElement } from '../engine/TextElement';
+import { isSafeUrl } from '../engine/UrlValue';
 import { IFieldSchema } from '../models/IFieldSchema';
 import {
   AttachmentsDisplay,
@@ -31,12 +35,14 @@ import {
   IFormConfig,
   ISectionConfig,
   ITextElement,
+  LayoutElementKind,
   LOOKUP_CHECKLIST_MAX,
   LookupDisplay,
   SectionConditionalProperty
 } from '../models/IFormConfig';
 import { ISiteGroup } from '../services/GroupService';
 import { AccordionCard } from './AccordionCard';
+import { ButtonActionsEditor } from './ButtonActionsEditor';
 import { ConditionalValueField } from './ConditionalValueEditor';
 import { ConditionEditor } from './ConditionEditor';
 import { RelatedListEditor } from './RelatedListEditor';
@@ -68,8 +74,11 @@ const classes = mergeStyleSets({
   rowName: { flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'pointer' },
   modes: { display: 'flex', gap: 16, flexWrap: 'wrap' },
   hint: { fontSize: 12, color: '#605e5c' },
-  addText: { display: 'flex', alignItems: 'flex-end', gap: 8 },
-  addTextName: { flex: 1, minWidth: 0 },
+  // A felirat és a gomb hozzáadása a szekciókártya alján, teljes szélességben.
+  addElement: { width: '100%' },
+  iconRow: { display: 'flex', alignItems: 'flex-start', gap: 8 },
+  iconName: { flex: 1, minWidth: 0 },
+  iconPreview: { fontSize: 20, width: 24, marginTop: 34, color: '#323130' },
   spanDropdown: { width: 64 }
 });
 
@@ -85,6 +94,20 @@ export interface IDesignerPanelProps {
   siteGroups: ISiteGroup[];
   /** A még el nem helyezett mezők behúzható listája (a húzd-és-ejtsd felülettől); hiányában szöveges felsorolás látszik. */
   unplacedPalette?: React.ReactNode;
+}
+
+/** Az ikonnév hibaüzenete; a hibás nevet a parseConfig elhagyja, ezért itt jelezzük. */
+function buttonIconError(icon: string | undefined): string | undefined {
+  return icon && !isIconName(icon) ? strings.ButtonElementIconInvalid : undefined;
+}
+
+function iconPreview(icon: string | undefined): string | undefined {
+  return icon && isIconName(icon) ? icon : undefined;
+}
+
+/** A gomb címének hibaüzenete, ha a cím nem biztonságos (a gomb ilyenkor nem nyit meg semmit). */
+function buttonUrlError(url: string | undefined): string | undefined {
+  return url && !isSafeUrl(url) ? strings.ButtonElementUrlInvalid : undefined;
 }
 
 function move<T>(items: T[], from: number, to: number): T[] {
@@ -153,6 +176,8 @@ export const DesignerPanel: React.FC<IDesignerPanelProps> = (props) => {
   const [jsonError, setJsonError] = React.useState<string | undefined>();
   // Az Elrendezés fülön egyszerre egy szekciókártya van nyitva; alapból az első.
   const [openSection, setOpenSection] = React.useState<string | undefined>(draft.sections[0]?.id);
+  // Szövegelem felvétele: a felugró ablak melyik szekcióhoz nyílt meg, és a beírt megnevezés.
+  const [elementDialog, setElementDialog] = React.useState<{ sectionId: string; kind: LayoutElementKind } | undefined>();
   const [newTextName, setNewTextName] = React.useState<string>('');
 
   React.useEffect(() => {
@@ -194,16 +219,23 @@ export const DesignerPanel: React.FC<IDesignerPanelProps> = (props) => {
   const updateText = (id: string, patch: Partial<ITextElement>): void => {
     const current: ITextElement = draft.texts?.[id] ?? { name: '' };
     const text: ITextElement = { ...current, ...patch };
-    if (text.content === undefined) {
-      delete text.content;
-    }
+    // Az üresre állított tulajdonság kimarad a konfigurációból.
+    (Object.keys(text) as Array<keyof ITextElement>).forEach((key) => {
+      if (text[key] === undefined) {
+        delete text[key];
+      }
+    });
     props.onChange({ ...draft, texts: { ...(draft.texts ?? {}), [id]: text } });
   };
 
-  /** Új szövegelem a megadott megnevezéssel, a nyitott (ennek hiányában az utolsó) szekció végére. */
+  /** Új szövegelem a felugró ablakban megadott megnevezéssel, annak a szekciónak a végére, amelyben a gombra kattintottak. */
   const addText = (): void => {
-    const added = addTextElement(draft, newTextName.trim(), openSection);
+    if (newTextName.trim() === '') {
+      return;
+    }
+    const added = addTextElement(draft, newTextName.trim(), elementDialog?.sectionId, elementDialog?.kind);
     props.onChange(added.config);
+    setElementDialog(undefined);
     setNewTextName('');
     // A tartalom a Mező fülön adható meg.
     props.onSelectField(added.id);
@@ -211,7 +243,9 @@ export const DesignerPanel: React.FC<IDesignerPanelProps> = (props) => {
   };
 
   // A feltételek és a kapcsolódó elemek csak valódi mezőre hivatkozhatnak; a szövegelemnek nincs értéke.
-  const realFields: IFieldSchema[] = schema.filter((f) => !isTextElement(f));
+  const realFields: IFieldSchema[] = schema.filter((f) => !isLayoutElement(f));
+  // A gomb „mező értékének beállítása” lépéséhez: a SharePoint szerint írható mezők (az űrlapon rejtettek is).
+  const actionFields: IFieldSchema[] = realFields.filter(isButtonSettableField);
 
   // A feltételekben a mezők mellett a környezeti változók is választhatók (a form módja, csoporttagság);
   // igen / nem értékűek, ezért a feltételszerkesztő Boolean mezőként kezeli őket.
@@ -407,6 +441,24 @@ export const DesignerPanel: React.FC<IDesignerPanelProps> = (props) => {
           onChange={(_, option) => option && updatePlacements(index, [...section.fields, { field: String(option.key) }])}
         />
       )}
+      <DefaultButton
+        className={classes.addElement}
+        iconProps={{ iconName: 'InsertTextBox' }}
+        text={strings.TextElementAdd}
+        onClick={() => {
+          setNewTextName('');
+          setElementDialog({ sectionId: section.id, kind: 'text' });
+        }}
+      />
+      <DefaultButton
+        className={classes.addElement}
+        iconProps={{ iconName: 'ButtonControl' }}
+        text={strings.ButtonElementAdd}
+        onClick={() => {
+          setNewTextName('');
+          setElementDialog({ sectionId: section.id, kind: 'button' });
+        }}
+      />
     </AccordionCard>
   );
 
@@ -490,7 +542,86 @@ export const DesignerPanel: React.FC<IDesignerPanelProps> = (props) => {
             />
           </>
         )}
-        {selectedField && fieldSchema && !isTextElement(fieldSchema) && (
+        {selectedField && fieldSchema && isButtonElement(fieldSchema) && (
+          <>
+            <div className={classes.hint}>{strings.ButtonElementHint}</div>
+            <TextField
+              label={strings.ButtonElementName}
+              value={draft.texts?.[selectedField]?.name ?? ''}
+              onChange={(_, v) => updateText(selectedField, { name: v ?? '' })}
+            />
+            <div className={classes.iconRow}>
+              <TextField
+                className={classes.iconName}
+                label={strings.ButtonElementIcon}
+                description={strings.ButtonElementIconHint}
+                value={draft.texts?.[selectedField]?.icon ?? ''}
+                errorMessage={buttonIconError(draft.texts?.[selectedField]?.icon)}
+                onChange={(_, v) => updateText(selectedField, { icon: v?.trim() || undefined })}
+              />
+              {/* Előnézet: a megadott ikon (ismeretlen névnél üres). */}
+              <Icon className={classes.iconPreview} iconName={iconPreview(draft.texts?.[selectedField]?.icon)} />
+            </div>
+            <ButtonActionsEditor
+              buttonTitle={draft.texts?.[selectedField]?.name || selectedField}
+              actions={draft.texts?.[selectedField]?.actions ?? []}
+              fields={actionFields}
+              onChange={(actions) => updateText(selectedField, { actions: actions.length > 0 ? actions : undefined })}
+            />
+            <TextField
+              label={strings.ButtonElementUrl}
+              description={
+                (draft.texts?.[selectedField]?.actions ?? []).length > 0
+                  ? strings.ButtonElementUrlIgnored
+                  : strings.ButtonElementUrlHint
+              }
+              value={draft.texts?.[selectedField]?.url ?? ''}
+              errorMessage={buttonUrlError(draft.texts?.[selectedField]?.url)}
+              onChange={(_, v) => updateText(selectedField, { url: v?.trim() || undefined })}
+            />
+            <Checkbox
+              label={strings.ButtonElementNewTab}
+              checked={!!draft.texts?.[selectedField]?.newTab}
+              onChange={(_, checked) => updateText(selectedField, { newTab: checked || undefined })}
+            />
+            <ModeCheckboxes
+              label={strings.VisibleInModes}
+              value={config.visibleIn}
+              missingMeansAll
+              onChange={(visibleIn) => updateField(selectedField, { visibleIn })}
+            />
+            {/* A gombnál a „csak olvasható” beállítás a letiltást jelenti. */}
+            <ModeCheckboxes
+              label={strings.DisabledInModes}
+              value={config.readOnlyIn}
+              missingMeansAll={false}
+              onChange={(readOnlyIn) => updateField(selectedField, { readOnlyIn })}
+            />
+            <ConditionEditor
+              key={`${selectedField}:VisibleWhen`}
+              schema={conditionFields}
+              label={strings.VisibleWhen}
+              value={config.visibleWhen}
+              onChange={(visibleWhen) => updateField(selectedField, { visibleWhen })}
+            />
+            <ConditionEditor
+              key={`${selectedField}:ReadOnlyWhen`}
+              schema={conditionFields}
+              label={strings.DisabledWhen}
+              value={config.readOnlyWhen}
+              onChange={(readOnlyWhen) => updateField(selectedField, { readOnlyWhen })}
+            />
+            <DefaultButton
+              iconProps={{ iconName: 'Delete' }}
+              text={strings.ButtonElementDelete}
+              onClick={() => {
+                props.onChange(removeTextElement(draft, selectedField));
+                props.onSelectField(undefined);
+              }}
+            />
+          </>
+        )}
+        {selectedField && fieldSchema && !isLayoutElement(fieldSchema) && (
           <>
             <div className={classes.hint}>
               {format(strings.FieldType, fieldSchema.TypeAsString)}
@@ -627,74 +758,84 @@ export const DesignerPanel: React.FC<IDesignerPanelProps> = (props) => {
     props.onChange({ ...parsed.config, listId: draft.listId, contentTypeId: draft.contentTypeId });
   };
 
+  const dialogTitle: string = elementDialog?.kind === 'button' ? strings.ButtonElementAdd : strings.TextElementAdd;
+
   return (
-    <Pivot
-      selectedKey={props.tab}
-      onLinkClick={(item) => item?.props.itemKey && props.onTabChange(item.props.itemKey as DesignerTab)}
-    >
-      <PivotItem headerText={strings.TabLayout} itemKey="layout">
-        <div className={classes.tab}>
-          <TextField
-            label={strings.FormTitle}
-            value={draft.title ?? ''}
-            onChange={(_, v) => props.onChange(compact({ ...draft, title: v }))}
-          />
-          <div>
-            <Label>{strings.UnplacedFields}</Label>
-            {unplaced.length > 0 && props.unplacedPalette ? (
-              props.unplacedPalette
-            ) : (
-              <div className={classes.hint}>
-                {unplaced.length === 0
-                  ? strings.AllFieldsPlaced
-                  : format(strings.UnplacedFieldsList, unplaced.map((f) => f.Title).join(', '))}
-              </div>
-            )}
-          </div>
-          <div className={classes.addText}>
+    <>
+      <Pivot
+        selectedKey={props.tab}
+        onLinkClick={(item) => item?.props.itemKey && props.onTabChange(item.props.itemKey as DesignerTab)}
+      >
+        <PivotItem headerText={strings.TabLayout} itemKey="layout">
+          <div className={classes.tab}>
             <TextField
-              className={classes.addTextName}
-              label={strings.TextElementNewName}
-              value={newTextName}
-              onChange={(_, v) => setNewTextName(v ?? '')}
+              label={strings.FormTitle}
+              value={draft.title ?? ''}
+              onChange={(_, v) => props.onChange(compact({ ...draft, title: v }))}
             />
-            <DefaultButton
-              iconProps={{ iconName: 'InsertTextBox' }}
-              text={strings.TextElementAdd}
-              disabled={newTextName.trim() === ''}
-              onClick={addText}
-            />
+            <div>
+              <Label>{strings.UnplacedFields}</Label>
+              {unplaced.length > 0 && props.unplacedPalette ? (
+                props.unplacedPalette
+              ) : (
+                <div className={classes.hint}>
+                  {unplaced.length === 0
+                    ? strings.AllFieldsPlaced
+                    : format(strings.UnplacedFieldsList, unplaced.map((f) => f.Title).join(', '))}
+                </div>
+              )}
+            </div>
+            {draft.sections.map(renderSection)}
+            <DefaultButton iconProps={{ iconName: 'Add' }} text={strings.NewSection} onClick={addSection} />
           </div>
-          {draft.sections.map(renderSection)}
-          <DefaultButton iconProps={{ iconName: 'Add' }} text={strings.NewSection} onClick={addSection} />
-        </div>
-      </PivotItem>
-      <PivotItem headerText={strings.TabField} itemKey="field">
-        {renderFieldTab()}
-      </PivotItem>
-      <PivotItem headerText={strings.TabStyle} itemKey="style">
-        <StylePanel
-          draft={draft}
-          schema={schema}
-          selectedField={selectedField}
-          onSelectField={props.onSelectField}
-          onChange={props.onChange}
-        />
-      </PivotItem>
-      <PivotItem headerText={strings.TabJson} itemKey="json">
-        <div className={classes.tab}>
-          {jsonError && <MessageBar messageBarType={MessageBarType.error}>{jsonError}</MessageBar>}
-          <TextField
-            ariaLabel={strings.ConfigJson}
-            multiline
-            rows={24}
-            value={jsonText}
-            styles={{ field: { fontFamily: 'Consolas, Menlo, monospace', fontSize: 12 } }}
-            onChange={(_, v) => setJsonText(v ?? '')}
+        </PivotItem>
+        <PivotItem headerText={strings.TabField} itemKey="field">
+          {renderFieldTab()}
+        </PivotItem>
+        <PivotItem headerText={strings.TabStyle} itemKey="style">
+          <StylePanel
+            draft={draft}
+            schema={schema}
+            selectedField={selectedField}
+            onSelectField={props.onSelectField}
+            onChange={props.onChange}
           />
-          <PrimaryButton text={strings.Apply} onClick={applyJson} />
-        </div>
-      </PivotItem>
-    </Pivot>
+        </PivotItem>
+        <PivotItem headerText={strings.TabJson} itemKey="json">
+          <div className={classes.tab}>
+            {jsonError && <MessageBar messageBarType={MessageBarType.error}>{jsonError}</MessageBar>}
+            <TextField
+              ariaLabel={strings.ConfigJson}
+              multiline
+              rows={24}
+              value={jsonText}
+              styles={{ field: { fontFamily: 'Consolas, Menlo, monospace', fontSize: 12 } }}
+              onChange={(_, v) => setJsonText(v ?? '')}
+            />
+            <PrimaryButton text={strings.Apply} onClick={applyJson} />
+          </div>
+        </PivotItem>
+      </Pivot>
+      {/* Új szövegelem: a megnevezést felugró ablakban kérjük be. */}
+      <Dialog
+        hidden={elementDialog === undefined}
+        minWidth={400}
+        dialogContentProps={{ type: DialogType.normal, title: dialogTitle }}
+        modalProps={{ isBlocking: false }}
+        onDismiss={() => setElementDialog(undefined)}
+      >
+        <TextField
+          label={elementDialog?.kind === 'button' ? strings.ButtonElementNewName : strings.TextElementNewName}
+          value={newTextName}
+          autoFocus
+          onChange={(_, v) => setNewTextName(v ?? '')}
+          onKeyDown={(event) => event.key === 'Enter' && addText()}
+        />
+        <DialogFooter>
+          <PrimaryButton text={dialogTitle} disabled={newTextName.trim() === ''} onClick={addText} />
+          <DefaultButton text={strings.Cancel} onClick={() => setElementDialog(undefined)} />
+        </DialogFooter>
+      </Dialog>
+    </>
   );
 };

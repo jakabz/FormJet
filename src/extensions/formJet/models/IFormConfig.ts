@@ -210,11 +210,43 @@ export interface IFieldConfig {
  * bejegyzésében van.
  */
 export interface ITextElement {
-  /** Megnevezés; a tervezőben ezzel azonosítható, a formon nem látszik. */
+  /** Az elem fajtája; hiányában felirat (sima szöveg). */
+  kind?: LayoutElementKind;
+  /** Megnevezés. Feliratnál csak a tervezőben látszik; gombnál ez a gomb felirata. */
   name: string;
-  /** A formon megjelenő szöveg; a sortörések megmaradnak. */
+  /** Feliratnál a formon megjelenő szöveg; a sortörések megmaradnak. */
   content?: string;
+  /** Gombnál a megnyitandó cím; csak `http(s)://`, `mailto:` vagy webhelyen belüli cím lehet (`isSafeUrl`). */
+  url?: string;
+  /** Gombnál: a cím új lapon nyílik meg. */
+  newTab?: boolean;
+  /** Gombnál: Fluent UI ikonnév (betűk és számok), a felirat mellett jelenik meg. */
+  icon?: string;
+  /**
+   * Gombnál: kattintásra sorban lefutó lépések. Ha van lépés, a gomb a címet nem nyitja meg.
+   * A mentés és a bezárás lezárja a sort: utánuk nem fut le több lépés.
+   */
+  actions?: ButtonAction[];
 }
+
+/** A gomb egy lépése: mező értékének beállítása, mentés vagy bezárás. */
+export type ButtonAction =
+  | {
+      type: 'setValue';
+      /** A mező InternalName-je. */
+      field: string;
+      /** Az érték a kezdőérték formátumában (form-string; dátumnál `[today]`, személynél `[me]` is). */
+      value: string;
+    }
+  | { type: 'save' }
+  | { type: 'close' };
+
+export type ButtonActionType = ButtonAction['type'];
+
+export const BUTTON_ACTION_TYPES: ButtonActionType[] = ['setValue', 'save', 'close'];
+
+/** A mező nélküli elemek fajtái: felirat (sima szöveg) és gomb. */
+export type LayoutElementKind = 'text' | 'button';
 
 export interface IFormConfig {
   schemaVersion: 2;

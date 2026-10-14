@@ -12,10 +12,11 @@ import { mergeStyleSets } from '@fluentui/react/lib/Styling';
 import * as strings from 'FormJetFormCustomizerStrings';
 
 import { ATTACHMENTS_FIELD } from '../engine/Attachments';
+import { effectiveActions, isButtonSettableField } from '../engine/ButtonAction';
 import { collectGroupIds } from '../engine/ConditionContext';
 import { isEmptyValue } from '../engine/ConditionEngine';
 import { format } from '../engine/EngineStrings';
-import { withTextElements } from '../engine/TextElement';
+import { isLayoutElement, withTextElements } from '../engine/TextElement';
 import { ICurrentUser } from '../engine/UserValue';
 import {
   createDefaultConfig,
@@ -23,10 +24,11 @@ import {
   getInitialValues,
   IResolvedField,
   IResolvedForm,
+  resolveFieldValue,
   resolveForm
 } from '../engine/LayoutResolver';
 import { FieldErrors, FormValues, IFieldSchema } from '../models/IFieldSchema';
-import { FormMode, IFormConfig } from '../models/IFormConfig';
+import { ButtonAction, FormMode, IFormConfig } from '../models/IFormConfig';
 import * as AttachmentService from '../services/AttachmentService';
 import * as ConfigService from '../services/ConfigService';
 import * as GroupService from '../services/GroupService';
@@ -221,6 +223,12 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
   const [designerTab, setDesignerTab] = React.useState<DesignerTab>('layout');
   const [selectedField, setSelectedField] = React.useState<string | undefined>();
   const [designError, setDesignError] = React.useState<string | undefined>();
+  // A gombok műveleteit futtató függvény mindig a legfrissebb állapotot látja; a FormContext a stabil burkolót kapja.
+  const runActionsRef = React.useRef<(actions: ButtonAction[]) => Promise<void>>(() => Promise.resolve());
+  // A gomb műveletével beállított mezők: a mentés ezeket láthatóságtól és szerkeszthetőségtől függetlenül elküldi.
+  // Az űrlap élettartamáig megmaradnak, így ütközés utáni felülírásnál vagy javítás utáni újramentésnél is érvényesek.
+  const buttonSetFields = React.useRef<Set<string>>(new Set<string>());
+  const runActions = React.useCallback((actions: ButtonAction[]): Promise<void> => runActionsRef.current(actions), []);
   // A felhasználó SharePoint csoporttagsága a feltételekben hivatkozott (már lekérdezett) csoportokra.
   const [membership, setMembership] = React.useState<IMembershipState>({ checked: [], memberOf: [], incomplete: false });
   const [siteGroups, setSiteGroups] = React.useState<GroupService.ISiteGroup[] | undefined>();
@@ -425,9 +433,10 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
       setAttachments,
       listUrl: props.listUrl,
       pendingImages,
-      setPendingImage
+      setPendingImage,
+      runButtonActions: runActions
     }),
-    [props.cultureName, props.uiCultureName, props.listUrl, mode, itemId, loaded, attachments, pendingImages, setPendingImage]
+    [props.cultureName, props.uiCultureName, props.listUrl, mode, itemId, loaded, attachments, pendingImages, setPendingImage, runActions]
   );
 
   const onFieldChange = React.useCallback((name: string, value: string): void => {
@@ -463,8 +472,17 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
     return true;
   };
 
-  const save = async (overwrite: boolean): Promise<void> => {
-    if (!loaded || !resolved || mode === 'display') {
+  /**
+   * Mentés. A gomb műveletei a frissen beállított értékekkel hívják (`valuesOverride`), mert az állapot
+   * frissítése ekkor még nem futott le; ilyenkor a láthatóságot és a szerkeszthetőséget is ezekre számoljuk.
+   */
+  const save = async (overwrite: boolean, valuesOverride?: FormValues): Promise<void> => {
+    const currentValues: FormValues = valuesOverride ?? values;
+    const currentResolved: IResolvedForm | undefined =
+      valuesOverride && loaded && activeConfig
+        ? resolveForm(loaded.schema, activeConfig, mode, currentValues, membership.memberOf, loaded.isAuthor)
+        : resolved;
+    if (!loaded || !currentResolved || mode === 'display') {
       return;
     }
     // Az elem már mentve van, csak a sikertelen mellékleteket próbáljuk újra (új elemnél így nem jön létre másolat).
@@ -482,8 +500,9 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
       }
       return;
     }
-    const visibleFields: IResolvedField[] = flattenFields(resolved).filter((field) => field.visible);
-    const editableFields: IResolvedField[] = visibleFields.filter((field) => !field.readOnly);
+    const visibleFields: IResolvedField[] = flattenFields(currentResolved).filter((field) => field.visible);
+    // A mező nélküli elemek (felirat, gomb) nem értékek: a gomb nem letiltva sem kerülhet az ellenőrzésbe vagy a mentésbe.
+    const editableFields: IResolvedField[] = visibleFields.filter((field) => !field.readOnly && !isLayoutElement(field.schema));
 
     // 1. Kliens oldali ellenőrzés: a látható, kötelező mezők nem lehetnek üresek.
     const validationErrors: FieldErrors = {};
@@ -491,7 +510,7 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
       const empty: boolean =
         field.schema.TypeAsString === ATTACHMENTS_FIELD
           ? attachments.existing.length - attachments.removed.length + attachments.added.length === 0
-          : isEmptyValue(values[field.name]);
+          : isEmptyValue(currentValues[field.name]);
       if (field.required && empty) {
         validationErrors[field.name] = TEXT.required;
       }
@@ -504,15 +523,23 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
 
     // 2. Csak a látható, szerkeszthető és módosult mezők kerülnek a mentésbe.
     //    Rejtett mező értékét soha nem küldjük el, mert felülírná a szerveroldali értéket.
+    //    Kivétel: a gomb műveletével kifejezetten beállított mező (buttonSetFields) akkor is mentődik, ha az űrlapon
+    //    rejtett vagy csak olvasható – ezt a tervező szándékosan állította be (2. kulcsdöntés, egyeztetett kivétel).
     const changed: FormValues = {};
     //    A mellékletek nem mezőérték: külön, az elem mentése után kerülnek fel.
     editableFields.forEach((field) => {
       if (field.schema.TypeAsString === ATTACHMENTS_FIELD) {
         return;
       }
-      const current: string = values[field.name] ?? '';
+      const current: string = currentValues[field.name] ?? '';
       if (current !== (loaded.original[field.name] ?? '')) {
         changed[field.name] = current;
+      }
+    });
+    buttonSetFields.current.forEach((name) => {
+      const current: string = currentValues[name] ?? '';
+      if (changed[name] === undefined && current !== (loaded.original[name] ?? '')) {
+        changed[name] = current;
       }
     });
     const attachmentsEditable: boolean = editableFields.some((field) => field.schema.TypeAsString === ATTACHMENTS_FIELD);
@@ -609,6 +636,42 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
       setSaving(false);
     }
   };
+
+  /**
+   * A gomb műveletei sorban, egymás után: minden lépés megvárja az előzőt. A beállított értékek egy munkapéldányon
+   * gyűlnek, és a mentés ezzel fut, így nem a még nem frissült állapotot menti. Mentés vagy bezárás után nem fut
+   * több lépés; sikertelen mentésnél a form nyitva marad.
+   */
+  const runButtonActions = async (actions: ButtonAction[]): Promise<void> => {
+    if (!loaded) {
+      return;
+    }
+    let working: FormValues = values;
+    for (const action of effectiveActions(actions)) {
+      if (action.type === 'setValue') {
+        const fieldSchema: IFieldSchema | undefined = loaded.schema.filter((field) => field.InternalName === action.field)[0];
+        // Megtekintéskor nincs mit menteni. A nem létező, a SharePointban csak olvasható vagy nem form-string értékű
+        // mezőnél (mellékletek, kép) a lépés kimarad.
+        if (mode === 'display' || !fieldSchema || !isButtonSettableField(fieldSchema)) {
+          continue;
+        }
+        const value: string = resolveFieldValue(fieldSchema, action.value, props.cultureName, new Date(), currentUser);
+        working = { ...working, [action.field]: value };
+        // A mező akkor is mentődik, ha az űrlapon rejtett vagy csak olvasható (lásd save, 2. lépés).
+        buttonSetFields.current.add(action.field);
+        onFieldChange(action.field, value);
+      } else if (action.type === 'save') {
+        if (mode !== 'display') {
+          await save(false, working);
+        }
+        return;
+      } else {
+        props.onClosed();
+        return;
+      }
+    }
+  };
+  runActionsRef.current = runButtonActions;
 
   const startDesign = (): void => {
     if (!loaded) {

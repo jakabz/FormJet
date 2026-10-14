@@ -1,7 +1,14 @@
 import { IFieldSchema } from '../../models/IFieldSchema';
 import { IFormConfig } from '../../models/IFormConfig';
 import { getInitialValues, isEditableField, parseConfig, resolveForm, unplacedFields } from '../LayoutResolver';
-import { addTextElement, isTextElement, removeTextElement, TEXT_ELEMENT_TYPE, withTextElements } from '../TextElement';
+import {
+  addTextElement,
+  BUTTON_ELEMENT_TYPE,
+  isTextElement,
+  removeTextElement,
+  TEXT_ELEMENT_TYPE,
+  withTextElements
+} from '../TextElement';
 import { configJson, field, getField } from './helpers';
 
 function load(patch: Record<string, unknown> = {}): IFormConfig {
@@ -103,5 +110,48 @@ describe('TextElement – szövegelemek', () => {
     });
     expect(getInitialValues(schema, config, 'hu-HU')).toEqual({});
     expect(resolveForm(schema, config, 'new', {}).missingFields).toEqual(['text:9']);
+  });
+});
+
+describe('TextElement – gombok', () => {
+  const schema: IFieldSchema[] = [field('Title', 'Text', { Required: true })];
+
+  it('addTextElement: a gomb saját előtagot és sorszámot kap, a felirat számozása független tőle', () => {
+    const base = load({ sections: [{ id: 'a', columns: 1, fields: [] }], texts: { 'text:1': { name: 'Első felirat' } } });
+    const added = addTextElement(base, 'Megnyitás', 'a', 'button');
+    expect(added.id).toBe('button:1');
+    expect(added.config.texts?.['button:1']).toEqual({ kind: 'button', name: 'Megnyitás' });
+    expect(addTextElement(added.config, 'Második felirat', 'a').id).toBe('text:2');
+    expect(withTextElements(schema, added.config).map((item) => item.TypeAsString)).toEqual(['Text', TEXT_ELEMENT_TYPE, BUTTON_ELEMENT_TYPE]);
+  });
+
+  it('parseConfig: a gomb címe és új lapos megnyitása megmarad; a fajta és az előtag összetartozik', () => {
+    const config = load({ texts: { 'button:1': { kind: 'button', name: 'Súgó', url: ' https://contoso.com ', newTab: true, content: 'x' } } });
+    expect(config.texts).toEqual({ 'button:1': { kind: 'button', name: 'Súgó', url: 'https://contoso.com', newTab: true } });
+    expect(parseConfig(configJson({ texts: { 'button:1': { name: 'x' } } })).error).toContain('texts.button:1');
+    expect(parseConfig(configJson({ texts: { 'text:1': { kind: 'button', name: 'x' } } })).error).toContain('texts.text:1');
+    expect(parseConfig(configJson({ texts: { 'button:1': { kind: 'link', name: 'x' } } })).error).toBeDefined();
+  });
+
+  it('resolveForm: a gomb megtekintéskor is használható; a letiltást csak a beállítás adja; soha nem kötelező', () => {
+    const config = load({
+      sections: [{ id: 'a', columns: 1, fields: [{ field: 'Title' }, { field: 'button:1' }] }],
+      fields: {
+        'button:1': {
+          readOnlyIn: ['new'],
+          readOnlyWhen: { field: 'Title', op: 'empty' },
+          requiredIn: ['edit']
+        }
+      },
+      texts: { 'button:1': { kind: 'button', name: 'Súgó', url: '/sites/x/help.aspx' } }
+    });
+    const display = getField(resolveForm(schema, config, 'display', { Title: 'x' }), 'button:1');
+    expect([display.readOnly, display.required, display.label]).toEqual([false, false, 'Súgó']);
+    expect(display.button).toEqual({ url: '/sites/x/help.aspx', newTab: false, icon: undefined, actions: [] });
+    expect(getField(resolveForm(schema, config, 'edit', { Title: 'x' }), 'button:1').readOnly).toBe(false);
+    expect(getField(resolveForm(schema, config, 'edit', {}), 'button:1').readOnly).toBe(true);
+    expect(getField(resolveForm(schema, config, 'new', { Title: 'x' }), 'button:1').readOnly).toBe(true);
+    expect(getField(resolveForm(schema, config, 'edit', { Title: 'x' }), 'button:1').required).toBe(false);
+    expect(getField(resolveForm(schema, config, 'edit', {}), 'Title').button).toBeUndefined();
   });
 });

@@ -43,7 +43,7 @@ const DEFAULT_STRINGS: IEngineStrings = {
   InvalidListId: '{0}: must be a list id (GUID).',
   InvalidFieldName: '{0}: must be the internal name of a field.',
   InvalidGradientColors: '{0}: must contain exactly two hex colors.',
-  InvalidText: '{0}: the id of a text element must start with "text:", and the element must have a "name".'
+  InvalidText: '{0}: the id of a label must start with "text:", the id of a button with "button:" (with "kind": "button"), and the element must have a "name".'
 };
 
 let current: IEngineStrings = DEFAULT_STRINGS;

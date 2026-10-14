@@ -8,6 +8,7 @@ import * as strings from 'FormJetFormCustomizerStrings';
 
 import { backgroundCss, contrastTextColor, hasBox } from '../engine/FormStyle';
 import { IResolvedField, IResolvedForm, IResolvedSection } from '../engine/LayoutResolver';
+import { isButtonElement } from '../engine/TextElement';
 import { FieldErrors, FormValues } from '../models/IFieldSchema';
 import { Density, IBoxStyle, IFieldStyle, IFormStyle, ISectionStyle } from '../models/IFormConfig';
 import { FieldRenderer } from './FieldRenderer';
@@ -150,7 +151,8 @@ export const FormRenderer: React.FC<IFormRendererProps> = (props) => {
     if (!field.visible && !showHidden) {
       return undefined;
     }
-    const classNames: string[] = [cellClass(field.colSpan, field.style)];
+    // A gomb stílusa magára a gombra vonatkozik (FieldRenderer), a cella keret és háttér nélkül marad.
+    const classNames: string[] = [cellClass(field.colSpan, isButtonElement(field.schema) ? {} : field.style)];
     // Rejtett szekcióban a szekció már halvány, a mezőt nem halványítjuk még egyszer.
     if (!field.visible && section.visible) {
       classNames.push(classes.hidden);
@@ -169,6 +171,7 @@ export const FormRenderer: React.FC<IFormRendererProps> = (props) => {
           displayValue={props.displayValues?.[field.name]}
           error={props.errors[field.name]}
           onChange={props.onChange}
+          designing={!!props.onFieldSelect}
         />
       )
     };

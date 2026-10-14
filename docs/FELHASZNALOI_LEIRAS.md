@@ -170,18 +170,48 @@ Az **Elrendezés** fül tetején, a **Nem elhelyezett mezők** alatt azok a mez�
 
 Ami nincs egyetlen szekcióban sem, az nem jelenik meg az űrlapon. A **mellékletek** is így vehetők fel: a mentett elrendezésekben a nem elhelyezett mezők között találod.
 
-### Szöveg elhelyezése az űrlapon
+### Felirat elhelyezése az űrlapon
 
-Az űrlapra olyan szöveg is tehető, amely mögött nincs SharePoint oszlop: például útmutató, figyelmeztetés vagy magyarázat. Az ilyen szövegelemből bármennyi felvehető.
+Az űrlapra olyan szöveg (felirat) is tehető, amely mögött nincs SharePoint oszlop: például útmutató, figyelmeztetés vagy magyarázat. Feliratból bármennyi felvehető.
 
-1. Az **Elrendezés** fülön írd be **Az új szöveg megnevezése** mezőbe, hogyan hívod (például „Kitöltési útmutató”), majd kattints a **Szöveg hozzáadása** gombra. A megnevezés csak a tervezőben látszik, az űrlapon nem.
-2. A szövegelem a nyitott szekció végére kerül (ha egyik sincs nyitva, az utolsóéra), és megnyílik a **Mező** fül.
+1. Az **Elrendezés** fülön nyisd ki annak a szekciónak a kártyáját, amelybe a feliratot szánod, és kattints az alján (a **Mező hozzáadása…** lista alatt) a **Felirat hozzáadása** gombra.
+2. A felugró ablakban add meg, hogyan hívod a feliratot (például „Kitöltési útmutató”), majd kattints a **Felirat hozzáadása** gombra (vagy nyomj Entert). A megnevezés csak a tervezőben látszik, az űrlapon nem. A felirat a szekció végére kerül, és megnyílik a **Mező** fül.
 3. A **Tartalom** mezőbe írd be az űrlapon megjelenő szöveget. Sima szöveg, formázás nélkül; a sortörések megmaradnak.
 4. A **Látható ezekben a módokban** jelölőkkel add meg, hogy új elemnél, szerkesztéskor és megtekintéskor látszódjon-e; a **Látható, ha** feltétellel mezőértékhez is kötheted.
 
-A szövegelem ezután ugyanúgy viselkedik, mint egy mező: húzással áthelyezhető, a szekció kártyáján állítható a szélessége, és a **Stílus** fülön háttérszínt, keretet és betűszínt kaphat. A Mező és a Stílus fül mezőlistájában a megnevezésével szerepel.
+A felirat ezután ugyanúgy viselkedik, mint egy mező: húzással áthelyezhető, a szekció kártyáján állítható a szélessége, és a **Stílus** fülön háttérszínt, keretet és betűszínt kaphat. A Mező és a Stílus fül mezőlistájában a megnevezésével szerepel.
 
-Egy szövegelem egyszer helyezhető el. Ha kiveszed a szekcióból, a nem elhelyezett mezők közé kerül; végleg a Mező fül **Szövegelem törlése** gombjával törölhető. A szövegelem csak megjelenik: a listába semmit nem ment, és feltételben nem lehet rá hivatkozni.
+Egy felirat egyszer helyezhető el. Ha kiveszed a szekcióból, a nem elhelyezett mezők közé kerül; végleg a Mező fül **Felirat törlése** gombjával törölhető. A felirat csak megjelenik: a listába semmit nem ment, és feltételben nem lehet rá hivatkozni.
+
+### Gomb elhelyezése az űrlapon
+
+A gomb kattintásra vagy a beállított műveleteket hajtja végre (például beállít egy mezőt, majd ment), vagy egy webcímet nyit meg, például egy súgóoldalt, egy kapcsolódó listát vagy egy e-mail-címet.
+
+1. A szekció kártyájának alján kattints a **Gomb hozzáadása** gombra, és a felugró ablakban add meg a gomb feliratát. Ez a felirat látszik a gombon.
+2. Az **Ikon** mezőben megadhatsz egy Fluent UI ikonnevet (például `Save`, `Send`, `Accept`, `Mail`); az ikon a felirat előtt jelenik meg, és a mező mellett előnézetben is látszik.
+3. A **Műveletek beállítása** gombbal állíthatod össze, mit csináljon a gomb (lásd lent). Ha nincs művelet, a gomb a webcímet nyitja meg.
+4. A **Mező** fülön add meg a **Webcím (URL)** értékét: `http://` vagy `https://` kezdetű cím, `mailto:` cím, vagy a webhelyen belüli cím (például `/sites/beszerzes/Lists/Szallitok`). Más cím nem nyitható meg; ilyenkor a mező alatt hibaüzenet jelenik meg. A **Megnyitás új lapon** jelölővel a cím új böngészőlapon nyílik meg.
+5. A **Látható ezekben a módokban** és a **Látható, ha** beállítással adod meg, mikor látszik a gomb; a **Letiltva ezekben a módokban** és a **Letiltva, ha** beállítással pedig azt, mikor szürke és nem kattintható.
+
+A gomb megtekintéskor is használható. A **Stílus** fülön beállított háttér, keret és betűszín magára a gombra vonatkozik. A tervező előnézetében a gomb nem csinál semmit, a kattintás csak kijelöli. A gomb végleg a Mező fül **Gomb törlése** gombjával törölhető.
+
+#### A gomb műveletei
+
+A **Műveletek beállítása** gomb felugró ablakában lépéseket veszel fel (**Lépés hozzáadása**), és mindegyiknél kiválasztod a műveletet:
+
+| Művelet | Mit csinál |
+| --- | --- |
+| Mező értékének beállítása | A kiválasztott mezőbe beírja a megadott értéket. Választás mezőnél a mező értékei közül választasz (több választásnál többet is), igen/nem mezőnél Igen vagy Nem közül; más mezőnél az érték formátuma ugyanaz, mint a kezdőértéknél (dátumnál `[today]`, személynél `[me]` is). |
+| Mentés | Elmenti az űrlapot, ugyanúgy, mint a Mentés gomb (a kötelező mezők ellenőrzésével), és sikeres mentés után bezárja. |
+| Bezárás mentés nélkül | Bezárja az űrlapot, a módosítások elvesznek. |
+
+- A lépések **sorrendben, egymás után** futnak le: a következő csak az előző befejezése után indul, így a mentés már a frissen beállított értékekkel történik. A sorrend a lépés fejlécében lévő nyilakkal változtatható.
+- A **Mentés** és a **Bezárás** lezárja a sort: utánuk nem fut le több lépés (a felugró ablak ezt figyelmeztetéssel jelzi). Ha a mentés nem sikerül (például hiányzik egy kötelező mező), az űrlap nyitva marad, és a hibák a szokott módon látszanak.
+- A gomb által beállított érték akkor is elmentődik, ha a mező az űrlapon **rejtett vagy csak olvasható** – így például egy rejtett „Állapot” mező is „Jóváhagyva”-ra állítható. (Minden más esetben az űrlap csak a látható, szerkeszthető mezőket menti.) A SharePointban eleve nem írható mezők (például Létrehozva) és a mellékletek, képek nem választhatók.
+- Futás közben a gomb le van tiltva, így véletlenül sem indul el kétszer.
+- Megtekintéskor csak a Bezárás fut le (megtekintéskor nincs mit menteni).
+
+**Példa:** „Jóváhagyás” gomb. 1. lépés: Mező értékének beállítása – Állapot – `Jóváhagyva`; 2. lépés: Mező értékének beállítása – Jóváhagyás dátuma – `[today]`; 3. lépés: Mentés.
 
 ### A szekció beállításai
 
@@ -326,7 +356,7 @@ Ha egy mód stílusát szerkeszted, az előnézet módját is állítsd ugyanarr
 | Űrlap | Kiemelő szín (a cím és a szekciófejlécek színe), maximális szélesség, térköz (szellős / tömör), szekciófejléc típusa (aláhúzott / színes sáv / egyszerű) |
 | Szekció | Fejléc színe |
 | Mező | Címke színe |
-| Szövegelem | Betűszín (a címke színe helyett) |
+| Felirat, gomb | Betűszín (a címke színe helyett); gombnál a háttér, a keret és a betűszín magára a gombra vonatkozik |
 | Mindhárom | Háttér (egyszínű, lineáris vagy sugaras színátmenet), keretszín, keret vastagsága, lekerekítés |
 
 A színeket a színválasztóval vagy kóddal (`#0078d4`) adhatod meg. Színátmenetnél kezdő és záró színt választasz, lineárisnál az irányt is.

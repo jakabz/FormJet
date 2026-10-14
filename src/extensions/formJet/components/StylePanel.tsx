@@ -23,7 +23,7 @@ import {
   normalizeHexColor,
   StyleScope
 } from '../engine/FormStyle';
-import { isTextElement } from '../engine/TextElement';
+import { isLayoutElement } from '../engine/TextElement';
 import { IFieldSchema } from '../models/IFieldSchema';
 import {
   GradientType,
@@ -486,8 +486,8 @@ export const StylePanel: React.FC<IStylePanelProps> = (props) => {
         {fieldSchema && (
           <>
             <BoxFields style={fieldStyle} inherited={fieldBase} onChange={setFieldStyle} />
-            {/* A szövegelemnek nincs címkéje; ott a szöveg színe állítható. */}
-            {isTextElement(fieldSchema) ? (
+            {/* A feliratnak és a gombnak nincs címkéje; ott a szöveg színe állítható. */}
+            {isLayoutElement(fieldSchema) ? (
               <ColorField
                 label={strings.StyleTextColor}
                 value={fieldStyle.textColor}

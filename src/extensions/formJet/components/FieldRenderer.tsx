@@ -9,7 +9,8 @@ import { Label } from '@fluentui/react/lib/Label';
 import { Spinner, SpinnerSize } from '@fluentui/react/lib/Spinner';
 import { TextField } from '@fluentui/react/lib/TextField';
 import { Toggle } from '@fluentui/react/lib/Toggle';
-import { mergeStyleSets } from '@fluentui/react/lib/Styling';
+import { DefaultButton, IButtonStyles } from '@fluentui/react/lib/Button';
+import { IRawStyle, mergeStyleSets } from '@fluentui/react/lib/Styling';
 
 import * as strings from 'FormJetFormCustomizerStrings';
 
@@ -18,11 +19,15 @@ import { joinMultiValue, splitMultiValue } from '../engine/ConditionEngine';
 import { IResolvedField } from '../engine/LayoutResolver';
 import { formatLocationValue } from '../engine/LocationValue';
 import { getCurrencyAffix, ICurrencyAffix } from '../engine/NumberFormat';
-import { isTextElement } from '../engine/TextElement';
+import { backgroundCss } from '../engine/FormStyle';
+import { isButtonElement, isTextElement } from '../engine/TextElement';
+import { isSafeUrl } from '../engine/UrlValue';
 import { formatUserValue } from '../engine/UserValue';
 import { IFieldSchema } from '../models/IFieldSchema';
+import { ButtonAction, IFieldStyle } from '../models/IFormConfig';
 import { AttachmentsField } from './AttachmentsField';
 import { DateTimeField } from './DateTimeField';
+import { FormContext } from './FormContext';
 import { ImageField } from './ImageField';
 import { LocationField } from './LocationField';
 import { LookupField } from './LookupField';
@@ -64,6 +69,31 @@ export interface IFieldRendererProps {
   displayValue?: string;
   error?: string;
   onChange: (name: string, value: string) => void;
+  /** Tervező előnézet: a gomb nem navigál. */
+  designing?: boolean;
+}
+
+/** A gomb saját stílusa a mező stílusából (háttér, betűszín, keret); a vezérlő alapstílusát csak a megadott részek írják felül. */
+function buttonStyles(style: IFieldStyle): IButtonStyles | undefined {
+  const borderWidth: number | undefined = style.borderWidth ?? (style.borderColor ? 1 : undefined);
+  const box: IRawStyle = {
+    background: backgroundCss(style),
+    color: style.textColor,
+    borderColor: style.borderColor,
+    borderWidth,
+    borderStyle: borderWidth !== undefined ? 'solid' : undefined,
+    borderRadius: style.borderRadius
+  };
+  if (Object.keys(box).every((key) => (box as Record<string, unknown>)[key] === undefined)) {
+    return undefined;
+  }
+  // Rámutatáskor és lenyomva a megadott színek maradnak, enyhén sötétítve.
+  return {
+    root: box,
+    rootHovered: { ...box, filter: 'brightness(0.95)' },
+    rootPressed: { ...box, filter: 'brightness(0.9)' },
+    label: { color: style.textColor }
+  };
 }
 
 function formatReadOnly(schema: IFieldSchema, value: string): string {
@@ -105,6 +135,54 @@ function choiceOptions(schema: IFieldSchema, selected: string[], withEmpty: bool
   return withEmpty ? [{ key: '', text: '' }, ...options] : options;
 }
 
+/**
+ * Gomb: ha vannak műveletei, azokat futtatja sorban (a futás végéig le van tiltva), egyébként a megadott címet nyitja
+ * meg. A tervezőben semmit nem csinál, hogy a kattintás csak kijelölje az elemet.
+ */
+const ButtonElement: React.FC<{ field: IResolvedField; designing: boolean }> = ({ field, designing }) => {
+  const { runButtonActions } = React.useContext(FormContext);
+  const [running, setRunning] = React.useState<boolean>(false);
+  const button = field.button;
+  const actions: ButtonAction[] = button?.actions ?? [];
+  // Ha vannak műveletek, a cím nem számít.
+  const url: string | undefined =
+    actions.length === 0 && button?.url && isSafeUrl(button.url) ? button.url : undefined;
+  const newTab: boolean = !!button?.newTab && url !== undefined;
+
+  const mounted = React.useRef<boolean>(true);
+  React.useEffect(
+    () => () => {
+      mounted.current = false;
+    },
+    []
+  );
+
+  const onClick = (): void => {
+    if (designing || actions.length === 0 || running) {
+      return;
+    }
+    setRunning(true);
+    runButtonActions(actions)
+      .catch(() => undefined)
+      // A bezárással vagy mentéssel a form lebomolhat; a gomb állapotát csak akkor állítjuk vissza, ha még látszik.
+      .then(() => mounted.current && setRunning(false))
+      .catch(() => undefined);
+  };
+
+  return (
+    <DefaultButton
+      text={field.label}
+      iconProps={button?.icon ? { iconName: button.icon } : undefined}
+      disabled={field.readOnly || running}
+      href={designing || field.readOnly ? undefined : url}
+      target={newTab ? '_blank' : undefined}
+      rel={newTab ? 'noopener noreferrer' : undefined}
+      styles={buttonStyles(field.style)}
+      onClick={onClick}
+    />
+  );
+};
+
 export const FieldRenderer: React.FC<IFieldRendererProps> = (props) => {
   const { field, value, displayValue, error } = props;
   const { schema, label, required, description, placeholder } = field;
@@ -124,6 +202,11 @@ export const FieldRenderer: React.FC<IFieldRendererProps> = (props) => {
   // Szövegelem: nincs mögötte mező, csak a tervezőben megadott szöveg jelenik meg (címke nélkül).
   if (isTextElement(schema)) {
     return <div className={classes.textElement}>{field.text ?? ''}</div>;
+  }
+
+  // Gomb: a megnevezése a felirata. A stílus magára a gombra vonatkozik.
+  if (isButtonElement(schema)) {
+    return <ButtonElement field={field} designing={!!props.designing} />;
   }
 
   // Rich text Note: szerkesztve és csak olvashatóként is a TipTap jeleníti meg a HTML-t.

@@ -3,6 +3,7 @@
 import * as React from 'react';
 
 import { FormValues } from '../models/IFieldSchema';
+import { ButtonAction } from '../models/IFormConfig';
 import { IAttachmentFile } from '../services/AttachmentService';
 
 /** A mellékletek állapota a formon; a változások a form mentésekor hajtódnak végre. */
@@ -33,6 +34,8 @@ export interface IFormContext {
   /** Kiválasztott, de még fel nem töltött képek, a mező InternalName-je szerint. */
   pendingImages: Record<string, File>;
   setPendingImage: (fieldName: string, file: File | undefined) => void;
+  /** A gomb műveleteinek futtatása (sorban, egymás után); a tervező előnézetében nem hívódik. */
+  runButtonActions: (actions: ButtonAction[]) => Promise<void>;
 }
 
 export const FormContext: React.Context<IFormContext> = React.createContext<IFormContext>({
@@ -42,5 +45,6 @@ export const FormContext: React.Context<IFormContext> = React.createContext<IFor
   attachments: EMPTY_ATTACHMENTS,
   setAttachments: () => undefined,
   pendingImages: {},
-  setPendingImage: () => undefined
+  setPendingImage: () => undefined,
+  runButtonActions: () => Promise.resolve()
 });

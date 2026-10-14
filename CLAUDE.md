@@ -45,6 +45,7 @@ src/extensions/formJet/
   FormJetFormCustomizer.ts   SPFx belépési pont: mód, lista, elem → FormHost; formSaved()/formClosed()
   models/                    IFormConfig (konfigurációs séma), IFieldSchema (mezőséma, FormValues, FieldErrors)
   engine/                    TISZTA LOGIKA, SharePoint és React nélkül
+    ButtonAction.ts          a gomb műveletei (mező értékének beállítása, mentés, bezárás): ellenőrzés, a lefutó lépések; ikonnév ellenőrzése
     Attachments.ts           mellékletek: a pszeudo-mező neve, fájlnevek ellenőrzése, képfájl felismerése, fájlméret formázása
     ConditionalValue.ts      feltételes értékek (címke, leírás, helykitöltő, kezdőérték): az első teljesülő szabály kiválasztása, a `conditional` ellenőrzése
     ConditionContext.ts      a feltételek környezeti változói: a form módja (`[IsNewMode]` …), csoporttagság (`[Group:5]`); a csoporttagok claimjeinek értelmezése
@@ -87,6 +88,7 @@ src/extensions/formJet/
     DesignCanvas.tsx         a tervező húzd-és-ejtsd felülete: áthelyezhető előnézet + a nem elhelyezett mezők behúzható listája (dnd-kit, lazy chunk)
     FieldRenderer.tsx        mezőtípus → vezérlő
     AttachmentsField.tsx     mellékletek: fájlok listája miniatűrrel és mérettel, hozzáadás (fájlválasztó vagy ráhúzás), törlés; a változások mentéskor hajtódnak végre
+    ButtonActionsEditor.tsx  a gomb műveleteinek felugró lépésszerkesztője a tervezőben
     ConditionalValueEditor.tsx  a Mező fül szöveges beállításai melletti gomb + felugró ablak a feltételes értékek szabályaihoz
     ConditionEditor.tsx      feltételszerkesztő a tervezőben: vizuális sorok, összetett feltételnél JSON
     DateTimeField.tsx        DateTime mező: Fluent DatePicker (+ TimePicker, ha a mező időt is tárol)
@@ -117,6 +119,7 @@ Rétegszabályok:
 
 1. **Mentés `validateUpdateListItem`-mel** (új elemnél `addValidateUpdateItemUsingPath`). Minden érték **form-string** formátumú, ugyanaz, amit a `FieldValuesForEdit` visszaad. Ne válts típusonkénti REST payloadra (`items.add` / `item.update` objektumokkal) a cél listán.
 2. **Csak a látható, szerkeszthető és módosult mezők** kerülnek a mentésbe. Rejtett mező értékét soha ne küldd el, mert az felülírná a szerveroldali értéket.
+   **Egyetlen, egyeztetett kivétel:** a gomb „mező értékének beállítása” lépésével kifejezetten beállított mező (`FormHost` `buttonSetFields`) akkor is mentődik, ha az űrlapon rejtett vagy csak olvasható – de csak módosult értékkel, és csak a SharePoint szerint írható mezőnél (`isButtonSettableField`). Ezt a kivételt ne bővítsd más esetre egyeztetés nélkül.
 3. **A kötelezőség csak szigorítható.** Ha a SharePoint mezőt kötelezőnek jelöli, kliens oldalon nem tehető opcionálissá.
 4. **A form nem jogosultsági határ.** Az admin ellenőrzés (`PermissionService`) csak a tervező gombot rejti; a valódi védelem a `FormConfigurations` lista jogosultsága. Ne állíts be biztonsági funkcióként kliens oldali rejtést.
 5. **A konfiguráció kulcsa a mező `InternalName`-je**, nem a címe.
@@ -133,7 +136,7 @@ A típusok forrása: `models/IFormConfig.ts`. Példa: `samples/config-example.js
 
 - Séma módosításakor emeld a `schemaVersion`-t, és bővítsd a `parseConfig`-ot migrációval a régi verzióról. A mentett konfigurációk éles listákban vannak, nem törhetnek el.
 - Új stílustulajdonság: típus az `IFormStyle` / `ISectionStyle` / `IFieldStyle`-ban + a `FormStyle.ts` megfelelő `*_STYLE_SPEC`-je + alkalmazás a `FormRenderer`-ben + vezérlő a `StylePanel`-ben + a fejlesztői leírás 6. fejezete. Opcionális mezőként nem kell sémaverziót emelni.
-- Szövegelemek (`texts`, `engine/TextElement.ts`): a formon megjelenő sima szöveg, amely mögött nincs SharePoint mező. `text:` előtagú azonosítóval pszeudo-mezőként kerül a sémába (`withTextElements`, `FormJetText` típus, csak olvasható), ezért mezőként helyezhető el, egyszer. A láthatósága és a stílusa a `fields` azonos kulcsú bejegyzésében van. Értéke nincs: a mentésbe nem kerülhet, feltétel nem hivatkozhat rá. A tartalom sima szöveg; HTML-ként megjeleníteni vagy formázhatóvá tenni egyeztetést igényel.
+- Szövegelemek (`texts`, `engine/TextElement.ts`): felirat (a formon megjelenő sima szöveg) és gomb (`kind: 'button'`, `button:` azonosító, egy biztonságos címet nyit meg; a `readOnlyIn` / `readOnlyWhen` a letiltását jelenti), amelyek mögött nincs SharePoint mező. A gomb ikont (`icon`, Fluent ikonnév) és műveleteket (`actions`: `setValue` / `save` / `close`, `engine/ButtonAction.ts`) kaphat; ha van művelet, a cím nem számít. A műveleteket a `FormHost.runButtonActions` futtatja sorban, `await`-tel; a mentés a beállított értékek munkapéldányával fut (`save(false, working)`), a `save` és a `close` lezárja a sort. A gomb által beállított mező az űrlapon rejtett vagy csak olvasható állapotában is mentődik (a 2. kulcsdöntés egyeztetett kivétele). A gombhoz szkript (`onClick` kód) nem köthető: a konfiguráció nem tartalmazhat végrehajtható kódot. `text:` előtagú azonosítóval pszeudo-mezőként kerül a sémába (`withTextElements`, `FormJetText` típus, csak olvasható), ezért mezőként helyezhető el, egyszer. A láthatósága és a stílusa a `fields` azonos kulcsú bejegyzésében van. Értéke nincs: a mentésbe nem kerülhet, feltétel nem hivatkozhat rá. A tartalom sima szöveg; HTML-ként megjeleníteni vagy formázhatóvá tenni egyeztetést igényel.
 - Környezeti változók a feltételekben (`engine/ConditionContext.ts`): a `field` helyén `[IsNewMode]`, `[IsEditMode]`, `[IsDisplayMode]` (a form módja), `[IsAuthor]` (a felhasználó az elem létrehozója; New módban mindig igaz) és `[Group:<azonosító>]` (SharePoint csoporttagság) is állhat, igen / nem (`1` / `0`) értékkel. A `resolveForm` teszi őket a mezőértékek mellé; a csoporttagságot a `FormHost` kérdezi le előre (`GroupService.getMembership`), a `resolveForm` szinkron marad. A csoporttagságra épülő feltétel sem jogosultsági határ (4. kulcsdöntés).
 - Feltételes értékek (`IFieldConfig.conditional` és `ISectionConfig.conditional`, `engine/ConditionalValue.ts`): a mező címkéje, leírása, helykitöltője és kezdőértéke, valamint a szekció címe és leírása szabálylistát kaphat (`{ when, value }`), az első teljesülő szabály érvényes, egyébként az alapérték. A címke, a leírás és a helykitöltő a `resolveForm`-ban oldódik fel; a kezdőérték szabályai csak New módban, a megnyitáskor értékelődnek ki (`getInitialValues`).
 - Új feltétel-operátor: `ConditionOperator` típus + `ConditionEngine.evalField` + felirat a `ConditionEditor` `operatorLabels` függvényében (és a loc fájlokban) + a JSON mód súgószövege (`ConditionHelp`) + teszt.
