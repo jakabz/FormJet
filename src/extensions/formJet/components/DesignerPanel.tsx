@@ -8,7 +8,9 @@ import { Checkbox } from '@fluentui/react/lib/Checkbox';
 import { Dialog, DialogFooter, DialogType } from '@fluentui/react/lib/Dialog';
 import { Dropdown, IDropdownOption } from '@fluentui/react/lib/Dropdown';
 import { Icon } from '@fluentui/react/lib/Icon';
+import { Breadcrumb, IBreadcrumbItem } from '@fluentui/react/lib/Breadcrumb';
 import { Label } from '@fluentui/react/lib/Label';
+import { Link } from '@fluentui/react/lib/Link';
 import { MessageBar, MessageBarType } from '@fluentui/react/lib/MessageBar';
 import { Pivot, PivotItem } from '@fluentui/react/lib/Pivot';
 import { TextField } from '@fluentui/react/lib/TextField';
@@ -18,6 +20,7 @@ import * as strings from 'FormJetFormCustomizerStrings';
 
 import { ATTACHMENTS_FIELD } from '../engine/Attachments';
 import { isButtonSettableField, isIconName } from '../engine/ButtonAction';
+import { findFieldSection } from '../engine/LayoutMoves';
 import { setConditionalValues } from '../engine/ConditionalValue';
 import { AUTHOR_VARIABLE, groupVariable, MODE_VARIABLES } from '../engine/ConditionContext';
 import { variableRef } from '../engine/FormVariables';
@@ -48,10 +51,14 @@ import { ButtonActionsEditor } from './ButtonActionsEditor';
 import { ConditionalValueField } from './ConditionalValueEditor';
 import { ConditionEditor } from './ConditionEditor';
 import { RelatedListEditor } from './RelatedListEditor';
-import { StylePanel } from './StylePanel';
+import { StylePanel, StyleTarget } from './StylePanel';
 import { VariablesPanel } from './VariablesPanel';
 
-export type DesignerTab = 'layout' | 'field' | 'variables' | 'style' | 'json';
+/** A panel fülei; a Változók és a JSON csak az űrlap kijelölésénél látszik. */
+export type DesignerTab = 'properties' | 'style' | 'variables' | 'json';
+
+/** A tervezőben kijelölt elem: az űrlap, egy szakasz vagy egy mező (felirat, gomb is). */
+export type DesignerSelection = StyleTarget;
 
 const MODE_LABELS: Record<FormMode, string> = {
   new: strings.ModeNew,
@@ -79,6 +86,11 @@ const classes = mergeStyleSets({
   hint: { fontSize: 12, color: '#605e5c' },
   // A felirat és a gomb hozzáadása a szekciókártya alján, teljes szélességben.
   addElement: { width: '100%' },
+  toolbar: { display: 'flex', justifyContent: 'flex-end', gap: 4 },
+  tree: { display: 'flex', flexDirection: 'column', gap: 6, padding: '8px 10px', border: '1px solid #edebe9', borderRadius: 2 },
+  treeSection: { fontWeight: 600 },
+  treeFields: { display: 'flex', flexDirection: 'column', gap: 2, padding: '2px 0 0 16px' },
+  treeField: { textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
   iconRow: { display: 'flex', alignItems: 'flex-start', gap: 8 },
   iconName: { flex: 1, minWidth: 0 },
   iconPreview: { fontSize: 20, width: 24, marginTop: 34, color: '#323130' },
@@ -90,8 +102,9 @@ export interface IDesignerPanelProps {
   schema: IFieldSchema[];
   tab: DesignerTab;
   onTabChange: (tab: DesignerTab) => void;
-  selectedField?: string;
-  onSelectField: (name: string | undefined) => void;
+  /** A kijelölt elem; a panel csak ennek a tulajdonságait mutatja. */
+  selection: DesignerSelection;
+  onSelect: (selection: DesignerSelection) => void;
   onChange: (draft: IFormConfig) => void;
   /** A webhely SharePoint csoportjai; a feltételekben a tagságuk vizsgálható. */
   siteGroups: ISiteGroup[];
@@ -174,11 +187,22 @@ const ModeCheckboxes: React.FC<IModeCheckboxesProps> = (props) => {
 };
 
 export const DesignerPanel: React.FC<IDesignerPanelProps> = (props) => {
-  const { draft, schema, selectedField } = props;
+  const { draft, schema } = props;
+  // A nem létező elemre mutató kijelölés (például törlés vagy JSON-csere után) az űrlapra esik vissza.
+  const selection: DesignerSelection = props.selection;
+  const current: DesignerSelection =
+    (selection.kind === 'section' && !draft.sections.some((section) => section.id === selection.id)) ||
+    (selection.kind === 'field' && !schema.some((field) => field.InternalName === selection.name))
+      ? { kind: 'form' }
+      : selection;
+  const selectedField: string | undefined = current.kind === 'field' ? current.name : undefined;
+  // A Változók és a JSON fül csak az űrlapnál van; máshol a Tulajdonságok látszik.
+  const tab: DesignerTab = current.kind !== 'form' && (props.tab === 'variables' || props.tab === 'json') ? 'properties' : props.tab;
+  const select = (next: DesignerSelection): void => props.onSelect(next);
   const [jsonText, setJsonText] = React.useState<string>('');
   const [jsonError, setJsonError] = React.useState<string | undefined>();
-  // Az Elrendezés fülön egyszerre egy szekciókártya van nyitva; alapból az első.
-  const [openSection, setOpenSection] = React.useState<string | undefined>(draft.sections[0]?.id);
+  // A nem elhelyezett mezők sávja összecsukható; alapból nyitva.
+  const [paletteOpen, setPaletteOpen] = React.useState<boolean>(true);
   // Szövegelem felvétele: a felugró ablak melyik szekcióhoz nyílt meg, és a beírt megnevezés.
   const [elementDialog, setElementDialog] = React.useState<{ sectionId: string; kind: LayoutElementKind } | undefined>();
   const [newTextName, setNewTextName] = React.useState<string>('');
@@ -212,7 +236,7 @@ export const DesignerPanel: React.FC<IDesignerPanelProps> = (props) => {
       ...draft,
       sections: [...draft.sections, { id: `section-${n}`, title: strings.NewSection, columns: 1, fields: [] }]
     });
-    setOpenSection(`section-${n}`);
+    select({ kind: 'section', id: `section-${n}` });
   };
 
   const updateField = (name: string, patch: Partial<IFieldConfig>): void => {
@@ -241,9 +265,9 @@ export const DesignerPanel: React.FC<IDesignerPanelProps> = (props) => {
     props.onChange(added.config);
     setElementDialog(undefined);
     setNewTextName('');
-    // A tartalom a Mező fülön adható meg.
-    props.onSelectField(added.id);
-    props.onTabChange('field');
+    // A tartalom az új elem tulajdonságai között adható meg.
+    select({ kind: 'field', name: added.id });
+    props.onTabChange('properties');
   };
 
   // A feltételek és a kapcsolódó elemek csak valódi mezőre hivatkozhatnak; a szövegelemnek nincs értéke.
@@ -313,34 +337,64 @@ export const DesignerPanel: React.FC<IDesignerPanelProps> = (props) => {
     );
   };
 
-  const renderSection = (section: ISectionConfig, index: number): JSX.Element => (
-    <AccordionCard
-      key={section.id}
-      title={section.title || section.id}
-      open={openSection === section.id}
-      onToggle={() => setOpenSection(openSection === section.id ? undefined : section.id)}
-      actions={
-        <>
-          <IconButton
-            iconProps={{ iconName: 'Up' }}
-            title={strings.SectionMoveUp}
-            disabled={index === 0}
-            onClick={() => props.onChange({ ...draft, sections: move(draft.sections, index, index - 1) })}
-          />
-          <IconButton
-            iconProps={{ iconName: 'Down' }}
-            title={strings.SectionMoveDown}
-            disabled={index === draft.sections.length - 1}
-            onClick={() => props.onChange({ ...draft, sections: move(draft.sections, index, index + 1) })}
-          />
-          <IconButton
-            iconProps={{ iconName: 'Delete' }}
-            title={strings.SectionDelete}
-            onClick={() => props.onChange({ ...draft, sections: draft.sections.filter((_, i) => i !== index) })}
-          />
-        </>
-      }
-    >
+  /** Az űrlap tulajdonságai: cím, felépítés (fa nézet, kattintással kijelölhető), tömeges feltétel, új szakasz. */
+  const renderFormProps = (): JSX.Element => (
+    <div className={classes.tab}>
+      <TextField label={strings.FormTitle} value={draft.title ?? ''} onChange={(_, v) => props.onChange(compact({ ...draft, title: v }))} />
+      <DefaultButton
+        className={classes.addElement}
+        iconProps={{ iconName: 'MultiSelect' }}
+        text={strings.BulkConditionOpen}
+        onClick={() => setBulkOpen(true)}
+      />
+      <div>
+        <Label>{strings.DesignTree}</Label>
+        <div className={classes.tree}>
+          {draft.sections.length === 0 && <div className={classes.hint}>{strings.DesignTreeEmpty}</div>}
+          {draft.sections.map((section) => (
+            <div key={section.id}>
+              <Link className={classes.treeSection} onClick={() => select({ kind: 'section', id: section.id })}>
+                {section.title || section.id}
+              </Link>
+              <div className={classes.treeFields}>
+                {section.fields.map((placement) => (
+                  <Link key={placement.field} className={classes.treeField} onClick={() => select({ kind: 'field', name: placement.field })}>
+                    {titleOf(placement.field)}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+      <DefaultButton className={classes.addElement} iconProps={{ iconName: 'Add' }} text={strings.NewSection} onClick={addSection} />
+    </div>
+  );
+
+  const renderSectionProps = (section: ISectionConfig, index: number): JSX.Element => (
+    <div className={classes.tab}>
+      <div className={classes.toolbar}>
+        <IconButton
+          iconProps={{ iconName: 'Up' }}
+          title={strings.SectionMoveUp}
+          disabled={index === 0}
+          onClick={() => props.onChange({ ...draft, sections: move(draft.sections, index, index - 1) })}
+        />
+        <IconButton
+          iconProps={{ iconName: 'Down' }}
+          title={strings.SectionMoveDown}
+          disabled={index === draft.sections.length - 1}
+          onClick={() => props.onChange({ ...draft, sections: move(draft.sections, index, index + 1) })}
+        />
+        <IconButton
+          iconProps={{ iconName: 'Delete' }}
+          title={strings.SectionDelete}
+          onClick={() => {
+            props.onChange({ ...draft, sections: draft.sections.filter((_, i) => i !== index) });
+            select({ kind: 'form' });
+          }}
+        />
+      </div>
       {/* A cím és a leírás feltételhez is köthető, ugyanúgy, mint a mező címkéje. */}
       {sectionConditionalField(
         index,
@@ -404,10 +458,7 @@ export const DesignerPanel: React.FC<IDesignerPanelProps> = (props) => {
           <span
             className={classes.rowName}
             title={strings.FieldSettings}
-            onClick={() => {
-              props.onSelectField(placement.field);
-              props.onTabChange('field');
-            }}
+            onClick={() => select({ kind: 'field', name: placement.field })}
           >
             {titleOf(placement.field)}
           </span>
@@ -471,14 +522,10 @@ export const DesignerPanel: React.FC<IDesignerPanelProps> = (props) => {
           setElementDialog({ sectionId: section.id, kind: 'button' });
         }}
       />
-    </AccordionCard>
+    </div>
   );
 
   const renderFieldTab = (): JSX.Element => {
-    const fieldOptions: IDropdownOption[] = schema.map((f) => ({
-      key: f.InternalName,
-      text: `${f.Title} (${f.InternalName})`
-    }));
     const fieldSchema: IFieldSchema | undefined = schema.find((f) => f.InternalName === selectedField);
     const config: IFieldConfig = (selectedField && draft.fields[selectedField]) || {};
     /** Egy szöveges beállítás a feltételes értékek gombjával. */
@@ -508,19 +555,6 @@ export const DesignerPanel: React.FC<IDesignerPanelProps> = (props) => {
       );
     return (
       <div className={classes.tab}>
-        <DefaultButton
-          className={classes.addElement}
-          iconProps={{ iconName: 'MultiSelect' }}
-          text={strings.BulkConditionOpen}
-          onClick={() => setBulkOpen(true)}
-        />
-        <Dropdown
-          label={strings.Field}
-          placeholder={strings.FieldPickerPlaceholder}
-          options={fieldOptions}
-          selectedKey={selectedField ?? null}
-          onChange={(_, option) => props.onSelectField(option ? String(option.key) : undefined)}
-        />
         {selectedField && fieldSchema && isTextElement(fieldSchema) && (
           <>
             <div className={classes.hint}>{strings.TextElementHint}</div>
@@ -555,7 +589,9 @@ export const DesignerPanel: React.FC<IDesignerPanelProps> = (props) => {
               text={strings.TextElementDelete}
               onClick={() => {
                 props.onChange(removeTextElement(draft, selectedField));
-                props.onSelectField(undefined);
+                // A törölt elem helyett a szülő szakasza (ennek hiányában az űrlap) lesz kijelölve.
+                const parentId: string | undefined = findFieldSection(draft, selectedField);
+                select(parentId ? { kind: 'section', id: parentId } : { kind: 'form' });
               }}
             />
           </>
@@ -634,7 +670,9 @@ export const DesignerPanel: React.FC<IDesignerPanelProps> = (props) => {
               text={strings.ButtonElementDelete}
               onClick={() => {
                 props.onChange(removeTextElement(draft, selectedField));
-                props.onSelectField(undefined);
+                // A törölt elem helyett a szülő szakasza (ennek hiányában az űrlap) lesz kijelölve.
+                const parentId: string | undefined = findFieldSection(draft, selectedField);
+                select(parentId ? { kind: 'section', id: parentId } : { kind: 'form' });
               }}
             />
           </>
@@ -778,64 +816,73 @@ export const DesignerPanel: React.FC<IDesignerPanelProps> = (props) => {
 
   const dialogTitle: string = elementDialog?.kind === 'button' ? strings.ButtonElementAdd : strings.TextElementAdd;
 
+  // Morzsamenü: Űrlap › szakasz › mező; egy szinttel feljebb lépni is innen lehet.
+  const fieldSection: ISectionConfig | undefined =
+    current.kind === 'field' ? draft.sections.filter((section) => section.id === findFieldSection(draft, current.name))[0] : undefined;
+  const crumbSection: ISectionConfig | undefined =
+    current.kind === 'section' ? draft.sections.filter((section) => section.id === current.id)[0] : fieldSection;
+  const crumbs: IBreadcrumbItem[] = [{ key: 'form', text: strings.DesignForm, onClick: () => select({ kind: 'form' }) }];
+  if (crumbSection) {
+    const sectionId: string = crumbSection.id;
+    crumbs.push({ key: `section:${sectionId}`, text: crumbSection.title || sectionId, onClick: () => select({ kind: 'section', id: sectionId }) });
+  }
+  if (current.kind === 'field') {
+    crumbs.push({ key: `field:${current.name}`, text: schema.filter((f) => f.InternalName === current.name)[0]?.Title ?? current.name });
+  }
+
+  const sectionIndex: number = current.kind === 'section' ? draft.sections.findIndex((section) => section.id === current.id) : -1;
+
+  const pivotItems: JSX.Element[] = [
+    <PivotItem key="properties" headerText={strings.TabProperties} itemKey="properties">
+      {current.kind === 'form' && renderFormProps()}
+      {current.kind === 'section' && sectionIndex !== -1 && renderSectionProps(draft.sections[sectionIndex], sectionIndex)}
+      {current.kind === 'field' && renderFieldTab()}
+    </PivotItem>,
+    <PivotItem key="style" headerText={strings.TabStyle} itemKey="style">
+      <StylePanel draft={draft} schema={schema} target={current} onChange={props.onChange} />
+    </PivotItem>
+  ];
+  if (current.kind === 'form') {
+    pivotItems.push(
+      <PivotItem key="variables" headerText={strings.TabVariables} itemKey="variables">
+        <VariablesPanel draft={draft} fields={realFields} conditionFields={conditionFields} onChange={props.onChange} />
+      </PivotItem>,
+      <PivotItem key="json" headerText={strings.TabJson} itemKey="json">
+        <div className={classes.tab}>
+          {jsonError && <MessageBar messageBarType={MessageBarType.error}>{jsonError}</MessageBar>}
+          <TextField
+            ariaLabel={strings.ConfigJson}
+            multiline
+            rows={24}
+            value={jsonText}
+            styles={{ field: { fontFamily: 'Consolas, Menlo, monospace', fontSize: 12 } }}
+            onChange={(_, v) => setJsonText(v ?? '')}
+          />
+          <PrimaryButton text={strings.Apply} onClick={applyJson} />
+        </div>
+      </PivotItem>
+    );
+  }
+
   return (
     <>
-      <Pivot
-        selectedKey={props.tab}
-        onLinkClick={(item) => item?.props.itemKey && props.onTabChange(item.props.itemKey as DesignerTab)}
+      <Breadcrumb items={crumbs} maxDisplayedItems={3} styles={{ root: { margin: '0 0 8px' } }} />
+      {/* A nem elhelyezett mezők mindig elérhetők, hogy bármelyik kijelölés mellett az előnézetbe húzhatók legyenek. */}
+      <AccordionCard
+        title={format(strings.UnplacedFieldsCount, unplaced.length)}
+        open={paletteOpen}
+        onToggle={() => setPaletteOpen(!paletteOpen)}
       >
-        <PivotItem headerText={strings.TabLayout} itemKey="layout">
-          <div className={classes.tab}>
-            <TextField
-              label={strings.FormTitle}
-              value={draft.title ?? ''}
-              onChange={(_, v) => props.onChange(compact({ ...draft, title: v }))}
-            />
-            <div>
-              <Label>{strings.UnplacedFields}</Label>
-              {unplaced.length > 0 && props.unplacedPalette ? (
-                props.unplacedPalette
-              ) : (
-                <div className={classes.hint}>
-                  {unplaced.length === 0
-                    ? strings.AllFieldsPlaced
-                    : format(strings.UnplacedFieldsList, unplaced.map((f) => f.Title).join(', '))}
-                </div>
-              )}
-            </div>
-            {draft.sections.map(renderSection)}
-            <DefaultButton iconProps={{ iconName: 'Add' }} text={strings.NewSection} onClick={addSection} />
+        {unplaced.length > 0 && props.unplacedPalette ? (
+          props.unplacedPalette
+        ) : (
+          <div className={classes.hint}>
+            {unplaced.length === 0 ? strings.AllFieldsPlaced : format(strings.UnplacedFieldsList, unplaced.map((f) => f.Title).join(', '))}
           </div>
-        </PivotItem>
-        <PivotItem headerText={strings.TabField} itemKey="field">
-          {renderFieldTab()}
-        </PivotItem>
-        <PivotItem headerText={strings.TabVariables} itemKey="variables">
-          <VariablesPanel draft={draft} fields={realFields} conditionFields={conditionFields} onChange={props.onChange} />
-        </PivotItem>
-        <PivotItem headerText={strings.TabStyle} itemKey="style">
-          <StylePanel
-            draft={draft}
-            schema={schema}
-            selectedField={selectedField}
-            onSelectField={props.onSelectField}
-            onChange={props.onChange}
-          />
-        </PivotItem>
-        <PivotItem headerText={strings.TabJson} itemKey="json">
-          <div className={classes.tab}>
-            {jsonError && <MessageBar messageBarType={MessageBarType.error}>{jsonError}</MessageBar>}
-            <TextField
-              ariaLabel={strings.ConfigJson}
-              multiline
-              rows={24}
-              value={jsonText}
-              styles={{ field: { fontFamily: 'Consolas, Menlo, monospace', fontSize: 12 } }}
-              onChange={(_, v) => setJsonText(v ?? '')}
-            />
-            <PrimaryButton text={strings.Apply} onClick={applyJson} />
-          </div>
-        </PivotItem>
+        )}
+      </AccordionCard>
+      <Pivot selectedKey={tab} onLinkClick={(item) => item?.props.itemKey && props.onTabChange(item.props.itemKey as DesignerTab)}>
+        {pivotItems}
       </Pivot>
       <BulkConditionDialog
         hidden={!bulkOpen}

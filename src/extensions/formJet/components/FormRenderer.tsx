@@ -138,6 +138,9 @@ export interface IFormRendererProps {
   /** Tervező előnézet: a kijelölt mező. */
   selectedField?: string;
   onFieldSelect?: (name: string) => void;
+  /** Tervező előnézet: a kijelölt szakasz (kiemelve); a kijelölést a tervező fogaskereke végzi. */
+  selectedSection?: string;
+  onSectionSelect?: (id: string) => void;
   /** Csak a tervező adja meg. */
   slots?: IFormRendererSlots;
 }
@@ -229,7 +232,9 @@ export const FormRenderer: React.FC<IFormRendererProps> = (props) => {
 
     const sectionSlot: ISlotProps = {
       'data-section': section.id,
-      className: `${sectionClass(section.style, form.style.density)} ${section.visible ? '' : classes.hidden}`,
+      className: `${sectionClass(section.style, form.style.density)} ${section.visible ? '' : classes.hidden} ${
+        props.selectedSection === section.id ? classes.selected : ''
+      }`,
       children: (
         <>
           {header}

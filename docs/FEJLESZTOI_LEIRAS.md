@@ -136,12 +136,17 @@ A generált `config/serve.json` Form Customizer konfigurációját állítsd a t
 
 ### Tervező
 
+**Kijelölés alapú panel.** A `DesignerPanel` mindig a kijelölt elem (`DesignerSelection`: `{ kind: 'form' }` | `{ kind: 'section', id }` | `{ kind: 'field', name }`) beállításait mutatja. A kijelölést a `FormHost` tartja (`selection`, `selectDesignElement`); a panel a nem létező elemre mutató kijelölést (törlés, JSON-csere után) az űrlapra ejti vissza.
+- Kijelölés: az űrlapé az előnézet fölötti „Űrlap beállításai” gombbal; a szakaszé és a mezőé a `DesignCanvas` fogantyúja melletti fogaskerékkel (`SettingsButton`, a `FormRenderer` `onSectionSelect` / `onFieldSelect` propján át); a mezőé a cellára kattintva is. A kijelölt szakasz és mező kiemelést kap (`selectedSection`, `selectedField`).
+- A panel: morzsamenü (Űrlap › szakasz › mező), mindig látható, összecsukható „Nem elhelyezett mezők” sáv (a behúzható paletta), majd fülek: Tulajdonságok és Stílus; az űrlapnál ezen felül Változók és JSON. Az űrlap tulajdonságai között van a fa nézet (szakaszok és mezők, kattintással kijelölhetők), a „Feltétel több mezőre” és az „Új szakasz”.
+- A `StylePanel` csak a kijelölt elem stílusát mutatja (`target`).
+
 - A `startDesign` a konfiguráció mély másolatán dolgozik (`draft`). A mégse gomb egyszerűen eldobja.
 - **Húzd-és-ejtsd:** tervező módban az előnézetet a `DesignCanvas` rajzolja (dnd-kit). A szekciók és a mezők jobb felső sarkában fogantyú jelenik meg; a mező szekción belül és szekciók között, a szekció a többi szekció között helyezhető át. Üres szekció ejtési célként látszik. Billentyűzettel is működik (a fogantyún szóköz, nyilak, szóköz; Esc megszakítja és visszaállítja az elrendezést).
   - A `DesignCanvas` ugyanazt a `FormRenderer`-t használja, csak a `slots` propon keresztül becsomagolja a szekciókat, a rácsot és a cellákat. A kapott `className`-et a saját gyökerére teszi, így a rács és a stílus változatlan.
   - Az áthelyezést az `engine/LayoutMoves.ts` tiszta függvényei végzik (`moveSection`, `reorderField`, `moveFieldToSection`); másik szekcióba kerülő mező szélessége a célszekció oszlopszámához igazodik.
   - Külön csomagrész (`formjet-designer`), amelyet a `FormHost` csak tervező módban tölt be; amíg töltődik, a sima előnézet látszik.
-  - **Új mező behúzása:** a még el nem helyezett mezők a tervező Elrendezés fülének tetején behúzható címkékként jelennek meg. Az előnézet egy mezőjére ejtve a mező elé, a szekció üres területére ejtve a szekció végére kerülnek (`addFieldToSection`); húzás közben kék jelölés mutatja a célt. A szekció „Mező hozzáadása” listája is megmaradt.
+  - **Új mező behúzása:** a még el nem helyezett mezők a tervező panel tetején, a mindig látható „Nem elhelyezett mezők” sávban behúzható címkékként jelennek meg. Az előnézet egy mezőjére ejtve a mező elé, a szekció üres területére ejtve a szekció végére kerülnek (`addFieldToSection`); húzás közben kék jelölés mutatja a célt. A szakasz tulajdonságai között lévő „Mező hozzáadása” lista is megmaradt.
   - Az előnézet és a mezőlista egy közös húzási környezetben van: a `DesignCanvas` a két részt (`preview`, `palette`) a gyerekfüggvényének adja át, a `FormHost` illeszti az elrendezésbe. A `DesignerPanel` a listát kész elemként kapja (`unplacedPalette`), így nem függ a dnd-kittől.
   - A becsukott szekcióba nem lehet mezőt ejteni.
 - Az előnézet `previewMode`-ban (New/Edit/Display) a `draft`-ot rendereli, rejtett elemekkel halványan.
@@ -219,8 +224,8 @@ A mező címkéje, leírása, helykitöltő szövege és kezdőértéke feltéte
 - A címke, a leírás és a helykitöltő a `resolveForm`-ban oldódik fel, tehát kitöltés közben azonnal követi az értékeket. Az üres érték a leírásnál és a helykitöltőnél „nincs szöveg”-et jelent (a séma leírását is eltünteti); üres címke helyett a beállított címke, illetve a mező címe látszik.
 - A **kezdőérték** szabályai New módban, a megnyitáskor értékelődnek ki egyszer (`getInitialValues`): az alap kezdőértékeken, a form módján és a csoporttagságon. A kiválasztott érték ugyanazon az átalakításon megy át, mint a `defaultValue` (`[today]`, `[me]`, …); az üres érték a kezdőértéket törli.
 - Opcionális bővítés, sémaverzió-emelés nem kellett. A `parseConfig` ellenőrzi a szerkezetet és a feltételeket (`parseConditional`); az ismeretlen kulcsok kimaradnak.
-- A tervezőben a Mező fül négy szövegmezője melletti gomb (`ConditionalValueEditor.tsx`) felugró ablakban szerkeszti a szabályokat; a gombon jelvény mutatja az érvényes szabályok számát. Szövegelemnél nincs ilyen beállítás.
-- **Szekció:** ugyanez a szerkezet az `ISectionConfig.conditional`-ban a `title` és a `description` tulajdonságra (`SECTION_CONDITIONAL_PROPERTIES`), a szekció kártyáján ugyanazzal a gombbal. Itt az üres érték a címet is eltünteti (a szekciónak nem kötelező címe lenni). A `ConditionalValue.ts` függvényei a mezőre és a szekcióra közösek (`IConditionalHolder`).
+- A tervezőben a mező tulajdonságai közül a négy szövegmező melletti gomb (`ConditionalValueEditor.tsx`) felugró ablakban szerkeszti a szabályokat; a gombon jelvény mutatja az érvényes szabályok számát. Szövegelemnél nincs ilyen beállítás.
+- **Szekció:** ugyanez a szerkezet az `ISectionConfig.conditional`-ban a `title` és a `description` tulajdonságra (`SECTION_CONDITIONAL_PROPERTIES`), a szakasz tulajdonságai között ugyanazzal a gombbal. Itt az üres érték a címet is eltünteti (a szekciónak nem kötelező címe lenni). A `ConditionalValue.ts` függvényei a mezőre és a szekcióra közösek (`IConditionalHolder`).
 
 ### Változók (`IFormConfig.variables`)
 
@@ -250,7 +255,7 @@ Egyszer definiált, név szerint újrahasznosítható értékek a feltételekhez
 - A változó feltételében hivatkozott csoportot a `collectGroupIds` is felveszi, így a csoporttagság előre lekérdeződik.
 - Kódot nem futtatunk: csak a `VARIABLE_TRANSFORMS` előre megírt átalakításai alkalmazhatók. Új átalakítás: `VariableTransform` típus + `VARIABLE_TRANSFORMS` + `FormVariables.applyTransform` és `parseTransform` + felirat a `VariablesPanel` `transformLabels` függvényében (és a loc fájlokban) + teszt.
 
-**Feltétel több mezőre** (`engine/BulkConditions.ts`, `BulkConditionDialog.tsx`, a Mező fül tetején): ugyanaz a `visibleWhen` / `readOnlyWhen` / `requiredWhen` feltétel egyszerre több elhelyezett mezőre. Módok: felülírás, hozzáfűzés ÉS / VAGY kapcsolattal (`combineConditions`: az azonos fajta csoportot kiteríti, hogy a vizuális szerkesztő is kezelje), törlés. A felirat nem kaphat csak olvasható feltételt, a felirat és a gomb nem lehet kötelező; ezek a listában nem jelennek meg.
+**Feltétel több mezőre** (`engine/BulkConditions.ts`, `BulkConditionDialog.tsx`, az űrlap tulajdonságai között): ugyanaz a `visibleWhen` / `readOnlyWhen` / `requiredWhen` feltétel egyszerre több elhelyezett mezőre. Módok: felülírás, hozzáfűzés ÉS / VAGY kapcsolattal (`combineConditions`: az azonos fajta csoportot kiteríti, hogy a vizuális szerkesztő is kezelje), törlés. A felirat nem kaphat csak olvasható feltételt, a felirat és a gomb nem lehet kötelező; ezek a listában nem jelennek meg.
 
 ### Szövegelemek: felirat és gomb (ITextElement)
 
@@ -392,7 +397,7 @@ Tudnivalók:
 - A tervezőben félkész beállítás is menthető (például még nincs oszlop kiválasztva); ilyenkor a felsorolás nem jelenik meg.
 - A mezőnevek a CAML lekérdezésbe kerülnek, ezért a `parseConfig` csak belső névnek megfelelő értéket fogad el, a `listId` pedig csak GUID lehet.
 
-A logika az `engine/RelatedList.ts`-ben (ellenőrzés, `buildRelatedViewXml`), a lekérdezés a `services/RelatedListService.ts`-ben, a megjelenítés a `components/RelatedItems.tsx`-ben van. A tervezőben a szekció kártyáján, a „Kapcsolódó elemek megjelenítése egy másik listából” jelölővel állítható be.
+A logika az `engine/RelatedList.ts`-ben (ellenőrzés, `buildRelatedViewXml`), a lekérdezés a `services/RelatedListService.ts`-ben, a megjelenítés a `components/RelatedItems.tsx`-ben van. A tervezőben a szakasz tulajdonságai között, a „Kapcsolódó elemek megjelenítése egy másik listából” jelölővel állítható be.
 
 ### Mellékletek
 

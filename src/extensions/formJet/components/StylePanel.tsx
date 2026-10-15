@@ -1,4 +1,4 @@
-// A tervező Stílus füle: a form, a szekciók és a mezők stílusa, módonkénti felülírással.
+// A tervező Stílus füle: a kijelölt elem (form, szekció vagy mező) stílusa, módonkénti felülírással.
 // Csak a draft konfigurációt módosítja az onChange-en keresztül, immutábilisan.
 
 import * as React from 'react';
@@ -35,7 +35,6 @@ import {
   IModeStyles,
   ISectionStyle
 } from '../models/IFormConfig';
-import { AccordionCard } from './AccordionCard';
 
 const SCOPE_OPTIONS: IDropdownOption[] = [
   { key: 'base', text: strings.StyleScopeBase },
@@ -319,27 +318,26 @@ const BoxFields: React.FC<IBoxFieldsProps> = (props) => {
   );
 };
 
-type StyleCard = 'form' | 'section' | 'field';
+/** A stílus célja: a tervezőben kijelölt elem (űrlap, szakasz vagy mező). */
+export type StyleTarget = { kind: 'form' } | { kind: 'section'; id: string } | { kind: 'field'; name: string };
 
 export interface IStylePanelProps {
   draft: IFormConfig;
   schema: IFieldSchema[];
-  selectedField?: string;
-  onSelectField: (name: string | undefined) => void;
+  /** A kijelölt elem; csak ennek a stílusa látszik. */
+  target: StyleTarget;
   onChange: (draft: IFormConfig) => void;
 }
 
 export const StylePanel: React.FC<IStylePanelProps> = (props) => {
-  const { draft, schema, selectedField } = props;
+  const { draft, schema, target } = props;
   const [scope, setScope] = React.useState<StyleScope>('base');
-  // Egyszerre egy kártya van nyitva; alapból az első (a form).
-  const [openCard, setOpenCard] = React.useState<StyleCard | undefined>('form');
-  const toggleCard = (card: StyleCard): void => setOpenCard(openCard === card ? undefined : card);
-  const [sectionId, setSectionId] = React.useState<string | undefined>(draft.sections[0]?.id);
 
-  const sectionIndex: number = draft.sections.reduce((found, s, i) => (s.id === sectionId ? i : found), -1);
+  const sectionIndex: number =
+    target.kind === 'section' ? draft.sections.reduce((found, s, i) => (s.id === target.id ? i : found), -1) : -1;
   const section = sectionIndex === -1 ? undefined : draft.sections[sectionIndex];
-  const fieldSchema: IFieldSchema | undefined = schema.find((f) => f.InternalName === selectedField);
+  const fieldName: string | undefined = target.kind === 'field' ? target.name : undefined;
+  const fieldSchema: IFieldSchema | undefined = schema.find((f) => f.InternalName === fieldName);
 
   // Az alapból örökölt érték csak módonkénti szerkesztésnél jelenik meg helykitöltőként.
   const inherited = <T extends object>(styles: IModeStyles<T> | undefined): T =>
@@ -376,21 +374,24 @@ export const StylePanel: React.FC<IStylePanelProps> = (props) => {
     props.onChange({ ...draft, sections });
   };
 
-  const fieldStyle: IFieldStyle = (selectedField && draft.fields[selectedField]?.style?.[scope]) || {};
-  const fieldBase: IFieldStyle = inherited(selectedField ? draft.fields[selectedField]?.style : undefined);
+  const fieldStyle: IFieldStyle = (fieldName && draft.fields[fieldName]?.style?.[scope]) || {};
+  const fieldBase: IFieldStyle = inherited(fieldName ? draft.fields[fieldName]?.style : undefined);
   const setFieldStyle = (patch: Partial<IFieldStyle>): void => {
-    if (!selectedField) {
+    if (!fieldName) {
       return;
     }
-    const nextField = { ...(draft.fields[selectedField] ?? {}) };
+    const nextField = { ...(draft.fields[fieldName] ?? {}) };
     const style = patchModeStyle(nextField.style, scope, patch);
     if (style) {
       nextField.style = style;
     } else {
       delete nextField.style;
     }
-    props.onChange({ ...draft, fields: { ...draft.fields, [selectedField]: nextField } });
+    props.onChange({ ...draft, fields: { ...draft.fields, [fieldName]: nextField } });
   };
+
+  // A key miatt érvényességi kör vagy kijelölés váltásakor a mezők tiszta állapottal indulnak.
+  const key: string = `${scope}:${target.kind}:${section?.id ?? fieldName ?? ''}`;
 
   return (
     <div className={classes.tab}>
@@ -402,109 +403,76 @@ export const StylePanel: React.FC<IStylePanelProps> = (props) => {
       />
       <div className={classes.hint}>{strings.StyleScopeHint}</div>
 
-      {/* A key miatt érvényességi kör váltásakor a mezők tiszta állapottal indulnak. */}
-      <AccordionCard
-        key={`form:${scope}`}
-        title={strings.StyleForm}
-        open={openCard === 'form'}
-        onToggle={() => toggleCard('form')}
-      >
-        <ColorField
-          label={strings.StyleAccentColor}
-          value={formStyle.accentColor}
-          inherited={formBase.accentColor}
-          onChange={(accentColor) => setFormStyle({ accentColor })}
-        />
-        <BoxFields style={formStyle} inherited={formBase} onChange={setFormStyle} />
-        <ValidatedField
-          label={strings.StyleMaxWidth}
-          value={formStyle.maxWidth === undefined ? '' : String(formStyle.maxWidth)}
-          placeholder={formBase.maxWidth === undefined ? undefined : `${formBase.maxWidth} ${strings.StyleInherited}`}
-          errorMessage={format(strings.StyleMaxWidthError, MIN_FORM_WIDTH, MAX_FORM_WIDTH)}
-          isValid={(text) => /^\d+$/.test(text) && isFormWidth(Number(text))}
-          onCommit={(text) => setFormStyle({ maxWidth: text === undefined ? undefined : Number(text) })}
-        />
-        <Dropdown
-          label={strings.StyleDensity}
-          options={DENSITY_OPTIONS}
-          selectedKey={formStyle.density ?? ''}
-          onChange={(_, option) =>
-            option && setFormStyle({ density: option.key === '' ? undefined : (option.key as IFormStyle['density']) })
-          }
-        />
-        <Dropdown
-          label={strings.StyleSectionHeader}
-          options={SECTION_HEADER_OPTIONS}
-          selectedKey={formStyle.sectionHeader ?? ''}
-          onChange={(_, option) =>
-            option &&
-            setFormStyle({ sectionHeader: option.key === '' ? undefined : (option.key as IFormStyle['sectionHeader']) })
-          }
-        />
-      </AccordionCard>
-
-      {draft.sections.length > 0 && (
-        <AccordionCard
-          key={`section:${scope}:${sectionId}`}
-          title={strings.StyleSection}
-          open={openCard === 'section'}
-          onToggle={() => toggleCard('section')}
-        >
-          <Dropdown
-            ariaLabel={strings.StyleSection}
-            options={draft.sections.map((s) => ({ key: s.id, text: s.title || s.id }))}
-            selectedKey={section?.id ?? null}
-            onChange={(_, option) => option && setSectionId(String(option.key))}
+      {target.kind === 'form' && (
+        <React.Fragment key={key}>
+          <ColorField
+            label={strings.StyleAccentColor}
+            value={formStyle.accentColor}
+            inherited={formBase.accentColor}
+            onChange={(accentColor) => setFormStyle({ accentColor })}
           />
-          {section && (
-            <>
-              <BoxFields style={sectionStyle} inherited={sectionBase} onChange={setSectionStyle} />
-              <ColorField
-                label={strings.StyleHeaderColor}
-                value={sectionStyle.headerColor}
-                inherited={sectionBase.headerColor}
-                onChange={(headerColor) => setSectionStyle({ headerColor })}
-              />
-            </>
-          )}
-        </AccordionCard>
+          <BoxFields style={formStyle} inherited={formBase} onChange={setFormStyle} />
+          <ValidatedField
+            label={strings.StyleMaxWidth}
+            value={formStyle.maxWidth === undefined ? '' : String(formStyle.maxWidth)}
+            placeholder={formBase.maxWidth === undefined ? undefined : `${formBase.maxWidth} ${strings.StyleInherited}`}
+            errorMessage={format(strings.StyleMaxWidthError, MIN_FORM_WIDTH, MAX_FORM_WIDTH)}
+            isValid={(text) => /^\d+$/.test(text) && isFormWidth(Number(text))}
+            onCommit={(text) => setFormStyle({ maxWidth: text === undefined ? undefined : Number(text) })}
+          />
+          <Dropdown
+            label={strings.StyleDensity}
+            options={DENSITY_OPTIONS}
+            selectedKey={formStyle.density ?? ''}
+            onChange={(_, option) =>
+              option && setFormStyle({ density: option.key === '' ? undefined : (option.key as IFormStyle['density']) })
+            }
+          />
+          <Dropdown
+            label={strings.StyleSectionHeader}
+            options={SECTION_HEADER_OPTIONS}
+            selectedKey={formStyle.sectionHeader ?? ''}
+            onChange={(_, option) =>
+              option &&
+              setFormStyle({ sectionHeader: option.key === '' ? undefined : (option.key as IFormStyle['sectionHeader']) })
+            }
+          />
+        </React.Fragment>
       )}
 
-      <AccordionCard
-        key={`field:${scope}:${selectedField}`}
-        title={strings.Field}
-        open={openCard === 'field'}
-        onToggle={() => toggleCard('field')}
-      >
-        <Dropdown
-          ariaLabel={strings.Field}
-          placeholder={strings.FieldPickerPlaceholder}
-          options={schema.map((f) => ({ key: f.InternalName, text: `${f.Title} (${f.InternalName})` }))}
-          selectedKey={fieldSchema ? selectedField : null}
-          onChange={(_, option) => props.onSelectField(option ? String(option.key) : undefined)}
-        />
-        {fieldSchema && (
-          <>
-            <BoxFields style={fieldStyle} inherited={fieldBase} onChange={setFieldStyle} />
-            {/* A feliratnak és a gombnak nincs címkéje; ott a szöveg színe állítható. */}
-            {isLayoutElement(fieldSchema) ? (
-              <ColorField
-                label={strings.StyleTextColor}
-                value={fieldStyle.textColor}
-                inherited={fieldBase.textColor}
-                onChange={(textColor) => setFieldStyle({ textColor })}
-              />
-            ) : (
-              <ColorField
-                label={strings.StyleLabelColor}
-                value={fieldStyle.labelColor}
-                inherited={fieldBase.labelColor}
-                onChange={(labelColor) => setFieldStyle({ labelColor })}
-              />
-            )}
-          </>
-        )}
-      </AccordionCard>
+      {section && (
+        <React.Fragment key={key}>
+          <BoxFields style={sectionStyle} inherited={sectionBase} onChange={setSectionStyle} />
+          <ColorField
+            label={strings.StyleHeaderColor}
+            value={sectionStyle.headerColor}
+            inherited={sectionBase.headerColor}
+            onChange={(headerColor) => setSectionStyle({ headerColor })}
+          />
+        </React.Fragment>
+      )}
+
+      {fieldSchema && (
+        <React.Fragment key={key}>
+          <BoxFields style={fieldStyle} inherited={fieldBase} onChange={setFieldStyle} />
+          {/* A feliratnak és a gombnak nincs címkéje; ott a szöveg színe állítható. */}
+          {isLayoutElement(fieldSchema) ? (
+            <ColorField
+              label={strings.StyleTextColor}
+              value={fieldStyle.textColor}
+              inherited={fieldBase.textColor}
+              onChange={(textColor) => setFieldStyle({ textColor })}
+            />
+          ) : (
+            <ColorField
+              label={strings.StyleLabelColor}
+              value={fieldStyle.labelColor}
+              inherited={fieldBase.labelColor}
+              onChange={(labelColor) => setFieldStyle({ labelColor })}
+            />
+          )}
+        </React.Fragment>
+      )}
     </div>
   );
 };

@@ -37,7 +37,7 @@ import * as ItemService from '../services/ItemService';
 import * as PermissionService from '../services/PermissionService';
 import * as SchemaService from '../services/SchemaService';
 import { withTimeout } from '../services/sp';
-import { DesignerPanel, DesignerTab } from './DesignerPanel';
+import { DesignerPanel, DesignerSelection, DesignerTab } from './DesignerPanel';
 import { EMPTY_ATTACHMENTS, FormContext, IAttachmentsState, IFormContext } from './FormContext';
 import { FormRenderer, IFormRendererProps } from './FormRenderer';
 
@@ -106,6 +106,7 @@ const classes = mergeStyleSets({
     selectors: { [DESIGNER_NARROW]: { paddingRight: 0 } }
   },
   preview: { minWidth: 0 },
+  previewBar: { display: 'flex', alignItems: 'flex-end', gap: 12, flexWrap: 'wrap', marginBottom: 16 },
   panel: {
     position: 'fixed',
     // A SharePoint fejléce alatt kezdődik; a változót a FormHost állítja be a görgetett terület helyéből.
@@ -223,8 +224,16 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
   // Tervező: a draft a konfiguráció mély másolata; a mégse egyszerűen eldobja.
   const [draft, setDraft] = React.useState<IFormConfig | undefined>();
   const [previewMode, setPreviewMode] = React.useState<FormMode>(mode);
-  const [designerTab, setDesignerTab] = React.useState<DesignerTab>('layout');
-  const [selectedField, setSelectedField] = React.useState<string | undefined>();
+  const [designerTab, setDesignerTab] = React.useState<DesignerTab>('properties');
+  // A tervezőben kijelölt elem (űrlap, szakasz, mező); a panel ennek a tulajdonságait mutatja.
+  const [selection, setSelection] = React.useState<DesignerSelection>({ kind: 'form' });
+  const selectDesignElement = React.useCallback((next: DesignerSelection): void => {
+    setSelection(next);
+    // A Változók és a JSON fül csak az űrlapnál van.
+    if (next.kind !== 'form') {
+      setDesignerTab((current) => (current === 'variables' || current === 'json' ? 'properties' : current));
+    }
+  }, []);
   const [designError, setDesignError] = React.useState<string | undefined>();
   // A gombok műveleteit futtató függvény mindig a legfrissebb állapotot látja; a FormContext a stabil burkolót kapja.
   const runActionsRef = React.useRef<(actions: ButtonAction[]) => Promise<void>>(() => Promise.resolve());
@@ -690,8 +699,8 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
     }
     setDraft(JSON.parse(JSON.stringify(loaded.config)) as IFormConfig);
     setPreviewMode(mode);
-    setDesignerTab('layout');
-    setSelectedField(undefined);
+    setDesignerTab('properties');
+    setSelection({ kind: 'form' });
     setDesignError(undefined);
   };
 
@@ -751,13 +760,10 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
     errors,
     onChange: onFieldChange,
     showHidden: designing,
-    selectedField: designing ? selectedField : undefined,
-    onFieldSelect: designing
-      ? (name) => {
-          setSelectedField(name);
-          setDesignerTab('field');
-        }
-      : undefined
+    selectedField: designing && selection.kind === 'field' ? selection.name : undefined,
+    selectedSection: designing && selection.kind === 'section' ? selection.id : undefined,
+    onFieldSelect: designing ? (name) => selectDesignElement({ kind: 'field', name }) : undefined,
+    onSectionSelect: designing ? (id) => selectDesignElement({ kind: 'section', id }) : undefined
   };
   /** A tervező elrendezése: balra az előnézet, jobbra a tervező panel. */
   const renderDesignLayout = (
@@ -767,13 +773,22 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
   ): JSX.Element => (
     <div className={classes.designLayout}>
       <div className={classes.preview}>
-        <Dropdown
-          label={TEXT.previewMode}
-          options={PREVIEW_OPTIONS}
-          selectedKey={previewMode}
-          styles={{ root: { maxWidth: 240, marginBottom: 16 } }}
-          onChange={(_, option) => option && setPreviewMode(option.key as FormMode)}
-        />
+        <div className={classes.previewBar}>
+          <Dropdown
+            label={TEXT.previewMode}
+            options={PREVIEW_OPTIONS}
+            selectedKey={previewMode}
+            styles={{ root: { width: 240 } }}
+            onChange={(_, option) => option && setPreviewMode(option.key as FormMode)}
+          />
+          {/* Az űrlap kijelölése: a szakaszokat és a mezőket a saját fogaskerekük jelöli ki. */}
+          <DefaultButton
+            iconProps={{ iconName: 'Settings' }}
+            text={strings.DesignFormSettings}
+            checked={selection.kind === 'form'}
+            onClick={() => selectDesignElement({ kind: 'form' })}
+          />
+        </div>
         {preview}
       </div>
       <div
@@ -790,8 +805,8 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
               siteGroups={siteGroups ?? []}
               tab={designerTab}
               onTabChange={setDesignerTab}
-              selectedField={selectedField}
-              onSelectField={setSelectedField}
+              selection={selection}
+              onSelect={selectDesignElement}
               onChange={setDraft}
               unplacedPalette={unplacedPalette}
             />

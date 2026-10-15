@@ -29,7 +29,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Icon } from '@fluentui/react/lib/Icon';
-import { mergeStyleSets } from '@fluentui/react/lib/Styling';
+import { mergeStyles, mergeStyleSets } from '@fluentui/react/lib/Styling';
 
 import * as strings from 'FormJetFormCustomizerStrings';
 
@@ -69,6 +69,8 @@ const classes = mergeStyleSets({
     touchAction: 'none',
     selectors: { ':hover': { background: '#f3f2f1', color: '#201f1e' } }
   },
+  // A fogaskerék a fogantyú bal oldalán. A fogantyú után kell állnia, hogy a jobb oldali eltolása érvényesüljön.
+  settings: { right: 28, cursor: 'pointer' },
   dropZone: {
     padding: '12px',
     border: '1px dashed #c8c6c4',
@@ -143,12 +145,32 @@ const DragHandle: React.FC<IHandleProps> = (props) => (
   </button>
 );
 
-const SortableBox: React.FC<{ id: string; handleTitle: string; slot: ISlotProps; highlight?: boolean }> = ({
-  id,
-  handleTitle,
-  slot,
-  highlight
-}) => {
+/** A fogantyú melletti fogaskerék: kijelöli az elemet (a panel ennek a beállításait mutatja). */
+const SettingsButton: React.FC<{ title: string; onClick: () => void }> = ({ title, onClick }) => (
+  <button
+    type="button"
+    // Egyetlen összefésült osztály: a fogaskerék eltolása mindenképp felülírja a fogantyú jobb oldali helyzetét.
+    className={mergeStyles(classes.handle, classes.settings)}
+    title={title}
+    aria-label={title}
+    onClick={(event) => {
+      // A kattintás ne jusson el a cellához (az a mezőt is kijelölné) és a szakaszhoz.
+      event.stopPropagation();
+      onClick();
+    }}
+  >
+    <Icon iconName="Settings" />
+  </button>
+);
+
+const SortableBox: React.FC<{
+  id: string;
+  handleTitle: string;
+  slot: ISlotProps;
+  highlight?: boolean;
+  settingsTitle?: string;
+  onSettings?: () => void;
+}> = ({ id, handleTitle, slot, highlight, settingsTitle, onSettings }) => {
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({ id });
   const { children, className, ...rest } = slot;
   return (
@@ -159,6 +181,7 @@ const SortableBox: React.FC<{ id: string; handleTitle: string; slot: ISlotProps;
       style={{ transform: CSS.Translate.toString(transform), transition }}
     >
       <DragHandle title={handleTitle} setRef={setActivatorNodeRef} attributes={attributes} listeners={listeners} />
+      {onSettings && <SettingsButton title={settingsTitle ?? handleTitle} onClick={onSettings} />}
       {children}
     </div>
   );
@@ -338,7 +361,13 @@ const DesignCanvas: React.FC<IDesignCanvasProps> = (props) => {
   const slots: IFormRendererSlots = React.useMemo(
     () => ({
       renderSection: (section: IResolvedSection, slot: ISlotProps) => (
-        <SortableBox id={`${SECTION_PREFIX}${section.id}`} handleTitle={strings.DesignDragSection} slot={slot} />
+        <SortableBox
+          id={`${SECTION_PREFIX}${section.id}`}
+          handleTitle={strings.DesignDragSection}
+          slot={slot}
+          settingsTitle={strings.DesignSectionSettings}
+          onSettings={rendererProps.onSectionSelect ? () => rendererProps.onSectionSelect?.(section.id) : undefined}
+        />
       ),
       renderGrid: (section: IResolvedSection, slot: ISlotProps) => (
         <SortableGrid
@@ -353,10 +382,12 @@ const DesignCanvas: React.FC<IDesignCanvasProps> = (props) => {
           handleTitle={strings.DesignDragField}
           slot={slot}
           highlight={insertTarget.fieldName === field.name}
+          settingsTitle={strings.DesignFieldSettings}
+          onSettings={rendererProps.onFieldSelect ? () => rendererProps.onFieldSelect?.(field.name) : undefined}
         />
       )
     }),
-    [insertTarget]
+    [insertTarget, rendererProps.onSectionSelect, rendererProps.onFieldSelect]
   );
 
   const unplaced: IFieldSchema[] = unplacedFields(props.schema, draft);

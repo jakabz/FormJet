@@ -125,9 +125,25 @@ Ha szerkesztéskor semmin nem változtattál, a **Mentés** egyszerűen bezárja
 Az űrlap jobb felső sarkában lévő **Tervező** kapcsolót csak a webhely adminisztrátorai látják. Bekapcsolva az űrlap két részre oszlik:
 
 - **Balra az előnézet:** pontosan azt mutatja, amit a felhasználók látni fognak. A rejtett szekciók és mezők halványan látszanak, hogy szerkeszteni tudd őket.
-- **Jobbra a tervező panel** négy füllel: Elrendezés, Mező, Stílus, JSON. A panel az ablak jobb széléhez rögzített és teljes magasságú: az oldal görgetésekor a helyén marad, a hosszabb tartalmát a saját görgetősávjával éred el. Keskeny ablakban az előnézet alá kerül.
+- **Jobbra a tervező panel:** mindig a **kijelölt elem** (az űrlap, egy szakasz vagy egy mező) beállításait mutatja. A panel az ablak jobb széléhez rögzített és teljes magasságú: az oldal görgetésekor a helyén marad, a hosszabb tartalmát a saját görgetősávjával éred el. Keskeny ablakban az előnézet alá kerül.
 
 Az előnézet fölötti **Előnézet módja** választóval megnézheted, hogyan fest az űrlap új elemnél, szerkesztéskor és megtekintéskor. Az előnézet mezőibe írhatsz is, így a feltételek hatását azonnal kipróbálhatod.
+
+### Kijelölés
+
+- **Az űrlap:** az előnézet fölötti **Űrlap beállításai** gombbal.
+- **Egy szakasz:** a szakasz jobb felső sarkában, a fogantyú mellett lévő **fogaskerék** ikonnal.
+- **Egy mező (felirat, gomb):** a mező fogaskerekével, vagy egyszerűen a mezőre kattintva.
+- A kijelölt elem kék keretet kap. A panel tetején lévő útvonal (például *Űrlap › Beszerzés › Összeg*) mutatja, hol jársz; egy elemére kattintva egy szinttel feljebb lépsz.
+
+A panel részei:
+
+- **Nem elhelyezett mezők:** mindig látható, összecsukható sáv a panel tetején; innen húzhatod a mezőket az előnézetbe, bármi legyen is kijelölve.
+- **Tulajdonságok** fül: a kijelölt elem beállításai (lásd lent).
+- **Stílus** fül: a kijelölt elem megjelenése (lásd [8. fejezet](#8-megjelenés-stílus)).
+- Az űrlap kijelölésénél ezeken felül: **Változók** és **JSON** fül.
+
+Az **űrlap** tulajdonságai: az űrlap címe, a **Feltétel több mezőre…** gomb, **Az űrlap felépítése** (fa nézet: a szakaszok és alattuk a mezőik; bármelyikre kattintva kijelölheted), és az **Új szakasz** gomb.
 
 ### Mentés és elvetés
 
@@ -163,10 +179,10 @@ Az üres szekció „Húzz ide egy mezőt” feliratú területként látszik. B
 
 ### Új mező felvétele
 
-Az **Elrendezés** fül tetején, a **Nem elhelyezett mezők** alatt azok a mezők láthatók, amelyek még nem szerepelnek az űrlapon. Kétféleképp veheted fel őket:
+A panel tetején lévő **Nem elhelyezett mezők** sávban azok a mezők láthatók, amelyek még nem szerepelnek az űrlapon. Kétféleképp veheted fel őket:
 
 - húzd a mező címkéjét az előnézet egy szekciójára (egy mezőre ejtve elé kerül, a szekció üres részére ejtve a végére);
-- vagy a szekció kártyáján a **Mező hozzáadása…** listából válaszd ki.
+- vagy jelöld ki a szakaszt, és a tulajdonságai között a **Mező hozzáadása…** listából válaszd ki.
 
 Ami nincs egyetlen szekcióban sem, az nem jelenik meg az űrlapon. A **mellékletek** is így vehetők fel: a mentett elrendezésekben a nem elhelyezett mezők között találod.
 
@@ -174,26 +190,26 @@ Ami nincs egyetlen szekcióban sem, az nem jelenik meg az űrlapon. A **mellékl
 
 Az űrlapra olyan szöveg (felirat) is tehető, amely mögött nincs SharePoint oszlop: például útmutató, figyelmeztetés vagy magyarázat. Feliratból bármennyi felvehető.
 
-1. Az **Elrendezés** fülön nyisd ki annak a szekciónak a kártyáját, amelybe a feliratot szánod, és kattints az alján (a **Mező hozzáadása…** lista alatt) a **Felirat hozzáadása** gombra.
-2. A felugró ablakban add meg, hogyan hívod a feliratot (például „Kitöltési útmutató”), majd kattints a **Felirat hozzáadása** gombra (vagy nyomj Entert). A megnevezés csak a tervezőben látszik, az űrlapon nem. A felirat a szekció végére kerül, és megnyílik a **Mező** fül.
+1. Jelöld ki azt a szakaszt, amelybe a feliratot szánod, és a tulajdonságai alján (a **Mező hozzáadása…** lista alatt) kattints a **Felirat hozzáadása** gombra.
+2. A felugró ablakban add meg, hogyan hívod a feliratot (például „Kitöltési útmutató”), majd kattints a **Felirat hozzáadása** gombra (vagy nyomj Entert). A megnevezés csak a tervezőben látszik, az űrlapon nem. A felirat a szakasz végére kerül, és ki is jelölődik, így a tulajdonságai azonnal szerkeszthetők.
 3. A **Tartalom** mezőbe írd be az űrlapon megjelenő szöveget. Sima szöveg, formázás nélkül; a sortörések megmaradnak.
 4. A **Látható ezekben a módokban** jelölőkkel add meg, hogy új elemnél, szerkesztéskor és megtekintéskor látszódjon-e; a **Látható, ha** feltétellel mezőértékhez is kötheted.
 
-A felirat ezután ugyanúgy viselkedik, mint egy mező: húzással áthelyezhető, a szekció kártyáján állítható a szélessége, és a **Stílus** fülön háttérszínt, keretet és betűszínt kaphat. A Mező és a Stílus fül mezőlistájában a megnevezésével szerepel.
+A felirat ezután ugyanúgy viselkedik, mint egy mező: húzással áthelyezhető, a szakasz tulajdonságai között állítható a szélessége, és a **Stílus** fülön háttérszínt, keretet és betűszínt kaphat. Az útvonalban és a fa nézetben a megnevezésével szerepel.
 
-Egy felirat egyszer helyezhető el. Ha kiveszed a szekcióból, a nem elhelyezett mezők közé kerül; végleg a Mező fül **Felirat törlése** gombjával törölhető. A felirat csak megjelenik: a listába semmit nem ment, és feltételben nem lehet rá hivatkozni.
+Egy felirat egyszer helyezhető el. Ha kiveszed a szekcióból, a nem elhelyezett mezők közé kerül; végleg a tulajdonságai között lévő **Felirat törlése** gombbal törölhető. A felirat csak megjelenik: a listába semmit nem ment, és feltételben nem lehet rá hivatkozni.
 
 ### Gomb elhelyezése az űrlapon
 
 A gomb kattintásra vagy a beállított műveleteket hajtja végre (például beállít egy mezőt, majd ment), vagy egy webcímet nyit meg, például egy súgóoldalt, egy kapcsolódó listát vagy egy e-mail-címet.
 
-1. A szekció kártyájának alján kattints a **Gomb hozzáadása** gombra, és a felugró ablakban add meg a gomb feliratát. Ez a felirat látszik a gombon.
+1. A kijelölt szakasz tulajdonságainak alján kattints a **Gomb hozzáadása** gombra, és a felugró ablakban add meg a gomb feliratát. Ez a felirat látszik a gombon.
 2. Az **Ikon** mezőben megadhatsz egy Fluent UI ikonnevet (például `Save`, `Send`, `Accept`, `Mail`); az ikon a felirat előtt jelenik meg, és a mező mellett előnézetben is látszik.
 3. A **Műveletek beállítása** gombbal állíthatod össze, mit csináljon a gomb (lásd lent). Ha nincs művelet, a gomb a webcímet nyitja meg.
-4. A **Mező** fülön add meg a **Webcím (URL)** értékét: `http://` vagy `https://` kezdetű cím, `mailto:` cím, vagy a webhelyen belüli cím (például `/sites/beszerzes/Lists/Szallitok`). Más cím nem nyitható meg; ilyenkor a mező alatt hibaüzenet jelenik meg. A **Megnyitás új lapon** jelölővel a cím új böngészőlapon nyílik meg.
+4. A gomb tulajdonságai között add meg a **Webcím (URL)** értékét: `http://` vagy `https://` kezdetű cím, `mailto:` cím, vagy a webhelyen belüli cím (például `/sites/beszerzes/Lists/Szallitok`). Más cím nem nyitható meg; ilyenkor a mező alatt hibaüzenet jelenik meg. A **Megnyitás új lapon** jelölővel a cím új böngészőlapon nyílik meg.
 5. A **Látható ezekben a módokban** és a **Látható, ha** beállítással adod meg, mikor látszik a gomb; a **Letiltva ezekben a módokban** és a **Letiltva, ha** beállítással pedig azt, mikor szürke és nem kattintható.
 
-A gomb megtekintéskor is használható. A **Stílus** fülön beállított háttér, keret és betűszín magára a gombra vonatkozik. A tervező előnézetében a gomb nem csinál semmit, a kattintás csak kijelöli. A gomb végleg a Mező fül **Gomb törlése** gombjával törölhető.
+A gomb megtekintéskor is használható. A **Stílus** fülön beállított háttér, keret és betűszín magára a gombra vonatkozik. A tervező előnézetében a gomb nem csinál semmit, a kattintás csak kijelöli. A gomb végleg a tulajdonságai között lévő **Gomb törlése** gombbal törölhető.
 
 #### A gomb műveletei
 
@@ -215,7 +231,7 @@ A **Műveletek beállítása** gomb felugró ablakában lépéseket veszel fel (
 
 ### A szekció beállításai
 
-Az Elrendezés fülön minden szekciónak van egy kártyája; a fejlécére kattintva nyílik ki (egyszerre egy van nyitva).
+Jelöld ki a szakaszt a fogaskerekével (vagy a fa nézetben); a **Tulajdonságok** fülön ezek állíthatók:
 
 | Beállítás | Jelentés |
 | --- | --- |
@@ -226,15 +242,15 @@ Az Elrendezés fülön minden szekciónak van egy kártyája; a fejlécére katt
 | Látható, ha | Feltétel, amely mellett a szekció megjelenik (lásd [Feltételek](#7-feltételek)). |
 | Kapcsolódó elemek… | Egy másik lista elemeinek felsorolása (lásd [9. fejezet](#9-kapcsolódó-elemek-egy-másik-listából)). |
 
-A kártya fejlécében lévő nyilakkal a szekció mozgatható, a kuka ikonnal törölhető. Törléskor a mezői nem vesznek el, hanem a nem elhelyezett mezők közé kerülnek.
+A tulajdonságok tetején lévő nyilakkal a szakasz mozgatható, a kuka ikonnal törölhető. Törléskor a mezői nem vesznek el, hanem a nem elhelyezett mezők közé kerülnek, és a kijelölés az űrlapra ugrik.
 
-A szekció mezőinek listájában mezőnként beállítható a **szélesség** (hány oszlopot foglaljon el), és a mező eltávolítható a szekcióból. A mező nevére kattintva a Mező fülre jutsz.
+A szekció mezőinek listájában mezőnként beállítható a **szélesség** (hány oszlopot foglaljon el), és a mező eltávolítható a szakaszból. A mező nevére kattintva a mezőt jelölöd ki.
 
-A **Új szekció** gomb a lista végére vesz fel egy szekciót.
+Az űrlap tulajdonságai között lévő **Új szakasz** gomb az űrlap végére vesz fel egy szakaszt, és ki is jelöli.
 
 ## 6. Egy mező beállításai
 
-A **Mező** fülön válassz mezőt a listából, vagy kattints rá az előnézetben.
+Jelöld ki a mezőt (kattints rá az előnézetben, a fogaskerekére, vagy a fa nézetben a nevére); a **Tulajdonságok** fülön ezek állíthatók:
 
 | Beállítás | Jelentés |
 | --- | --- |
@@ -337,7 +353,7 @@ Tudnivalók a csoporttagságról:
 
 Ha ugyanazt a szabályt sok mezőnél vagy szekciónál használod, érdemes változóba tenni. A változót egyszer állítod össze, a feltételekben pedig a mezők listájának végén „Változó: *név*” néven választod ki. Ha a szabály később változik, csak a változót kell átírni.
 
-A változókat a tervező **Változók** fülén veszed fel a **Változó hozzáadása** gombbal. Kétféle változó van:
+A változókat az űrlap kijelölésénél megjelenő **Változók** fülön veszed fel a **Változó hozzáadása** gombbal. Kétféle változó van:
 
 - **Feltétel (igen / nem):** a „Igen, ha” résznél ugyanúgy állítod össze, mint bármelyik feltételt (mezőérték, az űrlap módja, csoporttagság, sőt másik változó is lehet benne). A feltételekben Igen / Nem értékkel vizsgálod.
 - **Mező értéke:** egy mező értéke, szükség esetén átalakítva. Bejelölheted, hogy **a mentett érték** számítson (amit az űrlap megnyitásakor a lista tartalmazott), ne az éppen beírt. Az átalakítások sorban hajtódnak végre: **szövegrész** (kezdet 0-tól számolva, és hossz), **számmá alakítás**, **szóközök levágása**, **kisbetűssé**, **nagybetűssé**.
@@ -348,7 +364,7 @@ A változó neve betűvel kezdődik, és csak betűt, számot és aláhúzást t
 
 ### Feltétel beállítása több mezőre egyszerre
 
-A **Mező** fül tetején lévő **Feltétel több mezőre…** gombbal ugyanazt a feltételt egyszerre sok mezőre állíthatod be:
+Az űrlap tulajdonságai között lévő **Feltétel több mezőre…** gombbal ugyanazt a feltételt egyszerre sok mezőre állíthatod be:
 
 1. Válaszd ki a **beállítást**: Látható, ha / Csak olvasható, ha (gombnál: letiltva, ha) / Kötelező, ha.
 2. Válaszd ki a **módját**: felülírja a mezők meglévő feltételét; hozzáfűzi ÉS kapcsolattal (mindkettő teljesüljön); hozzáfűzi VAGY kapcsolattal (bármelyik teljesüljön); vagy törli a meglévő feltételt.
@@ -360,7 +376,7 @@ A címke melletti **Szerkesztés JSON-ként** hivatkozással a feltétel szöveg
 
 ## 8. Megjelenés (stílus)
 
-A **Stílus** fülön az űrlap egészének, egy szekciónak és egy mezőnek a megjelenése állítható.
+A **Stílus** fülön a kijelölt elem megjelenése állítható: ha az űrlap van kijelölve, az űrlap egészéé, ha egy szakasz, a szakaszé, ha egy mező, a mezőé.
 
 ### Érvényesség
 
@@ -393,7 +409,7 @@ Egy szekció felsorolhatja egy másik lista azon elemeit, amelyek a megnyitott e
 
 ### Beállítás
 
-A szekció kártyáján jelöld be a **Kapcsolódó elemek megjelenítése egy másik listából** lehetőséget, majd add meg:
+Jelöld ki a szakaszt, és a tulajdonságai között jelöld be a **Kapcsolódó elemek megjelenítése egy másik listából** lehetőséget, majd add meg:
 
 | Beállítás | Jelentés |
 | --- | --- |

@@ -98,8 +98,6 @@ declare interface IFormJetFormCustomizerStrings {
   ModeNew: string;
   ModeEdit: string;
   ModeDisplay: string;
-  TabLayout: string;
-  TabField: string;
   TabJson: string;
   FormTitle: string;
   NewSection: string;
@@ -170,7 +168,6 @@ declare interface IFormJetFormCustomizerStrings {
   UnplacedFields: string;
   AllFieldsPlaced: string;
   UnplacedFieldsList: string;
-  FieldPickerPlaceholder: string;
   FieldType: string;
   SpRequired: string;
   SpReadOnly: string;
@@ -191,8 +188,6 @@ declare interface IFormJetFormCustomizerStrings {
   StyleScope: string;
   StyleScopeBase: string;
   StyleScopeHint: string;
-  StyleForm: string;
-  StyleSection: string;
   StyleAccentColor: string;
   StyleBackground: string;
   StyleBorderColor: string;
@@ -234,6 +229,14 @@ declare interface IFormJetFormCustomizerStrings {
   ButtonActionSetValueHint: string;
   ButtonActionValueEmpty: string;
   TabVariables: string;
+  TabProperties: string;
+  DesignForm: string;
+  DesignFormSettings: string;
+  DesignSectionSettings: string;
+  DesignFieldSettings: string;
+  DesignTree: string;
+  DesignTreeEmpty: string;
+  UnplacedFieldsCount: string;
   LoadStepTimeout: string;
   VariablesHint: string;
   VariablesEmpty: string;

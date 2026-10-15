@@ -91,7 +91,7 @@ src/extensions/formJet/
     FieldRenderer.tsx        mezőtípus → vezérlő
     AttachmentsField.tsx     mellékletek: fájlok listája miniatűrrel és mérettel, hozzáadás (fájlválasztó vagy ráhúzás), törlés; a változások mentéskor hajtódnak végre
     ButtonActionsEditor.tsx  a gomb műveleteinek felugró lépésszerkesztője a tervezőben
-    ConditionalValueEditor.tsx  a Mező fül szöveges beállításai melletti gomb + felugró ablak a feltételes értékek szabályaihoz
+    ConditionalValueEditor.tsx  a mező (és a szakasz) szöveges beállításai melletti gomb + felugró ablak a feltételes értékek szabályaihoz
     ConditionEditor.tsx      feltételszerkesztő a tervezőben: vizuális sorok, összetett feltételnél JSON
     DateTimeField.tsx        DateTime mező: Fluent DatePicker (+ TimePicker, ha a mező időt is tárol)
     ImageField.tsx           kép (Thumbnail) mező: előnézet, kiválasztás, csere, törlés; a feltöltés mentéskor történik
@@ -104,9 +104,9 @@ src/extensions/formJet/
     RelatedItems.tsx         kapcsolódó elemek szekció: csak olvasható táblázat egy másik listából
     RelatedListEditor.tsx    a tervező szekciókártyájának „Kapcsolódó elemek” beállításai
     FormContext.ts           React context: a web kultúrája, a felület nyelve, az elem azonosítója, mentett értékei és a mellékletek állapota
-    DesignerPanel.tsx        admin tervező (Elrendezés / Mező / Változók / Stílus / JSON fülek)
+    DesignerPanel.tsx        admin tervező panel: a kijelölt elem (űrlap / szakasz / mező) tulajdonságai és stílusa; űrlapnál Változók és JSON fül, fa nézet
     VariablesPanel.tsx       a tervező Változók füle
-    BulkConditionDialog.tsx  „Feltétel több mezőre” felugró ablak a Mező fülön
+    BulkConditionDialog.tsx  „Feltétel több mezőre” felugró ablak (az űrlap tulajdonságai között)
     SetupPanel.tsx           a beállító webpart felülete: konfigurációs lista, listánkénti kapcsolók
     StylePanel.tsx           a tervező Stílus füle: form, szekció és mező stílusa módonként
 scripts/Provision-FormJet.ps1  konfigurációs lista + tartalomtípus bekötés
