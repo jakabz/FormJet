@@ -258,6 +258,11 @@ export interface IFormConfig {
   title?: string;
   /** A 'left' még nincs megvalósítva a renderelőben. */
   labelPosition?: 'top' | 'left';
+  /**
+   * A mentés gombjai. Hiányában `default`: Mentés (ment és bezár) + Mégse. `extended`: Mentés (ment, az űrlap nyitva
+   * marad) + Mentés és bezárás + Mégse.
+   */
+  saveMode?: SaveMode;
   style?: IModeStyles<IFormStyle>;
   sections: ISectionConfig[];
   /** Kulcs: a mező InternalName-je. */
@@ -270,6 +275,10 @@ export interface IFormConfig {
    */
   variables?: Record<string, IFormVariable>;
 }
+
+export type SaveMode = 'default' | 'extended';
+
+export const SAVE_MODES: SaveMode[] = ['default', 'extended'];
 
 /** A változó fajtája: igen / nem értékű feltétel, vagy egy mező (átalakított) értéke. */
 export type FormVariableKind = 'condition' | 'value';

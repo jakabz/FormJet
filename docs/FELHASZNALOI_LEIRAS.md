@@ -129,6 +129,17 @@ Az űrlap jobb felső sarkában lévő **Tervező** kapcsolót csak a webhely ad
 
 Az előnézet fölötti **Előnézet módja** választóval megnézheted, hogyan fest az űrlap új elemnél, szerkesztéskor és megtekintéskor. Az előnézet mezőibe írhatsz is, így a feltételek hatását azonnal kipróbálhatod.
 
+### Mentés típusa
+
+Az űrlap tulajdonságai között a **Mentés típusa** határozza meg, milyen gombok vannak az űrlap alján:
+
+- **Alapértelmezett:** **Mentés** (ment és bezárja az űrlapot) és **Mégse**.
+- **Bővített:** **Mentés** (ment, de az űrlap nyitva marad), **Mentés és bezárás**, valamint **Mégse**. Sikeres mentés után az űrlap tetején „A módosítások mentve.” üzenet jelenik meg, és az űrlap a mentett adatokkal frissül.
+
+Bővített mentésnél új elem felvételekor az első Mentés létrehozza az elemet, és az űrlap ettől kezdve ennek az elemnek a szerkesztéseként folytatódik (a további mentések ugyanazt az elemet frissítik, nem jön létre másolat). Ilyenkor az „új elem” módhoz kötött beállítások helyett a szerkesztéshez kötöttek érvényesek. Ha mentés után a Mégse gombbal zárod be az űrlapot, a már elmentett módosítások megmaradnak.
+
+A gombok műveletei között lévő **Mentés** lépés a mentés típusától függetlenül mindig ment és bezár.
+
 ### Kijelölés
 
 - **Az űrlap:** az előnézet fölötti **Űrlap beállításai** gombbal.
@@ -143,7 +154,7 @@ A panel részei:
 - **Stílus** fül: a kijelölt elem megjelenése (lásd [8. fejezet](#8-megjelenés-stílus)).
 - Az űrlap kijelölésénél ezeken felül: **Változók** és **JSON** fül.
 
-Az **űrlap** tulajdonságai: az űrlap címe, a **Feltétel több mezőre…** gomb, **Az űrlap felépítése** (fa nézet: a szakaszok és alattuk a mezőik; bármelyikre kattintva kijelölheted), és az **Új szakasz** gomb.
+Az **űrlap** tulajdonságai: az űrlap címe, a **Mentés típusa** (lásd lent), a **Feltétel több mezőre…** gomb, **Az űrlap felépítése** (fa nézet: a szakaszok és alattuk a mezőik; bármelyikre kattintva kijelölheted), és az **Új szakasz** gomb.
 
 ### Mentés és elvetés
 

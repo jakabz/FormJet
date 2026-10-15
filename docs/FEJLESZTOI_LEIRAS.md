@@ -126,6 +126,8 @@ A generált `config/serve.json` Form Customizer konfigurációját állítsd a t
 
 ### Mentés (`FormHost.save`)
 
+**Mentés bezárás nélkül** (`saveMode: extended`): a `save(overwrite, valuesOverride, close)` `close = false` esetén sikeres mentés után a `finishSave` nem hívja a `formSaved()`-ot, hanem az elemet újratölti (`load(true)`: a form a helyén marad, a `Modified`, az értékek és a mellékletek frissülnek, így az ütközésvizsgálat is a friss állapothoz mér). Új elemnél az első mentés után a `savedItemId` állapot a létrehozott elemre vált, a `mode` ettől `edit` lesz, így a további mentések nem hoznak létre másolatot. Az ütközés utáni felülírás az eredeti mentés bezárási szándékát követi (`closeAfterSave`). Ha a formon már volt mentés, a Mégse `formSaved()`-ként zár. A gombok `save` lépése mindig bezár.
+
 1. Kliens oldali ellenőrzés: a látható, kötelező mezők nem lehetnek üresek.
 2. A `changed` objektumba csak a **látható, szerkeszthető és módosult** mezők kerülnek.
 3. Edit módban ütközésvizsgálat: ha a `Modified` megváltozott, a felhasználó felülírhat vagy újratölthet.
@@ -166,6 +168,7 @@ A tartalomtípus mezői közül a rejtett és a számított megjelenítő (`Comp
 | `listId` | string | igen | A cél lista GUID-ja. |
 | `contentTypeId` | string | igen | A lista tartalomtípusának azonosítója. |
 | `title` | string | nem | A form fejléce. |
+| `saveMode` | `'default'` \| `'extended'` | nem | A mentés gombjai. Hiányában `default`: Mentés (ment és bezár) + Mégse. `extended`: Mentés (ment, a form nyitva marad) + Mentés és bezárás + Mégse. Az alapértelmezés nem tárolódik. |
 | `labelPosition` | `'top'` \| `'left'` | nem | Címkék helye. Alapértelmezés: `top`. A `left` még nincs megvalósítva a renderelőben. |
 | `sections` | `ISectionConfig[]` | igen | Szekciók megjelenési sorrendben. |
 | `fields` | `Record<InternalName, IFieldConfig>` | igen | Mezőnkénti beállítások. |

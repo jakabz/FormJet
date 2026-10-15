@@ -347,3 +347,12 @@ describe('LayoutResolver – a szakasz „Letiltva, ha” feltétele', () => {
     ).toContain('sections[0].readOnlyWhen');
   });
 });
+
+describe('LayoutResolver – mentés típusa', () => {
+  it('a bővített mentés megmarad, az alapértelmezett nem tárolódik, a hibás érték hibát ad', () => {
+    expect((parseConfig(configJson({ saveMode: 'extended' })).config as IFormConfig).saveMode).toBe('extended');
+    expect((parseConfig(configJson({ saveMode: 'default' })).config as IFormConfig).saveMode).toBeUndefined();
+    expect((parseConfig(configJson()).config as IFormConfig).saveMode).toBeUndefined();
+    expect(parseConfig(configJson({ saveMode: 'auto' })).error).toContain('saveMode');
+  });
+});

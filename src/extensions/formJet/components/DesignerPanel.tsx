@@ -42,6 +42,7 @@ import {
   LayoutElementKind,
   LOOKUP_CHECKLIST_MAX,
   LookupDisplay,
+  SaveMode,
   SectionConditionalProperty
 } from '../models/IFormConfig';
 import { ISiteGroup } from '../services/GroupService';
@@ -341,6 +342,18 @@ export const DesignerPanel: React.FC<IDesignerPanelProps> = (props) => {
   const renderFormProps = (): JSX.Element => (
     <div className={classes.tab}>
       <TextField label={strings.FormTitle} value={draft.title ?? ''} onChange={(_, v) => props.onChange(compact({ ...draft, title: v }))} />
+      <Dropdown
+        label={strings.SaveMode}
+        options={[
+          { key: 'default', text: strings.SaveModeDefault },
+          { key: 'extended', text: strings.SaveModeExtended }
+        ]}
+        selectedKey={draft.saveMode ?? 'default'}
+        onChange={(_, option) =>
+          option && props.onChange(compact({ ...draft, saveMode: option.key === 'default' ? undefined : (option.key as SaveMode) }))
+        }
+      />
+      <div className={classes.hint}>{strings.SaveModeHint}</div>
       <DefaultButton
         className={classes.addElement}
         iconProps={{ iconName: 'MultiSelect' }}

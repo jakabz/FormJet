@@ -146,7 +146,7 @@ const classes = mergeStyleSets({
   },
   panelScroll: { flex: 1, minHeight: 0, overflowY: 'auto', paddingRight: 8 },
   panelActions: { display: 'flex', gap: 8, paddingTop: 12, borderTop: '1px solid #edebe9' },
-  actions: { display: 'flex', gap: 8, marginTop: 8 }
+  actions: { display: 'flex', gap: 8, marginTop: 8, justifyContent: 'center' }
 });
 
 export interface IFormHostProps {
@@ -194,7 +194,17 @@ function errorText(error: unknown, fallback: string): string {
 }
 
 export const FormHost: React.FC<IFormHostProps> = (props) => {
-  const { mode, listId, itemId, currentUser } = props;
+  const { listId, currentUser } = props;
+  // Bővített mentésnél új elem első mentése után az űrlap a létrehozott elem szerkesztésével folytatódik,
+  // hogy a következő mentés ne hozzon létre másolatot.
+  const [savedItemId, setSavedItemId] = React.useState<number | undefined>();
+  const mode: FormMode = savedItemId !== undefined ? 'edit' : props.mode;
+  const itemId: number | undefined = savedItemId ?? props.itemId;
+  // Volt-e már sikeres mentés ezen az űrlapon (bővített mentés): ilyenkor a bezárás is mentettként jelez vissza.
+  const [savedOnce, setSavedOnce] = React.useState<boolean>(false);
+  const [savedNotice, setSavedNotice] = React.useState<boolean>(false);
+  // Az ütközés utáni felülírás ugyanúgy zárjon (vagy ne zárjon), mint az eredeti mentés.
+  const closeAfterSave = React.useRef<boolean>(true);
 
   const [loaded, setLoaded] = React.useState<ILoaded | undefined>();
   const [loadError, setLoadError] = React.useState<string | undefined>();
@@ -262,12 +272,15 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
     };
   }, [panelElement]);
 
-  const load = React.useCallback(async (): Promise<void> => {
+  const load = React.useCallback(async (keepCurrent: boolean = false): Promise<void> => {
     // Minden betöltési lépés időkorlátot kap: ha egy kérés nem válaszol, a végtelen betöltés helyett
     // hibaüzenet jelenik meg a lépés nevével (a hibakereséshez).
     const step = <T,>(name: string, promise: Promise<T>): Promise<T> =>
       withTimeout(promise, LOAD_STEP_TIMEOUT_MS, format(strings.LoadStepTimeout, name));
-    setLoaded(undefined);
+    // Mentés utáni újratöltésnél az űrlap a helyén marad (nem villan fel a betöltésjelző).
+    if (!keepCurrent) {
+      setLoaded(undefined);
+    }
     setLoadError(undefined);
     setErrors({});
     setTopErrors([]);
@@ -496,7 +509,30 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
    * Mentés. A gomb műveletei a frissen beállított értékekkel hívják (`valuesOverride`), mert az állapot
    * frissítése ekkor még nem futott le; ilyenkor a láthatóságot és a szerkeszthetőséget is ezekre számoljuk.
    */
-  const save = async (overwrite: boolean, valuesOverride?: FormValues): Promise<void> => {
+  /** Sikeres mentés után: bezárás, vagy (bővített mentésnél) az űrlap nyitva marad a mentett elemmel. */
+  const finishSave = async (close: boolean, savedId: number | undefined): Promise<void> => {
+    buttonSetFields.current.clear();
+    if (close) {
+      props.onSaved();
+      return;
+    }
+    setAttachmentRetryId(undefined);
+    setSavedOnce(true);
+    setSavedNotice(true);
+    if (mode === 'new' && savedId !== undefined) {
+      // Az azonosító változása újratölti az űrlapot, immár a létrehozott elem szerkesztéseként.
+      setSavedItemId(savedId);
+    } else {
+      await load(true);
+    }
+  };
+
+  const save = async (overwrite: boolean, valuesOverride?: FormValues, close: boolean = true): Promise<void> => {
+    if (!overwrite) {
+      closeAfterSave.current = close;
+    }
+    const closing: boolean = overwrite ? closeAfterSave.current : close;
+    setSavedNotice(false);
     const currentValues: FormValues = valuesOverride ?? values;
     const currentResolved: IResolvedForm | undefined =
       valuesOverride && loaded && activeConfig
@@ -511,7 +547,7 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
       setTopErrors([]);
       try {
         if (await syncAttachments(attachmentRetryId)) {
-          props.onSaved();
+          await finishSave(closing, attachmentRetryId);
         }
       } catch (e) {
         setTopErrors([errorText(e, TEXT.saveFailed)]);
@@ -567,7 +603,14 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
       attachmentsEditable && (attachments.added.length > 0 || attachments.removed.length > 0);
     const fieldsChanged: boolean = Object.keys(changed).length > 0;
     if (mode === 'edit' && !fieldsChanged && !attachmentsChanged) {
-      props.onClosed();
+      // Nincs mit menteni: bezáráskor (ha korábban már volt mentés, mentettként) bezár, egyébként nyitva marad.
+      if (closing) {
+        if (savedOnce) {
+          props.onSaved();
+        } else {
+          props.onClosed();
+        }
+      }
       return;
     }
 
@@ -649,7 +692,7 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
           return;
         }
       }
-      props.onSaved();
+      await finishSave(closing, result.itemId);
     } catch (e) {
       setTopErrors([errorText(e, TEXT.saveFailed)]);
     } finally {
@@ -752,6 +795,8 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
   }
 
   const designing: boolean = draft !== undefined;
+  // A mentett elrendezés mentési típusa (a tervezés közbeni piszkozat nem számít, ott nincs mentés gomb).
+  const extendedSave: boolean = loaded.config.saveMode === 'extended';
 
   const rendererProps: IFormRendererProps = {
     form: resolved,
@@ -858,6 +903,11 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
             {format(TEXT.missingFields, resolved.missingFields.join(', '))}
           </MessageBar>
         )}
+        {savedNotice && (
+          <MessageBar messageBarType={MessageBarType.success} onDismiss={() => setSavedNotice(false)}>
+            {strings.SavedNotice}
+          </MessageBar>
+        )}
         {topErrors.map((message) => (
           <MessageBar key={message} messageBarType={MessageBarType.error}>
             {message}
@@ -889,14 +939,22 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
               <PrimaryButton
                 text={saving ? TEXT.saving : TEXT.save}
                 disabled={saving}
-                onClick={() => save(false).catch(() => undefined)}
+                // Bővített mentésnél a Mentés nyitva hagyja az űrlapot.
+                onClick={() => save(false, undefined, !extendedSave).catch(() => undefined)}
+              />
+            )}
+            {mode !== 'display' && extendedSave && (
+              <PrimaryButton
+                text={strings.SaveAndClose}
+                disabled={saving}
+                onClick={() => save(false, undefined, true).catch(() => undefined)}
               />
             )}
             <DefaultButton
               text={mode === 'display' ? TEXT.close : TEXT.cancel}
               disabled={saving}
-              // Ha az elem már mentve van (csak a mellékletek hibáztak), a bezárás mentettként jelez vissza.
-              onClick={attachmentRetryId !== undefined ? props.onSaved : props.onClosed}
+              // Ha az elem már mentve van (korábbi mentés, vagy csak a mellékletek hibáztak), a bezárás mentettként jelez vissza.
+              onClick={attachmentRetryId !== undefined || savedOnce ? props.onSaved : props.onClosed}
             />
           </div>
         </>
@@ -912,7 +970,7 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
             text={TEXT.overwrite}
             onClick={() => {
               setConflict(false);
-              save(true).catch(() => undefined);
+              save(true, undefined, closeAfterSave.current).catch(() => undefined);
             }}
           />
           <DefaultButton

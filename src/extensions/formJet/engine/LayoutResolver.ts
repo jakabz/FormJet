@@ -19,6 +19,8 @@ import {
   ISectionStyle,
   LOOKUP_DISPLAYS,
   LookupDisplay,
+  SAVE_MODES,
+  SaveMode,
   SECTION_CONDITIONAL_PROPERTIES
 } from '../models/IFormConfig';
 import { FormValues, IFieldSchema } from '../models/IFieldSchema';
@@ -578,6 +580,13 @@ export function parseConfig(raw: string): IParseConfigResult {
     const title: string | undefined = optionalString(input.title);
     if (title !== undefined) config.title = title;
     if (input.labelPosition === 'top' || input.labelPosition === 'left') config.labelPosition = input.labelPosition;
+    if (input.saveMode !== undefined) {
+      if (SAVE_MODES.indexOf(input.saveMode as SaveMode) === -1) {
+        throw new Error(format(engineStrings().InvalidOption, 'saveMode', SAVE_MODES.join(', ')));
+      }
+      // Az alapértelmezést nem tároljuk.
+      if (input.saveMode !== 'default') config.saveMode = input.saveMode as SaveMode;
+    }
     const style = parseFormStyles(input.style, 'style');
     if (style) config.style = style;
     const texts = parseTexts(input.texts, 'texts');

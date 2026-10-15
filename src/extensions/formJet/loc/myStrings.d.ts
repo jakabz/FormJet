@@ -229,6 +229,12 @@ declare interface IFormJetFormCustomizerStrings {
   ButtonActionSetValueHint: string;
   ButtonActionValueEmpty: string;
   TabVariables: string;
+  SaveMode: string;
+  SaveModeDefault: string;
+  SaveModeExtended: string;
+  SaveModeHint: string;
+  SaveAndClose: string;
+  SavedNotice: string;
   TabProperties: string;
   DesignForm: string;
   DesignFormSettings: string;
