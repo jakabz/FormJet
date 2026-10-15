@@ -151,6 +151,8 @@ export function resolveForm(
       section.fields.length === 0 && section.related !== undefined && !isRelatedComplete(related);
     const sectionVisible: boolean =
       !nothingToShow && inMode(section.visibleIn, mode, true) && evaluate(section.visibleWhen, conditionValues);
+    // A szakasz letiltása a benne lévő összes mezőre hat (a mezők saját csak olvasható beállítása mellett).
+    const sectionReadOnly: boolean = section.readOnlyWhen !== undefined && evaluate(section.readOnlyWhen, conditionValues);
     const fields: IResolvedField[] = [];
 
     section.fields.forEach((placement) => {
@@ -173,6 +175,7 @@ export function resolveForm(
       const isButton: boolean = isButtonElement(fieldSchema);
       // A gombnál a „csak olvasható” a letiltást jelenti: csak a beállítás dönt róla, megtekintéskor is működhet.
       const configuredReadOnly: boolean =
+        sectionReadOnly ||
         inMode(fieldConfig.readOnlyIn, mode, false) ||
         (fieldConfig.readOnlyWhen !== undefined && evaluate(fieldConfig.readOnlyWhen, conditionValues));
       const readOnly: boolean = isButton
@@ -462,6 +465,8 @@ function parseSection(input: unknown, index: number): ISectionConfig {
   if (input.collapsed === true) section.collapsed = true;
   if (visibleIn) section.visibleIn = visibleIn;
   if (visibleWhen) section.visibleWhen = visibleWhen;
+  const readOnlyWhen = parseCondition<ISectionConfig['readOnlyWhen']>(input.readOnlyWhen, `${path}.readOnlyWhen`);
+  if (readOnlyWhen) section.readOnlyWhen = readOnlyWhen;
   const style = parseSectionStyles(input.style, `${path}.style`);
   if (style) section.style = style;
   const related = parseRelated(input.related, `${path}.related`);

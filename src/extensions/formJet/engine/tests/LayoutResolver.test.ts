@@ -306,3 +306,44 @@ describe('LayoutResolver – mellékletek és megjelenítési beállítások', (
     expect(getField(form, 'Tags').lookupDisplay).toBe('checklist');
   });
 });
+
+describe('LayoutResolver – a szakasz „Letiltva, ha” feltétele', () => {
+  const schema = [field('Title', 'Text'), field('Amount', 'Number'), field('Other', 'Text')];
+  const config = parseConfig(
+    configJson({
+      sections: [
+        {
+          id: 'a',
+          columns: 1,
+          readOnlyWhen: { field: 'Other', op: 'eq', value: 'lezárva' },
+          fields: [{ field: 'Title' }, { field: 'Amount' }, { field: 'button:1' }]
+        },
+        { id: 'b', columns: 1, fields: [{ field: 'Other' }] }
+      ],
+      fields: { Title: { readOnlyIn: ['edit'] } },
+      texts: { 'button:1': { kind: 'button', name: 'Súgó' } }
+    })
+  ).config as IFormConfig;
+
+  it('teljesülésekor a szakasz minden mezője csak olvasható, a gombja letiltott; más szakaszt nem érint', () => {
+    const locked = resolveForm(schema, config, 'new', { Other: 'lezárva' });
+    expect(getField(locked, 'Title').readOnly).toBe(true);
+    expect(getField(locked, 'Amount').readOnly).toBe(true);
+    expect(getField(locked, 'button:1').readOnly).toBe(true);
+    expect(getField(locked, 'Other').readOnly).toBe(false);
+  });
+
+  it('nem teljesülve a mezők saját beállítása érvényes', () => {
+    const open = resolveForm(schema, config, 'edit', { Other: 'nyitott' });
+    expect(getField(open, 'Title').readOnly).toBe(true);
+    expect(getField(open, 'Amount').readOnly).toBe(false);
+    expect(getField(open, 'button:1').readOnly).toBe(false);
+  });
+
+  it('parseConfig: a feltétel megmarad, a hibás feltétel hibát ad', () => {
+    expect(config.sections[0].readOnlyWhen).toEqual({ field: 'Other', op: 'eq', value: 'lezárva' });
+    expect(
+      parseConfig(configJson({ sections: [{ id: 'a', columns: 1, fields: [], readOnlyWhen: { field: 'A', op: 'x' } }] })).error
+    ).toContain('sections[0].readOnlyWhen');
+  });
+});

@@ -240,6 +240,7 @@ Jelöld ki a szakaszt a fogaskerekével (vagy a fa nézetben); a **Tulajdonságo
 | Becsukható, Alapból csukva | A felhasználó becsukhatja-e a szekciót, és csukva nyíljon-e meg. |
 | Látható ezekben a módokban | Új elem / Szerkesztés / Megtekintés. |
 | Látható, ha | Feltétel, amely mellett a szekció megjelenik (lásd [Feltételek](#7-feltételek)). |
+| Letiltva, ha | Feltétel, amely mellett a szakasz minden mezője csak olvasható, a gombjai pedig nem kattinthatók. A mezők saját „Csak olvasható” beállítása ettől függetlenül érvényes. |
 | Kapcsolódó elemek… | Egy másik lista elemeinek felsorolása (lásd [9. fejezet](#9-kapcsolódó-elemek-egy-másik-listából)). |
 
 A tulajdonságok tetején lévő nyilakkal a szakasz mozgatható, a kuka ikonnal törölhető. Törléskor a mezői nem vesznek el, hanem a nem elhelyezett mezők közé kerülnek, és a kijelölés az űrlapra ugrik.

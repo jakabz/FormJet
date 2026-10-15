@@ -64,6 +64,7 @@ export function collectGroupIds(config: IFormConfig): number[] {
   };
   config.sections.forEach((section) => {
     collectFromCondition(section.visibleWhen, found);
+    collectFromCondition(section.readOnlyWhen, found);
     collectFromRules(section.conditional);
   });
   Object.keys(config.variables ?? {}).forEach((name) => collectFromCondition(config.variables?.[name].when, found));

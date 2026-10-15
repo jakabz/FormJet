@@ -280,7 +280,12 @@ export function mapConfigConditions(config: IFormConfig, map: (field: IFieldCond
   const next: IFormConfig = {
     ...config,
     sections: config.sections.map((section) =>
-      strip({ ...section, visibleWhen: mapOptional(section.visibleWhen), conditional: mapRules(section.conditional) })
+      strip({
+        ...section,
+        visibleWhen: mapOptional(section.visibleWhen),
+        readOnlyWhen: mapOptional(section.readOnlyWhen),
+        conditional: mapRules(section.conditional)
+      })
     ),
     fields
   };

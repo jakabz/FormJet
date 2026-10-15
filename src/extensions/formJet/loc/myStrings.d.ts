@@ -286,6 +286,7 @@ declare interface IFormJetFormCustomizerStrings {
   ButtonActionMoveDown: string;
   DisabledInModes: string;
   DisabledWhen: string;
+  SectionDisabledHint: string;
   StyleMaxWidth: string;
   StyleMaxWidthError: string;
   StyleDensity: string;

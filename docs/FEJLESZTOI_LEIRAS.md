@@ -183,6 +183,7 @@ A tartalomtípus mezői közül a rejtett és a számított megjelenítő (`Comp
 | `collapsible`, `collapsed` | boolean | false | Becsukható-e, és alapból csukva van-e. |
 | `visibleIn` | `FormMode[]` | mindhárom | Mely módokban látszik. |
 | `visibleWhen` | `Condition` | – | Feltételes láthatóság. |
+| `readOnlyWhen` | `Condition` | – | Ha teljesül, a szakasz minden mezője csak olvasható (gombnál: letiltott), a mezők saját `readOnlyIn` / `readOnlyWhen` beállítása mellett (VAGY kapcsolat). A kötelezőséget nem érinti: a csak olvasható mező a mentés ellenőrzéséből amúgy is kimarad. |
 | `fields` | `IFieldPlacement[]` | – | `{ field, colSpan? }`, a sorrend a megjelenési sorrend. |
 
 ### IFieldConfig

@@ -155,6 +155,8 @@ export interface ISectionConfig {
   /** Hiányában mindhárom módban látszik. */
   visibleIn?: FormMode[];
   visibleWhen?: Condition;
+  /** Ha teljesül, a szakasz minden mezője csak olvasható (a gombjai letiltottak); a mezők saját beállítása mellett. */
+  readOnlyWhen?: Condition;
   style?: IModeStyles<ISectionStyle>;
   /** A mezők alatt egy másik lista kapcsolódó elemei jelennek meg. New módban nem látszik. */
   related?: IRelatedListConfig;

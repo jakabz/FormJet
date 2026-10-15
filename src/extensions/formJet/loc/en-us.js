@@ -282,6 +282,7 @@ define([], function() {
     "ButtonActionMoveDown": "Move step down",
     "DisabledInModes": "Disabled in these modes",
     "DisabledWhen": "Disabled when",
+    "SectionDisabledHint": "When met, every field of the section is read-only and its buttons cannot be clicked.",
     "StyleMaxWidth": "Maximum width (px)",
     "StyleMaxWidthError": "Enter a number between {0} and {1}.",
     "StyleDensity": "Spacing",

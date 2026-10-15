@@ -445,6 +445,15 @@ export const DesignerPanel: React.FC<IDesignerPanelProps> = (props) => {
         value={section.visibleWhen}
         onChange={(visibleWhen) => updateSection(index, { visibleWhen })}
       />
+      {/* Teljesülésekor a szakasz összes mezője csak olvasható, a gombjai letiltottak. */}
+      <ConditionEditor
+        key={`${section.id}:ReadOnlyWhen`}
+        schema={conditionFields}
+        label={strings.DisabledWhen}
+        value={section.readOnlyWhen}
+        onChange={(readOnlyWhen) => updateSection(index, { readOnlyWhen })}
+      />
+      <div className={classes.hint}>{strings.SectionDisabledHint}</div>
       <RelatedListEditor
         value={section.related}
         schema={realFields}

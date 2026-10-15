@@ -282,6 +282,7 @@ define([], function() {
     "ButtonActionMoveDown": "Lépés lejjebb",
     "DisabledInModes": "Letiltva ezekben a módokban",
     "DisabledWhen": "Letiltva, ha",
+    "SectionDisabledHint": "Ha teljesül, a szakasz minden mezője csak olvasható, a gombjai pedig nem kattinthatók.",
     "StyleMaxWidth": "Maximális szélesség (px)",
     "StyleMaxWidthError": "{0} és {1} közötti számot adj meg.",
     "StyleDensity": "Térköz",
