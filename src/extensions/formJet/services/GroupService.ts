@@ -3,10 +3,12 @@
 // A tagság csak a form testreszabására való, nem jogosultsági ellenőrzés.
 
 import { DirectoryClaim, isMemberByClaims, parseDirectoryClaim } from '../engine/ConditionContext';
-import { getAadToken, getSP } from './sp';
+import { getAadToken, getSP, withTimeout } from './sp';
 
 const GRAPH_RESOURCE: string = 'https://graph.microsoft.com';
 const GRAPH_MEMBER_OF_URL: string = `${GRAPH_RESOURCE}/v1.0/me/transitiveMemberOf?$select=id&$top=999`;
+/** A Graph-lekérdezés (token + lapok) legfeljebb ennyi ideig tarthat; utána a közvetett tagság nem ellenőrizhető. */
+const GRAPH_TIMEOUT_MS: number = 10000;
 
 export interface ISiteGroup {
   id: number;
@@ -91,7 +93,8 @@ export async function getMembership(groupIds: number[], isGuest: boolean): Promi
   let incomplete: boolean = false;
   if (claimsByGroup.some((claims) => claims.some((claim) => claim.kind === 'directoryGroup'))) {
     try {
-      directoryGroupIds = await getDirectoryGroupIds();
+      // A token kérése egyes környezetekben válasz nélkül maradhat; időkorláttal a form akkor is betölt.
+      directoryGroupIds = await withTimeout(getDirectoryGroupIds(), GRAPH_TIMEOUT_MS, 'Microsoft Graph timeout');
     } catch {
       incomplete = true;
     }

@@ -26,8 +26,9 @@ describe('TextElement – szövegelemek', () => {
     { id: 'b', columns: 1, fields: [{ field: 'Amount' }] }
   ];
 
-  it('az 1-es sémaverziójú konfiguráció érvényes marad, és az aktuális verzióra kerül', () => {
-    expect(load({ schemaVersion: 1 }).schemaVersion).toBe(2);
+  it('az 1-es és 2-es sémaverziójú konfiguráció érvényes marad, és az aktuális verzióra kerül', () => {
+    expect(load({ schemaVersion: 1 }).schemaVersion).toBe(3);
+    expect(load({ schemaVersion: 2 }).schemaVersion).toBe(3);
   });
 
   it('parseConfig: a szövegelemek megmaradnak; hibás azonosító vagy hiányzó megnevezés hibát ad', () => {

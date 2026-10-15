@@ -6,7 +6,8 @@ export type FormMode = 'new' | 'edit' | 'display';
 export const FORM_MODES: FormMode[] = ['new', 'edit', 'display'];
 
 // 1 → 2: szövegelemek (`texts`). A szerkezet csak bővült, az 1-es konfiguráció változtatás nélkül érvényes.
-export const CONFIG_SCHEMA_VERSION: 2 = 2;
+// 2 → 3: változók (`variables`). Szintén csak bővülés, a 2-es konfiguráció átalakítás nélkül érvényes.
+export const CONFIG_SCHEMA_VERSION: 3 = 3;
 
 export type ConditionOperator = 'eq' | 'ne' | 'gt' | 'lt' | 'contains' | 'in' | 'empty' | 'notEmpty';
 
@@ -249,7 +250,7 @@ export const BUTTON_ACTION_TYPES: ButtonActionType[] = ['setValue', 'save', 'clo
 export type LayoutElementKind = 'text' | 'button';
 
 export interface IFormConfig {
-  schemaVersion: 2;
+  schemaVersion: 3;
   listId: string;
   contentTypeId: string;
   title?: string;
@@ -261,4 +262,42 @@ export interface IFormConfig {
   fields: Record<string, IFieldConfig>;
   /** Szövegelemek. Kulcs: az elem azonosítója (`text:` előtaggal), a szekciókban ezzel hivatkozható. */
   texts?: Record<string, ITextElement>;
+  /**
+   * A form változói, név szerint. A feltételekben mezőként hivatkozhatók (`[Var:<név>]`), így egy szabály egyszer
+   * definiálható, és sok mezőnél, szekciónál újrahasznosítható.
+   */
+  variables?: Record<string, IFormVariable>;
 }
+
+/** A változó fajtája: igen / nem értékű feltétel, vagy egy mező (átalakított) értéke. */
+export type FormVariableKind = 'condition' | 'value';
+
+/**
+ * Egy változó. Feltétel fajtánál az értéke igen / nem (`1` / `0`); érték fajtánál a forrásmező élő vagy mentett
+ * értéke, az átalakítások sorrendben alkalmazva.
+ */
+export interface IFormVariable {
+  kind: FormVariableKind;
+  /** Feltétel fajtánál: hiányában a változó értéke nem. */
+  when?: Condition;
+  /** Érték fajtánál: a forrásmező InternalName-je. */
+  field?: string;
+  /** Érték fajtánál: a mező mentett (betöltéskori) értéke az élő (éppen beírt) helyett. Új elemnél üres. */
+  saved?: boolean;
+  /** Érték fajtánál: sorban alkalmazott átalakítások. */
+  transforms?: VariableTransform[];
+}
+
+/** Egy átalakítás a változó értékén. Új fajta: típus + `VARIABLE_TRANSFORMS` + `FormVariables.applyTransform` + szerkesztő. */
+export type VariableTransform =
+  /** Szövegrész: `start`-tól (0-tól számolva) legfeljebb `length` karakter; hossz nélkül a szöveg végéig. */
+  | { type: 'substring'; start: number; length?: number }
+  /** Számmá alakítás (szóköz és tizedesvessző is lehet benne); nem szám esetén üres. */
+  | { type: 'number' }
+  | { type: 'trim' }
+  | { type: 'lower' }
+  | { type: 'upper' };
+
+export type VariableTransformType = VariableTransform['type'];
+
+export const VARIABLE_TRANSFORMS: VariableTransformType[] = ['substring', 'number', 'trim', 'lower', 'upper'];

@@ -321,6 +321,7 @@ A feltétel sorában a mezők listájának végén olyan elemek is választható
 | Űrlap módja: szerkesztés | Az űrlap meglévő elem szerkesztésére nyílt meg. |
 | Űrlap módja: megtekintés | Az űrlap megtekintésre nyílt meg. |
 | A felhasználó az elem létrehozója | Az űrlapot megnyitó felhasználó hozta létre az elemet. Új elemnél mindig Igen. |
+| Változó: *név* | A Változók fülön felvett változó értéke (lásd lent). |
 | Csoporttag: *csoport neve* | Az űrlapot megnyitó felhasználó tagja a webhely adott SharePoint csoportjának. |
 
 Ezeknek több feltétel összefűzésénél van igazán értelme. **Példa:** a „Jóváhagyó megjegyzése” mező szerkesztéskor csak a Jóváhagyók csoport tagjainak legyen írható. A mező *Csak olvasható, ha* beállításánál vedd fel, „Minden feltétel teljesül” mellett: `Űrlap módja: szerkesztés` – `egyenlő` – `Igen`, és `Csoporttag: Jóváhagyók` – `egyenlő` – `Nem`.
@@ -331,6 +332,29 @@ Tudnivalók a csoporttagságról:
 - Az számít, hogy a felhasználó ténylegesen tagja-e a csoportnak; ez a webhely adminisztrátorára is igaz. A tervező előnézete is a te tagságod szerint mutatja az űrlapot.
 - Az is tagnak számít, aki egy a SharePoint csoportba felvett címtárbeli (Entra vagy Microsoft 365) csoporton keresztül tag. Ha ezt az űrlap nem tudja ellenőrizni, az adminisztrátorok figyelmeztetést látnak az űrlap tetején; ilyenkor az így tag felhasználók nem tagnak számítanak.
 - A csoport átnevezése után a feltétel tovább működik. Törölt csoportnál a feltétel úgy viselkedik, mintha senki nem lenne tagja.
+
+### Változók
+
+Ha ugyanazt a szabályt sok mezőnél vagy szekciónál használod, érdemes változóba tenni. A változót egyszer állítod össze, a feltételekben pedig a mezők listájának végén „Változó: *név*” néven választod ki. Ha a szabály később változik, csak a változót kell átírni.
+
+A változókat a tervező **Változók** fülén veszed fel a **Változó hozzáadása** gombbal. Kétféle változó van:
+
+- **Feltétel (igen / nem):** a „Igen, ha” résznél ugyanúgy állítod össze, mint bármelyik feltételt (mezőérték, az űrlap módja, csoporttagság, sőt másik változó is lehet benne). A feltételekben Igen / Nem értékkel vizsgálod.
+- **Mező értéke:** egy mező értéke, szükség esetén átalakítva. Bejelölheted, hogy **a mentett érték** számítson (amit az űrlap megnyitásakor a lista tartalmazott), ne az éppen beírt. Az átalakítások sorban hajtódnak végre: **szövegrész** (kezdet 0-tól számolva, és hossz), **számmá alakítás**, **szóközök levágása**, **kisbetűssé**, **nagybetűssé**.
+
+**Példa:** a státusz első két karaktere számként, a mentett értékből: forrásmező Status, „A mentett érték” bejelölve, átalakítások: Szövegrész (kezdet 0, hossz 2), majd Számmá alakítás. Ebből egy „Feltétel” változó: `Űrlap módja: új elem` = Igen, VAGY `Változó: StatusNumber` = 1. A logisztikai mezőknél a *Látható, ha* feltétel ezután egyetlen sor: `Változó: HideLogistics` = Nem.
+
+A változó neve betűvel kezdődik, és csak betűt, számot és aláhúzást tartalmazhat. Átnevezéskor a rá hivatkozó feltételek is követik. Ha egy változó (akár más változón keresztül) önmagára hivatkozik, a tervező figyelmeztet, és az értéke mindig Nem / üres.
+
+### Feltétel beállítása több mezőre egyszerre
+
+A **Mező** fül tetején lévő **Feltétel több mezőre…** gombbal ugyanazt a feltételt egyszerre sok mezőre állíthatod be:
+
+1. Válaszd ki a **beállítást**: Látható, ha / Csak olvasható, ha (gombnál: letiltva, ha) / Kötelező, ha.
+2. Válaszd ki a **módját**: felülírja a mezők meglévő feltételét; hozzáfűzi ÉS kapcsolattal (mindkettő teljesüljön); hozzáfűzi VAGY kapcsolattal (bármelyik teljesüljön); vagy törli a meglévő feltételt.
+3. Állítsd össze a **feltételt** (jellemzően egy változóra épülőt).
+4. Jelöld ki a **mezőket**; a szekció nevére kattintva a szekció összes mezője kijelölődik.
+5. Kattints az **Alkalmazás** gombra. A mezők többi beállítása nem változik, és amíg nem mented az elrendezést, minden visszavonható a Mégse gombbal.
 
 A címke melletti **Szerkesztés JSON-ként** hivatkozással a feltétel szövegesen is szerkeszthető. Az egymásba ágyazott feltételcsoportok csak így szerkeszthetők; ezek maguktól szöveges formában jelennek meg.
 

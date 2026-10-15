@@ -7,6 +7,7 @@
 
 import { FormValues } from '../models/IFieldSchema';
 import { Condition, FormMode, IConditionalValue, IFormConfig } from '../models/IFormConfig';
+import { evaluateVariables } from './FormVariables';
 
 /** A form módját jelző változók; közülük mindig pontosan egy igaz. */
 export const MODE_VARIABLES: Record<FormMode, string> = {
@@ -65,6 +66,7 @@ export function collectGroupIds(config: IFormConfig): number[] {
     collectFromCondition(section.visibleWhen, found);
     collectFromRules(section.conditional);
   });
+  Object.keys(config.variables ?? {}).forEach((name) => collectFromCondition(config.variables?.[name].when, found));
   Object.keys(config.fields).forEach((name) => {
     collectFromCondition(config.fields[name].visibleWhen, found);
     collectFromCondition(config.fields[name].readOnlyWhen, found);
@@ -82,7 +84,11 @@ export function contextValues(
   config: IFormConfig,
   mode: FormMode,
   memberGroupIds: number[],
-  isAuthor: boolean = false
+  isAuthor: boolean = false,
+  /** A mezők aktuális értékei: a változók ezekre (és a többi környezeti változóra) épülnek. */
+  fieldValues: FormValues = {},
+  /** A mezők mentett (betöltéskori) értékei a mentett forrású változókhoz. */
+  savedValues: FormValues = {}
 ): FormValues {
   const values: FormValues = {};
   // Új elemnél a kitöltő lesz a létrehozó, ezért ott mindig igaz.
@@ -93,7 +99,8 @@ export function contextValues(
   collectGroupIds(config).forEach((groupId) => {
     values[groupVariable(groupId)] = memberGroupIds.indexOf(groupId) !== -1 ? TRUE_VALUE : FALSE_VALUE;
   });
-  return values;
+  // A form változói a mezőkre és a fenti környezeti változókra épülhetnek.
+  return { ...values, ...evaluateVariables(config.variables, { ...fieldValues, ...values }, savedValues) };
 }
 
 /** Egy SharePoint csoportba felvett címtárbeli tag, amelyen keresztül a felhasználó közvetve tag lehet. */

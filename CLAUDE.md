@@ -62,6 +62,8 @@ src/extensions/formJet/
     TaxonomyValue.ts         felügyelt metaadat form-string (`Címke|TermGuid;`) értelmezése és előállítása
     UrlValue.ts              URL mező form-string (`cím, leírás`) értelmezése és előállítása; biztonságos cím ellenőrzése
     UserValue.ts             User / UserMulti form-string (JSON tömb `Key`-jel) értelmezése és előállítása
+    FormVariables.ts         a form változói (feltétel vagy átalakított mezőérték): kiértékelés függőségi sorrendben, átnevezés, a `variables` ellenőrzése
+    BulkConditions.ts        feltétel tömeges beállítása több mezőre (felülírás, ÉS / VAGY hozzáfűzés, törlés)
     EngineStrings.ts         a motor üzenetei (alapból angol; az onInit a loc `Engine` részét adja át) + format()
     LayoutMoves.ts           a tervező húzd-és-ejtsd műveletei: szekció és mező áthelyezése, új mező felvétele a konfiguráción
     LayoutResolver.ts        séma + konfig + mód + értékek → IResolvedForm; alapértelmezett konfig; parseConfig
@@ -102,7 +104,9 @@ src/extensions/formJet/
     RelatedItems.tsx         kapcsolódó elemek szekció: csak olvasható táblázat egy másik listából
     RelatedListEditor.tsx    a tervező szekciókártyájának „Kapcsolódó elemek” beállításai
     FormContext.ts           React context: a web kultúrája, a felület nyelve, az elem azonosítója, mentett értékei és a mellékletek állapota
-    DesignerPanel.tsx        admin tervező (Elrendezés / Mező / Stílus / JSON fülek)
+    DesignerPanel.tsx        admin tervező (Elrendezés / Mező / Változók / Stílus / JSON fülek)
+    VariablesPanel.tsx       a tervező Változók füle
+    BulkConditionDialog.tsx  „Feltétel több mezőre” felugró ablak a Mező fülön
     SetupPanel.tsx           a beállító webpart felülete: konfigurációs lista, listánkénti kapcsolók
     StylePanel.tsx           a tervező Stílus füle: form, szekció és mező stílusa módonként
 scripts/Provision-FormJet.ps1  konfigurációs lista + tartalomtípus bekötés
@@ -137,8 +141,9 @@ A típusok forrása: `models/IFormConfig.ts`. Példa: `samples/config-example.js
 - Séma módosításakor emeld a `schemaVersion`-t, és bővítsd a `parseConfig`-ot migrációval a régi verzióról. A mentett konfigurációk éles listákban vannak, nem törhetnek el.
 - Új stílustulajdonság: típus az `IFormStyle` / `ISectionStyle` / `IFieldStyle`-ban + a `FormStyle.ts` megfelelő `*_STYLE_SPEC`-je + alkalmazás a `FormRenderer`-ben + vezérlő a `StylePanel`-ben + a fejlesztői leírás 6. fejezete. Opcionális mezőként nem kell sémaverziót emelni.
 - Szövegelemek (`texts`, `engine/TextElement.ts`): felirat (a formon megjelenő sima szöveg) és gomb (`kind: 'button'`, `button:` azonosító, egy biztonságos címet nyit meg; a `readOnlyIn` / `readOnlyWhen` a letiltását jelenti), amelyek mögött nincs SharePoint mező. A gomb ikont (`icon`, Fluent ikonnév) és műveleteket (`actions`: `setValue` / `save` / `close`, `engine/ButtonAction.ts`) kaphat; ha van művelet, a cím nem számít. A műveleteket a `FormHost.runButtonActions` futtatja sorban, `await`-tel; a mentés a beállított értékek munkapéldányával fut (`save(false, working)`), a `save` és a `close` lezárja a sort. A gomb által beállított mező az űrlapon rejtett vagy csak olvasható állapotában is mentődik (a 2. kulcsdöntés egyeztetett kivétele). A gombhoz szkript (`onClick` kód) nem köthető: a konfiguráció nem tartalmazhat végrehajtható kódot. `text:` előtagú azonosítóval pszeudo-mezőként kerül a sémába (`withTextElements`, `FormJetText` típus, csak olvasható), ezért mezőként helyezhető el, egyszer. A láthatósága és a stílusa a `fields` azonos kulcsú bejegyzésében van. Értéke nincs: a mentésbe nem kerülhet, feltétel nem hivatkozhat rá. A tartalom sima szöveg; HTML-ként megjeleníteni vagy formázhatóvá tenni egyeztetést igényel.
-- Környezeti változók a feltételekben (`engine/ConditionContext.ts`): a `field` helyén `[IsNewMode]`, `[IsEditMode]`, `[IsDisplayMode]` (a form módja), `[IsAuthor]` (a felhasználó az elem létrehozója; New módban mindig igaz) és `[Group:<azonosító>]` (SharePoint csoporttagság) is állhat, igen / nem (`1` / `0`) értékkel. A `resolveForm` teszi őket a mezőértékek mellé; a csoporttagságot a `FormHost` kérdezi le előre (`GroupService.getMembership`), a `resolveForm` szinkron marad. A csoporttagságra épülő feltétel sem jogosultsági határ (4. kulcsdöntés).
+- Környezeti változók a feltételekben (`engine/ConditionContext.ts`): a `field` helyén `[IsNewMode]`, `[IsEditMode]`, `[IsDisplayMode]` (a form módja), `[IsAuthor]` (a felhasználó az elem létrehozója; New módban mindig igaz) `[Group:<azonosító>]` (SharePoint csoporttagság) és `[Var:<név>]` (a form változója, `engine/FormVariables.ts`) is állhat, igen / nem (`1` / `0`) értékkel. A `resolveForm` teszi őket a mezőértékek mellé; a csoporttagságot a `FormHost` kérdezi le előre (`GroupService.getMembership`), a `resolveForm` szinkron marad. A csoporttagságra épülő feltétel sem jogosultsági határ (4. kulcsdöntés).
 - Feltételes értékek (`IFieldConfig.conditional` és `ISectionConfig.conditional`, `engine/ConditionalValue.ts`): a mező címkéje, leírása, helykitöltője és kezdőértéke, valamint a szekció címe és leírása szabálylistát kaphat (`{ when, value }`), az első teljesülő szabály érvényes, egyébként az alapérték. A címke, a leírás és a helykitöltő a `resolveForm`-ban oldódik fel; a kezdőérték szabályai csak New módban, a megnyitáskor értékelődnek ki (`getInitialValues`).
+- Változók (`variables`, sémaverzió 3): feltétel fajta (igen / nem) vagy érték fajta (mező élő vagy mentett értéke + előre megírt átalakítások: `substring`, `number`, `trim`, `lower`, `upper`). A `contextValues` értékeli ki őket függőségi sorrendben; a körkörös hivatkozás nem / üres értéket ad. A mentett értékeket a `resolveForm` `savedValues` paramétere adja. Kifejezésnyelvet (szöveges képletet) nem vezettünk be szándékosan; új átalakítás a `VariableTransform` bővítésével jön.
 - Új feltétel-operátor: `ConditionOperator` típus + `ConditionEngine.evalField` + felirat a `ConditionEditor` `operatorLabels` függvényében (és a loc fájlokban) + a JSON mód súgószövege (`ConditionHelp`) + teszt.
 
 ## SharePoint sajátosságok

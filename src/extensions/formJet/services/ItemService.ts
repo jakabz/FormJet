@@ -96,13 +96,15 @@ function toUserFormString(value: unknown): string {
  * Sikertelen lekérdezésnél az adott mezők kimaradnak, és a FieldValuesForEdit értéke marad érvényben.
  */
 export async function loadUserValues(listId: string, itemId: number, fieldNames: string[]): Promise<FormValues> {
-  const item = getSP().web.lists.getById(listId).items.getById(itemId);
   const result: FormValues = {};
   const requests: Array<Promise<void>> = [];
   for (let start: number = 0; start < fieldNames.length; start += USER_FIELDS_PER_REQUEST) {
     const names: string[] = fieldNames.slice(start, start + USER_FIELDS_PER_REQUEST);
     const selects: string[] = [];
     names.forEach((name) => selects.push(`${name}/Name`, `${name}/Title`, `${name}/EMail`));
+    // Minden kérés saját lekérdezés-objektumot kap: a PnPjs v4-ben ugyanaz az objektum nem futtatható egyszerre
+    // többször (a párhuzamos futtatás összekeveri az állapotát, és a kérés válasz nélkül marad).
+    const item = getSP().web.lists.getById(listId).items.getById(itemId);
     requests.push(
       (item.select(...selects).expand(...names)() as Promise<Record<string, unknown>>)
         .then((data) => {

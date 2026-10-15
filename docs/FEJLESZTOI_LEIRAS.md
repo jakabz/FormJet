@@ -157,7 +157,7 @@ A tartalomtípus mezői közül a rejtett és a számított megjelenítő (`Comp
 
 | Tulajdonság | Típus | Kötelező | Jelentés |
 | --- | --- | --- | --- |
-| `schemaVersion` | `2` | igen | Sémaverzió, a migráció alapja. Az `1`-es konfigurációt a `parseConfig` átalakítás nélkül elfogadja (a 2-es csak a `texts` résszel bővült), és a tervező mentésekor 2-esként íródik vissza. |
+| `schemaVersion` | `3` | igen | Sémaverzió, a migráció alapja. Az `1`-es és `2`-es konfigurációt a `parseConfig` átalakítás nélkül elfogadja (a 2-es a `texts`, a 3-as a `variables` résszel bővült), és a tervező mentésekor 3-asként íródik vissza. |
 | `listId` | string | igen | A cél lista GUID-ja. |
 | `contentTypeId` | string | igen | A lista tartalomtípusának azonosítója. |
 | `title` | string | nem | A form fejléce. |
@@ -165,6 +165,7 @@ A tartalomtípus mezői közül a rejtett és a számított megjelenítő (`Comp
 | `sections` | `ISectionConfig[]` | igen | Szekciók megjelenési sorrendben. |
 | `fields` | `Record<InternalName, IFieldConfig>` | igen | Mezőnkénti beállítások. |
 | `texts` | `Record<azonosító, ITextElement>` | nem | Szövegelemek (lásd lent). |
+| `variables` | `Record<név, IFormVariable>` | nem | A form változói (lásd lent). |
 
 ### ISectionConfig
 
@@ -220,6 +221,36 @@ A mező címkéje, leírása, helykitöltő szövege és kezdőértéke feltéte
 - Opcionális bővítés, sémaverzió-emelés nem kellett. A `parseConfig` ellenőrzi a szerkezetet és a feltételeket (`parseConditional`); az ismeretlen kulcsok kimaradnak.
 - A tervezőben a Mező fül négy szövegmezője melletti gomb (`ConditionalValueEditor.tsx`) felugró ablakban szerkeszti a szabályokat; a gombon jelvény mutatja az érvényes szabályok számát. Szövegelemnél nincs ilyen beállítás.
 - **Szekció:** ugyanez a szerkezet az `ISectionConfig.conditional`-ban a `title` és a `description` tulajdonságra (`SECTION_CONDITIONAL_PROPERTIES`), a szekció kártyáján ugyanazzal a gombbal. Itt az üres érték a címet is eltünteti (a szekciónak nem kötelező címe lenni). A `ConditionalValue.ts` függvényei a mezőre és a szekcióra közösek (`IConditionalHolder`).
+
+### Változók (`IFormConfig.variables`)
+
+Egyszer definiált, név szerint újrahasznosítható értékek a feltételekhez (`engine/FormVariables.ts`, szerkesztő: a tervező Változók füle, `VariablesPanel.tsx`). A feltételekben `[Var:<név>]` mezőként hivatkozhatók, a feltételszerkesztő mezőlistájában „Változó: …” néven.
+
+| Tulajdonság | Típus | Jelentés |
+| --- | --- | --- |
+| `kind` | `'condition'` \| `'value'` | Feltétel: igen / nem (`1` / `0`); érték: egy mező (átalakított) értéke. |
+| `when` | `Condition` | Feltétel fajtánál: mikor igaz. Hiányában a változó nem. |
+| `field` | InternalName | Érték fajtánál: a forrásmező. |
+| `saved` | boolean | Érték fajtánál: a mező mentett (betöltéskori, `loaded.original`) értéke az élő helyett; új elemnél üres. |
+| `transforms` | `VariableTransform[]` | Érték fajtánál: sorban alkalmazott átalakítások: `substring` (`start`, `length?`), `number`, `trim`, `lower`, `upper`. |
+
+```json
+"variables": {
+  "StatusNumber": { "kind": "value", "field": "Status", "saved": true,
+                    "transforms": [{ "type": "substring", "start": 0, "length": 2 }, { "type": "number" }] },
+  "HideLogistics": { "kind": "condition",
+                     "when": { "any": [{ "field": "[IsNewMode]", "op": "eq", "value": true },
+                                       { "field": "[Var:StatusNumber]", "op": "eq", "value": 1 }] } }
+}
+```
+
+- A név betűvel kezdődik, utána betű, szám vagy aláhúzás (`isVariableName`). Átnevezéskor (`renameVariable`) a konfiguráció minden rá hivatkozó feltétele követi (`mapConfigConditions`: szekciók, mezők, feltételes értékek, változók). Törléskor a hivatkozások megmaradnak, értékük üres / nem.
+- A kiértékelést a `ConditionContext.contextValues` végzi (`evaluateVariables`) a mezőértékek és a többi környezeti változó után, így a változó ezekre és más változókra is épülhet. A sorrendet a függőségek adják (`variableOrder`); a körkörös hivatkozásban érintett változó értéke nem / üres, a tervező figyelmeztet.
+- A mentett értéket a `resolveForm` `savedValues` paramétere adja (a `FormHost` a `loaded.original`-t adja át). A kezdőértékek feltételeinél (`getInitialValues`) a mentett érték üres.
+- A változó feltételében hivatkozott csoportot a `collectGroupIds` is felveszi, így a csoporttagság előre lekérdeződik.
+- Kódot nem futtatunk: csak a `VARIABLE_TRANSFORMS` előre megírt átalakításai alkalmazhatók. Új átalakítás: `VariableTransform` típus + `VARIABLE_TRANSFORMS` + `FormVariables.applyTransform` és `parseTransform` + felirat a `VariablesPanel` `transformLabels` függvényében (és a loc fájlokban) + teszt.
+
+**Feltétel több mezőre** (`engine/BulkConditions.ts`, `BulkConditionDialog.tsx`, a Mező fül tetején): ugyanaz a `visibleWhen` / `readOnlyWhen` / `requiredWhen` feltétel egyszerre több elhelyezett mezőre. Módok: felülírás, hozzáfűzés ÉS / VAGY kapcsolattal (`combineConditions`: az azonos fajta csoportot kiteríti, hogy a vizuális szerkesztő is kezelje), törlés. A felirat nem kaphat csak olvasható feltételt, a felirat és a gomb nem lehet kötelező; ezek a listában nem jelennek meg.
 
 ### Szövegelemek: felirat és gomb (ITextElement)
 
@@ -402,6 +433,7 @@ A feltételek a form **aktuális** értékeire futnak, nem a mentett értékekre
 | `[IsNewMode]`, `[IsEditMode]`, `[IsDisplayMode]` | A form új elem, szerkesztés, illetve megtekintés módban van. Mindig pontosan egy igaz. A tervező előnézetében az előnézet módját követik. |
 | `[IsAuthor]` | A bejelentkezett felhasználó hozta létre a megnyitott elemet. New módban mindig igaz (a kitöltő lesz a létrehozó). Az elem `AuthorId`-ját az `ItemService.load` adja, a felhasználó azonosítóját a `pageContext.legacyPageContext.userId`; ha valamelyik nem ismert, az érték hamis. A `resolveForm` `isAuthor` paraméterében érkezik. |
 | `[Group:<azonosító>]` | A bejelentkezett felhasználó tagja az adott azonosítójú SharePoint csoportnak. |
+| `[Var:<név>]` | A form egy változójának értéke (lásd „Változók”); feltétel fajtánál igen / nem, érték fajtánál a kiszámolt érték. |
 
 ```json
 { "all": [ { "field": "[IsEditMode]", "op": "eq", "value": true }, { "field": "[Group:5]", "op": "eq", "value": false } ] }
@@ -544,7 +576,7 @@ A felület angolul és magyarul érhető el; a nyelvet az SPFx a felhasználó S
 
 - **Visszafelé kompatibilis bővítés** (új opcionális mező): nem kell verzióemelés. A `LayoutResolver`-ben legyen alapértelmezés a hiányzó értékre.
 - **Törő változás** (átnevezés, szerkezetváltás): `schemaVersion` emelés, és a `parseConfig`-ban migráció a régi verzióról. A régi konfigurációk éles listákban vannak, mentés nélkül is működniük kell.
-- Verziók: **1** – kiinduló szerkezet; **2** – szövegelemek (`texts`). A 2-es új konfigurációrészt hozott, ezért kapott új verziót; az 1-es szerkezet változatlanul érvényes, átalakítás nincs. A 2-esként mentett konfigurációt a korábbi csomag (például a böngészőben még gyorsítótárazott régi változat) ismeretlen verzióként elutasítja, és az alapértelmezett elrendezést mutatja.
+- Verziók: **1** – kiinduló szerkezet; **2** – szövegelemek (`texts`); **3** – változók (`variables`). A 2-es új konfigurációrészt hozott, ezért kapott új verziót; az 1-es szerkezet változatlanul érvényes, átalakítás nincs. A 2-esként mentett konfigurációt a korábbi csomag (például a böngészőben még gyorsítótárazott régi változat) ismeretlen verzióként elutasítja, és az alapértelmezett elrendezést mutatja.
 
 ### Tervező funkció hozzáadása
 

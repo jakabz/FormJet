@@ -54,6 +54,23 @@ export function getWebOrigin(): string {
   return match ? match[0] : '';
 }
 
+/** A promise eredménye, vagy hiba a megadott üzenettel, ha `ms` ezredmásodpercen belül nem fejeződik be. */
+export function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer: number = window.setTimeout(() => reject(new Error(message)), ms);
+    promise.then(
+      (value) => {
+        window.clearTimeout(timer);
+        resolve(value);
+      },
+      (error: unknown) => {
+        window.clearTimeout(timer);
+        reject(error);
+      }
+    );
+  });
+}
+
 /** A PnPjs HttpRequestError HTTP státusza, ha a hiba HTTP válaszból származik. */
 export function getHttpStatus(error: unknown): number | undefined {
   const status: unknown = (error as { status?: unknown } | undefined)?.status;

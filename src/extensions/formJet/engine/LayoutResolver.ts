@@ -24,6 +24,7 @@ import {
 import { FormValues, IFieldSchema } from '../models/IFieldSchema';
 import { parseConditional, pickConditionalValue } from './ConditionalValue';
 import { contextValues } from './ConditionContext';
+import { parseVariables } from './FormVariables';
 import { evaluate, joinMultiValue, validateCondition } from './ConditionEngine';
 import { formatDateValue, parseDateValue, roundToTimeStep } from './DateFormat';
 import { engineStrings, format } from './EngineStrings';
@@ -127,10 +128,12 @@ export function resolveForm(
   /** Azok a SharePoint csoportok, amelyeknek a felhasználó tagja (a csoporttagságra épülő feltételekhez). */
   memberGroupIds: number[] = [],
   /** A bejelentkezett felhasználó hozta-e létre a megnyitott elemet (az `[IsAuthor]` változóhoz). */
-  isAuthor: boolean = false
+  isAuthor: boolean = false,
+  /** A mezők mentett (betöltéskori) értékei: a mentett forrású változókhoz. */
+  savedValues: FormValues = {}
 ): IResolvedForm {
   // A feltételek a mezőértékek mellett a környezeti változókat is látják (a form módja, csoporttagság, létrehozó).
-  const conditionValues: FormValues = { ...values, ...contextValues(config, mode, memberGroupIds, isAuthor) };
+  const conditionValues: FormValues = { ...values, ...contextValues(config, mode, memberGroupIds, isAuthor, values, savedValues) };
   const schemaByName: Record<string, IFieldSchema> = {};
   // A szövegelemek pszeudo-mezőként szerepelnek a sémában.
   withTextElements(schema, config).forEach((field) => {
@@ -312,7 +315,7 @@ export function getInitialValues(
   const base: FormValues = computeInitialValues(schema, config, {}, culture, now, currentUser);
   // A feltételes kezdőértékek a megnyitáskor értékelődnek ki egyszer: az alap kezdőértékeken,
   // a form módján (új elem) és a csoporttagságon.
-  const conditionValues: FormValues = { ...base, ...contextValues(config, 'new', memberGroupIds) };
+  const conditionValues: FormValues = { ...base, ...contextValues(config, 'new', memberGroupIds, false, base) };
   const overrides: Record<string, string> = {};
   schema.forEach((field) => {
     const picked: string | undefined = pickConditionalValue(
@@ -533,7 +536,8 @@ export function parseConfig(raw: string): IParseConfigResult {
 
   // Migráció: régebbi schemaVersion esetén itt kell az `input`-ot az aktuális szerkezetre alakítani.
   // 1 → 2: csak a `texts` (szövegelemek) rész jött hozzá, az 1-es szerkezet átalakítás nélkül érvényes.
-  if (input.schemaVersion !== CONFIG_SCHEMA_VERSION && input.schemaVersion !== 1) {
+  // 2 → 3: csak a `variables` (változók) rész jött hozzá, a 2-es szerkezet átalakítás nélkül érvényes.
+  if (input.schemaVersion !== CONFIG_SCHEMA_VERSION && input.schemaVersion !== 1 && input.schemaVersion !== 2) {
     return { error: format(engineStrings().UnknownSchemaVersion, String(input.schemaVersion)) };
   }
 
@@ -573,6 +577,8 @@ export function parseConfig(raw: string): IParseConfigResult {
     if (style) config.style = style;
     const texts = parseTexts(input.texts, 'texts');
     if (texts) config.texts = texts;
+    const variables = parseVariables(input.variables, 'variables');
+    if (variables) config.variables = variables;
     return { config };
   } catch (e) {
     return { error: e instanceof Error ? e.message : String(e) };

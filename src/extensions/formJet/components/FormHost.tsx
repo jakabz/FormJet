@@ -36,6 +36,7 @@ import * as ImageService from '../services/ImageService';
 import * as ItemService from '../services/ItemService';
 import * as PermissionService from '../services/PermissionService';
 import * as SchemaService from '../services/SchemaService';
+import { withTimeout } from '../services/sp';
 import { DesignerPanel, DesignerTab } from './DesignerPanel';
 import { EMPTY_ATTACHMENTS, FormContext, IAttachmentsState, IFormContext } from './FormContext';
 import { FormRenderer, IFormRendererProps } from './FormRenderer';
@@ -74,7 +75,9 @@ const PREVIEW_OPTIONS: IDropdownOption[] = [
 
 const DEFAULT_FORM_WIDTH: number = 960;
 const DESIGNER_MIN_HEIGHT: number = 480;
-const DESIGNER_PANEL_WIDTH: number = 400;
+/** Egy betöltési lépés legfeljebb ennyi ideig tarthat. */
+const LOAD_STEP_TIMEOUT_MS: number = 30000;
+const DESIGNER_PANEL_WIDTH: number = 420;
 /** Ennél keskenyebb ablakban a tervező panel nem rögzített, hanem a form alá kerül. */
 const DESIGNER_NARROW: string = '@media (max-width: 899px)';
 const DESIGNER_PANEL_TOP_VAR: string = '--formjet-panel-top';
@@ -251,6 +254,10 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
   }, [panelElement]);
 
   const load = React.useCallback(async (): Promise<void> => {
+    // Minden betöltési lépés időkorlátot kap: ha egy kérés nem válaszol, a végtelen betöltés helyett
+    // hibaüzenet jelenik meg a lépés nevével (a hibakereséshez).
+    const step = <T,>(name: string, promise: Promise<T>): Promise<T> =>
+      withTimeout(promise, LOAD_STEP_TIMEOUT_MS, format(strings.LoadStepTimeout, name));
     setLoaded(undefined);
     setLoadError(undefined);
     setErrors({});
@@ -258,16 +265,19 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
     try {
       // Edit/Display módban az elem tartalomtípusa az irányadó, ha a kontextus nem adja meg.
       const itemPromise: Promise<ItemService.IItemData | undefined> =
-        mode !== 'new' && itemId !== undefined ? ItemService.load(listId, itemId) : Promise.resolve(undefined);
+        mode !== 'new' && itemId !== undefined ? step('ItemService.load', ItemService.load(listId, itemId)) : Promise.resolve(undefined);
       let contentTypeId: string | undefined = props.contentTypeId;
       if (!contentTypeId && mode !== 'new') {
         contentTypeId = (await itemPromise)?.contentTypeId;
       }
-      const resolvedContentTypeId: string = await SchemaService.resolveContentTypeId(listId, contentTypeId);
+      const resolvedContentTypeId: string = await step(
+        'SchemaService.resolveContentTypeId',
+        SchemaService.resolveContentTypeId(listId, contentTypeId)
+      );
 
       const [schema, configResult, item] = await Promise.all([
-        SchemaService.getFields(listId, resolvedContentTypeId),
-        ConfigService.load(listId, resolvedContentTypeId),
+        step('SchemaService.getFields', SchemaService.getFields(listId, resolvedContentTypeId)),
+        step('ConfigService.load', ConfigService.load(listId, resolvedContentTypeId)),
         itemPromise
       ]);
 
@@ -279,46 +289,46 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
         .filter((field) => field.TypeAsString === 'User' || field.TypeAsString === 'UserMulti')
         .map((field) => field.InternalName);
       if (item && itemId !== undefined && userFields.length > 0) {
-        original = { ...original, ...(await ItemService.loadUserValues(listId, itemId, userFields)) };
+        original = { ...original, ...(await step('ItemService.loadUserValues', ItemService.loadUserValues(listId, itemId, userFields))) };
       }
       // A keresőmezőknél ugyanígy: a hivatkozott elemek azonosítóját külön kérdezzük le.
       const lookupFields: ItemService.ILookupFieldRef[] = schema
         .filter((field) => field.LookupListId !== undefined)
         .map((field) => ({ name: field.InternalName, multiple: field.TypeAsString === 'LookupMulti' }));
       if (item && itemId !== undefined && lookupFields.length > 0) {
-        original = { ...original, ...(await ItemService.loadLookupValues(listId, itemId, lookupFields)) };
+        original = { ...original, ...(await step('ItemService.loadLookupValues', ItemService.loadLookupValues(listId, itemId, lookupFields))) };
       }
       // Hivatkozás mezők: a cím és a leírás külön lekérdezésből.
       const urlFields: string[] = schema.filter((field) => field.TypeAsString === 'URL').map((field) => field.InternalName);
       if (item && itemId !== undefined && urlFields.length > 0) {
-        original = { ...original, ...(await ItemService.loadUrlValues(listId, itemId, urlFields)) };
+        original = { ...original, ...(await step('ItemService.loadUrlValues', ItemService.loadUrlValues(listId, itemId, urlFields))) };
       }
       // Hely mezők: a helyobjektum JSON-ja külön lekérdezésből.
       const locationFields: string[] = schema
         .filter((field) => field.TypeAsString === 'Location')
         .map((field) => field.InternalName);
       if (item && itemId !== undefined && locationFields.length > 0) {
-        original = { ...original, ...(await ItemService.loadLocationValues(listId, itemId, locationFields)) };
+        original = { ...original, ...(await step('ItemService.loadLocationValues', ItemService.loadLocationValues(listId, itemId, locationFields))) };
       }
       // Felügyelt metaadat mezők: a kifejezések azonosítója külön lekérdezésből.
       const taxonomyFields: ItemService.ITaxonomyFieldRef[] = schema
         .filter((field) => field.TermSetId !== undefined)
         .map((field) => ({ name: field.InternalName, multiple: field.TypeAsString === 'TaxonomyFieldTypeMulti' }));
       if (item && itemId !== undefined && taxonomyFields.length > 0) {
-        original = { ...original, ...(await ItemService.loadTaxonomyValues(listId, itemId, taxonomyFields)) };
+        original = { ...original, ...(await step('ItemService.loadTaxonomyValues', ItemService.loadTaxonomyValues(listId, itemId, taxonomyFields))) };
       }
       // Kép mezők: a képobjektum JSON-ja külön lekérdezésből.
       const imageFields: string[] = schema
         .filter((field) => field.TypeAsString === 'Thumbnail')
         .map((field) => field.InternalName);
       if (item && itemId !== undefined && imageFields.length > 0) {
-        original = { ...original, ...(await ItemService.loadImageValues(listId, itemId, imageFields)) };
+        original = { ...original, ...(await step('ItemService.loadImageValues', ItemService.loadImageValues(listId, itemId, imageFields))) };
       }
 
       const hasAttachments: boolean = schema.some((field) => field.TypeAsString === ATTACHMENTS_FIELD);
       const existing: AttachmentService.IAttachmentFile[] =
         item && itemId !== undefined && hasAttachments
-          ? await AttachmentService.list(listId, itemId).catch(() => [])
+          ? await step('AttachmentService.list', AttachmentService.list(listId, itemId)).catch(() => [])
           : [];
       setAttachments({ existing, added: [], removed: [] });
       setAttachmentRetryId(undefined);
@@ -326,9 +336,10 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
 
       // A csoporttagságra épülő feltételekhez a tagságot a megjelenítés előtt kérdezzük le, hogy a form ne ugorjon.
       const groupIds: number[] = collectGroupIds(config);
-      const groupResult: GroupService.IMembership = await GroupService.getMembership(groupIds, !!currentUser.isGuest).catch(
-        () => ({ memberOf: [], incomplete: true })
-      );
+      const groupResult: GroupService.IMembership = await step(
+        'GroupService.getMembership',
+        GroupService.getMembership(groupIds, !!currentUser.isGuest)
+      ).catch(() => ({ memberOf: [], incomplete: true }));
       setMembership({ checked: groupIds, memberOf: groupResult.memberOf, incomplete: groupResult.incomplete });
 
       setValues(
@@ -376,7 +387,7 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
   const resolved: IResolvedForm | undefined = React.useMemo(
     () =>
       loaded && activeConfig
-        ? resolveForm(loaded.schema, activeConfig, activeMode, values, membership.memberOf, loaded.isAuthor)
+        ? resolveForm(loaded.schema, activeConfig, activeMode, values, membership.memberOf, loaded.isAuthor, loaded.original)
         : undefined,
     [loaded, activeConfig, activeMode, values, membership]
   );
@@ -480,7 +491,7 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
     const currentValues: FormValues = valuesOverride ?? values;
     const currentResolved: IResolvedForm | undefined =
       valuesOverride && loaded && activeConfig
-        ? resolveForm(loaded.schema, activeConfig, mode, currentValues, membership.memberOf, loaded.isAuthor)
+        ? resolveForm(loaded.schema, activeConfig, mode, currentValues, membership.memberOf, loaded.isAuthor, loaded.original)
         : resolved;
     if (!loaded || !currentResolved || mode === 'display') {
       return;

@@ -22,6 +22,7 @@ export interface IEngineStrings {
   InvalidFieldName: string;
   InvalidGradientColors: string;
   InvalidText: string;
+  InvalidVariable: string;
 }
 
 const DEFAULT_STRINGS: IEngineStrings = {
@@ -43,7 +44,8 @@ const DEFAULT_STRINGS: IEngineStrings = {
   InvalidListId: '{0}: must be a list id (GUID).',
   InvalidFieldName: '{0}: must be the internal name of a field.',
   InvalidGradientColors: '{0}: must contain exactly two hex colors.',
-  InvalidText: '{0}: the id of a label must start with "text:", the id of a button with "button:" (with "kind": "button"), and the element must have a "name".'
+  InvalidText: '{0}: the id of a label must start with "text:", the id of a button with "button:" (with "kind": "button"), and the element must have a "name".',
+  InvalidVariable: '{0}: the name of a variable must start with a letter and contain only letters, digits and underscores, and "kind" must be "condition" or "value".'
 };
 
 let current: IEngineStrings = DEFAULT_STRINGS;

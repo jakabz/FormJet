@@ -20,6 +20,7 @@ import { ATTACHMENTS_FIELD } from '../engine/Attachments';
 import { isButtonSettableField, isIconName } from '../engine/ButtonAction';
 import { setConditionalValues } from '../engine/ConditionalValue';
 import { AUTHOR_VARIABLE, groupVariable, MODE_VARIABLES } from '../engine/ConditionContext';
+import { variableRef } from '../engine/FormVariables';
 import { format } from '../engine/EngineStrings';
 import { parseConfig, unplacedFields } from '../engine/LayoutResolver';
 import { addTextElement, isButtonElement, isLayoutElement, isTextElement, removeTextElement } from '../engine/TextElement';
@@ -42,13 +43,15 @@ import {
 } from '../models/IFormConfig';
 import { ISiteGroup } from '../services/GroupService';
 import { AccordionCard } from './AccordionCard';
+import { BulkConditionDialog } from './BulkConditionDialog';
 import { ButtonActionsEditor } from './ButtonActionsEditor';
 import { ConditionalValueField } from './ConditionalValueEditor';
 import { ConditionEditor } from './ConditionEditor';
 import { RelatedListEditor } from './RelatedListEditor';
 import { StylePanel } from './StylePanel';
+import { VariablesPanel } from './VariablesPanel';
 
-export type DesignerTab = 'layout' | 'field' | 'style' | 'json';
+export type DesignerTab = 'layout' | 'field' | 'variables' | 'style' | 'json';
 
 const MODE_LABELS: Record<FormMode, string> = {
   new: strings.ModeNew,
@@ -179,6 +182,7 @@ export const DesignerPanel: React.FC<IDesignerPanelProps> = (props) => {
   // Szövegelem felvétele: a felugró ablak melyik szekcióhoz nyílt meg, és a beírt megnevezés.
   const [elementDialog, setElementDialog] = React.useState<{ sectionId: string; kind: LayoutElementKind } | undefined>();
   const [newTextName, setNewTextName] = React.useState<string>('');
+  const [bulkOpen, setBulkOpen] = React.useState<boolean>(false);
 
   React.useEffect(() => {
     setJsonText(JSON.stringify(draft, undefined, 2));
@@ -264,9 +268,17 @@ export const DesignerPanel: React.FC<IDesignerPanelProps> = (props) => {
         variable(MODE_VARIABLES.display, strings.ConditionVarIsDisplay),
         variable(AUTHOR_VARIABLE, strings.ConditionVarIsAuthor)
       ],
-      props.siteGroups.map((group) => variable(groupVariable(group.id), format(strings.ConditionVarGroup, group.title)))
+      props.siteGroups.map((group) => variable(groupVariable(group.id), format(strings.ConditionVarGroup, group.title))),
+      // A form változói: feltétel fajtánál igen / nem, érték fajtánál (számmá alakítva) szám vagy szöveg.
+      Object.keys(draft.variables ?? {}).map((name) => {
+        const definition = (draft.variables ?? {})[name];
+        const transforms = definition.transforms ?? [];
+        const type: string =
+          definition.kind === 'condition' ? 'Boolean' : transforms.length > 0 && transforms[transforms.length - 1].type === 'number' ? 'Number' : 'Text';
+        return { ...variable(variableRef(name), format(strings.ConditionVarVariable, name)), TypeAsString: type };
+      })
     );
-  }, [schema, props.siteGroups]);
+  }, [schema, props.siteGroups, draft.variables]);
 
   const unplaced: IFieldSchema[] = unplacedFields(schema, draft);
   const unplacedOptions: IDropdownOption[] = unplaced.map((f) => ({
@@ -496,6 +508,12 @@ export const DesignerPanel: React.FC<IDesignerPanelProps> = (props) => {
       );
     return (
       <div className={classes.tab}>
+        <DefaultButton
+          className={classes.addElement}
+          iconProps={{ iconName: 'MultiSelect' }}
+          text={strings.BulkConditionOpen}
+          onClick={() => setBulkOpen(true)}
+        />
         <Dropdown
           label={strings.Field}
           placeholder={strings.FieldPickerPlaceholder}
@@ -792,6 +810,9 @@ export const DesignerPanel: React.FC<IDesignerPanelProps> = (props) => {
         <PivotItem headerText={strings.TabField} itemKey="field">
           {renderFieldTab()}
         </PivotItem>
+        <PivotItem headerText={strings.TabVariables} itemKey="variables">
+          <VariablesPanel draft={draft} fields={realFields} conditionFields={conditionFields} onChange={props.onChange} />
+        </PivotItem>
         <PivotItem headerText={strings.TabStyle} itemKey="style">
           <StylePanel
             draft={draft}
@@ -816,6 +837,14 @@ export const DesignerPanel: React.FC<IDesignerPanelProps> = (props) => {
           </div>
         </PivotItem>
       </Pivot>
+      <BulkConditionDialog
+        hidden={!bulkOpen}
+        draft={draft}
+        schema={schema}
+        conditionFields={conditionFields}
+        onChange={props.onChange}
+        onDismiss={() => setBulkOpen(false)}
+      />
       {/* Új szövegelem: a megnevezést felugró ablakban kérjük be. */}
       <Dialog
         hidden={elementDialog === undefined}

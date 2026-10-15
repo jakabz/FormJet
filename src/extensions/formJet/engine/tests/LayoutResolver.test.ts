@@ -178,7 +178,7 @@ describe('LayoutResolver – parseConfig', () => {
   it('hibás JSON, nem objektum gyökér és ismeretlen sémaverzió hibát ad', () => {
     expect(parseConfig('{nope').error).toBeDefined();
     expect(parseConfig('[]').error).toBeDefined();
-    expect(parseConfig(configJson({ schemaVersion: 3 })).error).toBeDefined();
+    expect(parseConfig(configJson({ schemaVersion: 4 })).error).toBeDefined();
     expect(parseConfig(configJson({ sections: 'x' })).error).toBeDefined();
     expect(parseConfig(configJson({ fields: [] })).error).toBeDefined();
   });
