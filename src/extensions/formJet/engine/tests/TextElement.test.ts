@@ -27,8 +27,9 @@ describe('TextElement – szövegelemek', () => {
   ];
 
   it('az 1-es és 2-es sémaverziójú konfiguráció érvényes marad, és az aktuális verzióra kerül', () => {
-    expect(load({ schemaVersion: 1 }).schemaVersion).toBe(3);
-    expect(load({ schemaVersion: 2 }).schemaVersion).toBe(3);
+    expect(load({ schemaVersion: 1 }).schemaVersion).toBe(4);
+    expect(load({ schemaVersion: 2 }).schemaVersion).toBe(4);
+    expect(load({ schemaVersion: 3 }).schemaVersion).toBe(4);
   });
 
   it('parseConfig: a szövegelemek megmaradnak; hibás azonosító vagy hiányzó megnevezés hibát ad', () => {
@@ -148,7 +149,7 @@ describe('TextElement – gombok', () => {
     });
     const display = getField(resolveForm(schema, config, 'display', { Title: 'x' }), 'button:1');
     expect([display.readOnly, display.required, display.label]).toEqual([false, false, 'Súgó']);
-    expect(display.button).toEqual({ url: '/sites/x/help.aspx', newTab: false, icon: undefined, actions: [] });
+    expect(display.button).toEqual({ url: '/sites/x/help.aspx', newTab: false, icon: undefined, primary: false, actions: [] });
     expect(getField(resolveForm(schema, config, 'edit', { Title: 'x' }), 'button:1').readOnly).toBe(false);
     expect(getField(resolveForm(schema, config, 'edit', {}), 'button:1').readOnly).toBe(true);
     expect(getField(resolveForm(schema, config, 'new', { Title: 'x' }), 'button:1').readOnly).toBe(true);

@@ -129,16 +129,33 @@ Az űrlap jobb felső sarkában lévő **Tervező** kapcsolót csak a webhely ad
 
 Az előnézet fölötti **Előnézet módja** választóval megnézheted, hogyan fest az űrlap új elemnél, szerkesztéskor és megtekintéskor. Az előnézet mezőibe írhatsz is, így a feltételek hatását azonnal kipróbálhatod.
 
+### Az űrlap gombjai (alsó gombsor)
+
+Az űrlap tulajdonságai között, **Az űrlap gombjai** résznél állítható, milyen gombok vannak az űrlap alján.
+
+**Beépített gombok.** Amíg nem szabod testre, a **Mentés típusa** szerinti beépített gombok látszanak (lásd lent).
+
+**Testreszabás.** A **Gombok testreszabása** gombbal a beépített gombok rendes gombként kerülnek az elrendezésbe, ugyanazzal a működéssel. Ezután:
+
+- a gombok listájában a nevükre kattintva kijelölheted őket (az előnézet alatt is látszanak, ott kattintással is kijelölhetők);
+- mindegyiknek állítható a felirata (feltételtől függően is), az ikonja, a **Kiemelt (elsődleges) gomb** jelölő, a *Látható, ha* és a *Letiltva, ha* feltétel, a stílusa és a műveletei – pontosan úgy, mint a szakaszokba tehető gomboknál (lásd [Gomb elhelyezése az űrlapon](#gomb-elhelyezése-az-űrlapon));
+- a nyilakkal átrendezheted, a kuka ikonnal törölheted őket, a **Gomb hozzáadása** gombbal újat vehetsz fel (például „Submit”: Status = Submitted, majd Mentés és bezárás);
+- a **Vissza a beépített gombokra** gomb visszaállítja a beépített gombokat (a testreszabott gombok törlődnek).
+
+A beépített Mentés gomb megtekintéskor nem látszik, a Mégse felirata megtekintéskor „Bezárás” – a testreszabott gombok is így indulnak, feltételként beállítva.
+
+**Példa (a régi űrlap Submit gombja):** felirat „Submit”, *Látható, ha*: `Változó: SavedStatus` = Draft ÉS `Változó: InCountryGroup` = Igen; műveletek: Mező értékének beállítása – Status – Submitted, majd Mentés és bezárás.
+
 ### Mentés típusa
 
-Az űrlap tulajdonságai között a **Mentés típusa** határozza meg, milyen gombok vannak az űrlap alján:
+A **Mentés típusa** (a beépített gombsornál) határozza meg, milyen gombok vannak az űrlap alján:
 
 - **Alapértelmezett:** **Mentés** (ment és bezárja az űrlapot) és **Mégse**.
 - **Bővített:** **Mentés** (ment, de az űrlap nyitva marad), **Mentés és bezárás**, valamint **Mégse**. Sikeres mentés után az űrlap tetején „A módosítások mentve.” üzenet jelenik meg, és az űrlap a mentett adatokkal frissül.
 
 Bővített mentésnél új elem felvételekor az első Mentés létrehozza az elemet, és az űrlap ettől kezdve ennek az elemnek a szerkesztéseként folytatódik (a további mentések ugyanazt az elemet frissítik, nem jön létre másolat). Ilyenkor az „új elem” módhoz kötött beállítások helyett a szerkesztéshez kötöttek érvényesek. Ha mentés után a Mégse gombbal zárod be az űrlapot, a már elmentett módosítások megmaradnak.
 
-A gombok műveletei között lévő **Mentés** lépés a mentés típusától függetlenül mindig ment és bezár.
+A gombok műveletei között a **Mentés és bezárás** lépés ment és bezár, a **Mentés (az űrlap nyitva marad)** lépés ment, és az űrlap nyitva marad (ugyanúgy, mint a bővített Mentés gomb).
 
 ### Kijelölés
 
@@ -215,7 +232,7 @@ Egy felirat egyszer helyezhető el. Ha kiveszed a szekcióból, a nem elhelyezet
 A gomb kattintásra vagy a beállított műveleteket hajtja végre (például beállít egy mezőt, majd ment), vagy egy webcímet nyit meg, például egy súgóoldalt, egy kapcsolódó listát vagy egy e-mail-címet.
 
 1. A kijelölt szakasz tulajdonságainak alján kattints a **Gomb hozzáadása** gombra, és a felugró ablakban add meg a gomb feliratát. Ez a felirat látszik a gombon.
-2. Az **Ikon** mezőben megadhatsz egy Fluent UI ikonnevet (például `Save`, `Send`, `Accept`, `Mail`); az ikon a felirat előtt jelenik meg, és a mező mellett előnézetben is látszik.
+2. A **Felirat** melletti elágazás ikonú gombbal a felirat feltételtől függően is változhat (ugyanúgy, mint a mező címkéjénél). A **Kiemelt (elsődleges) gomb** jelölővel a gomb kék, kiemelt gomb lesz. Az **Ikon** mezőben megadhatsz egy Fluent UI ikonnevet (például `Save`, `Send`, `Accept`, `Mail`); az ikon a felirat előtt jelenik meg, és a mező mellett előnézetben is látszik.
 3. A **Műveletek beállítása** gombbal állíthatod össze, mit csináljon a gomb (lásd lent). Ha nincs művelet, a gomb a webcímet nyitja meg.
 4. A gomb tulajdonságai között add meg a **Webcím (URL)** értékét: `http://` vagy `https://` kezdetű cím, `mailto:` cím, vagy a webhelyen belüli cím (például `/sites/beszerzes/Lists/Szallitok`). Más cím nem nyitható meg; ilyenkor a mező alatt hibaüzenet jelenik meg. A **Megnyitás új lapon** jelölővel a cím új böngészőlapon nyílik meg.
 5. A **Látható ezekben a módokban** és a **Látható, ha** beállítással adod meg, mikor látszik a gomb; a **Letiltva ezekben a módokban** és a **Letiltva, ha** beállítással pedig azt, mikor szürke és nem kattintható.
@@ -229,7 +246,8 @@ A **Műveletek beállítása** gomb felugró ablakában lépéseket veszel fel (
 | Művelet | Mit csinál |
 | --- | --- |
 | Mező értékének beállítása | A kiválasztott mezőbe beírja a megadott értéket. Választás mezőnél a mező értékei közül választasz (több választásnál többet is), igen/nem mezőnél Igen vagy Nem közül; más mezőnél az érték formátuma ugyanaz, mint a kezdőértéknél (dátumnál `[today]`, személynél `[me]` is). |
-| Mentés | Elmenti az űrlapot, ugyanúgy, mint a Mentés gomb (a kötelező mezők ellenőrzésével), és sikeres mentés után bezárja. |
+| Mentés és bezárás | Elmenti az űrlapot (a kötelező mezők ellenőrzésével), és sikeres mentés után bezárja. |
+| Mentés (az űrlap nyitva marad) | Elmenti az űrlapot, de nyitva hagyja; új elemnél az űrlap a létrehozott elem szerkesztésével folytatódik. |
 | Bezárás mentés nélkül | Bezárja az űrlapot, a módosítások elvesznek. |
 
 - A lépések **sorrendben, egymás után** futnak le: a következő csak az előző befejezése után indul, így a mentés már a frissen beállított értékekkel történik. A sorrend a lépés fejlécében lévő nyilakkal változtatható.
@@ -328,6 +346,8 @@ Feltétellel azt adod meg, hogy egy szekció vagy mező mikor látszódjon, miko
 4. Add meg az **értéket**. Választás mezőnél listából választhatsz, igen/nem mezőnél Igen vagy Nem közül.
 
 Több feltételnél megjelenik egy választó: **Minden feltétel teljesül** vagy **Bármelyik feltétel teljesül**.
+
+**Csoportok.** A **Csoport hozzáadása** gombbal a feltételek közé egy csoport kerül, saját „Minden / Bármelyik” választóval és saját feltételekkel; csoportba újabb csoport is tehető (legfeljebb három szintig). Így összetett szabályok is összerakhatók, például: *bármelyik* teljesüljön ezek közül: (*minden* teljesül: (Sales admin – Albánia VAGY Marketing manager – Albánia) ÉS Country = ALBANIA), (*minden* teljesül: (… Bosznia …) ÉS Country = BOSNIA-HERZEGOVINA), … A csoportot a fejlécében lévő X törli. A tagadást (*not*) tartalmazó feltétel továbbra is csak JSON-ként szerkeszthető.
 
 | Összehasonlítás | Mikor teljesül |
 | --- | --- |

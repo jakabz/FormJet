@@ -64,7 +64,10 @@ export function parseButtonActions(input: unknown, path: string): ButtonAction[]
       }
       return { type: 'setValue', field: item.field, value: typeof item.value === 'string' ? item.value : '' };
     }
-    return { type: item.type as 'save' | 'close' };
+    if (item.type === 'save') {
+      return item.keepOpen === true ? { type: 'save', keepOpen: true } : { type: 'save' };
+    }
+    return { type: 'close' };
   });
   return actions.length > 0 ? actions : undefined;
 }

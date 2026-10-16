@@ -39,12 +39,22 @@ function move<T>(items: T[], from: number, to: number): T[] {
   return next;
 }
 
+/** A választóban külön elem a „mentés, nyitva marad”, a konfigurációban ez `save` + `keepOpen`. */
+type ActionChoice = ButtonActionType | 'saveStay';
+
+function choiceOf(action: ButtonAction): ActionChoice {
+  return action.type === 'save' && action.keepOpen ? 'saveStay' : action.type;
+}
+
 /** Új lépés a választott művelettel; a mező értékének beállításánál a korábbi mező és érték megmarad. */
-function withType(action: ButtonAction, type: ButtonActionType): ButtonAction {
-  if (type === 'setValue') {
-    return action.type === 'setValue' ? action : { type, field: '', value: '' };
+function withType(action: ButtonAction, choice: ActionChoice): ButtonAction {
+  if (choice === 'setValue') {
+    return action.type === 'setValue' ? action : { type: 'setValue', field: '', value: '' };
   }
-  return { type };
+  if (choice === 'saveStay') {
+    return { type: 'save', keepOpen: true };
+  }
+  return { type: choice };
 }
 
 /** A választható értékek: a mező értékkészlete, kiegészítve a már beállított, de onnan hiányzó értékekkel. */
@@ -152,6 +162,7 @@ export const ButtonActionsEditor: React.FC<IButtonActionsEditorProps> = (props) 
   const typeOptions: IDropdownOption[] = [
     { key: 'setValue', text: strings.ButtonActionSetValue },
     { key: 'save', text: strings.ButtonActionSave },
+    { key: 'saveStay', text: strings.ButtonActionSaveStay },
     { key: 'close', text: strings.ButtonActionClose }
   ];
   const fieldOptions = (current: string): IDropdownOption[] => {
@@ -220,8 +231,8 @@ export const ButtonActionsEditor: React.FC<IButtonActionsEditorProps> = (props) 
               <Dropdown
                 label={strings.ButtonActionType}
                 options={typeOptions}
-                selectedKey={action.type}
-                onChange={(_, option) => option && update(index, withType(action, option.key as ButtonActionType))}
+                selectedKey={choiceOf(action)}
+                onChange={(_, option) => option && update(index, withType(action, option.key as ActionChoice))}
               />
               {action.type === 'setValue' && (
                 <>

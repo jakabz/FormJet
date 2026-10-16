@@ -7,7 +7,8 @@ export const FORM_MODES: FormMode[] = ['new', 'edit', 'display'];
 
 // 1 → 2: szövegelemek (`texts`). A szerkezet csak bővült, az 1-es konfiguráció változtatás nélkül érvényes.
 // 2 → 3: változók (`variables`). Szintén csak bővülés, a 2-es konfiguráció átalakítás nélkül érvényes.
-export const CONFIG_SCHEMA_VERSION: 3 = 3;
+// 3 → 4: testreszabható alsó gombsor (`footer`). Csak bővülés; hiányában a `saveMode` szerinti beépített gombok látszanak.
+export const CONFIG_SCHEMA_VERSION: 4 = 4;
 
 export type ConditionOperator = 'eq' | 'ne' | 'gt' | 'lt' | 'contains' | 'in' | 'empty' | 'notEmpty';
 
@@ -225,6 +226,8 @@ export interface ITextElement {
   newTab?: boolean;
   /** Gombnál: Fluent UI ikonnév (betűk és számok), a felirat mellett jelenik meg. */
   icon?: string;
+  /** Gombnál: kiemelt (elsődleges, kék) gomb. */
+  primary?: boolean;
   /**
    * Gombnál: kattintásra sorban lefutó lépések. Ha van lépés, a gomb a címet nem nyitja meg.
    * A mentés és a bezárás lezárja a sort: utánuk nem fut le több lépés.
@@ -241,7 +244,8 @@ export type ButtonAction =
       /** Az érték a kezdőérték formátumában (form-string; dátumnál `[today]`, személynél `[me]` is). */
       value: string;
     }
-  | { type: 'save' }
+  /** Mentés; alapból utána bezár. `keepOpen`: az űrlap nyitva marad (új elemnél a létrehozott elem szerkesztésével). */
+  | { type: 'save'; keepOpen?: boolean }
   | { type: 'close' };
 
 export type ButtonActionType = ButtonAction['type'];
@@ -252,7 +256,7 @@ export const BUTTON_ACTION_TYPES: ButtonActionType[] = ['setValue', 'save', 'clo
 export type LayoutElementKind = 'text' | 'button';
 
 export interface IFormConfig {
-  schemaVersion: 3;
+  schemaVersion: 4;
   listId: string;
   contentTypeId: string;
   title?: string;
@@ -274,6 +278,11 @@ export interface IFormConfig {
    * definiálható, és sok mezőnél, szekciónál újrahasznosítható.
    */
   variables?: Record<string, IFormVariable>;
+  /**
+   * Az alsó gombsor: gombelemek (`texts`, `kind: 'button'`) azonosítói sorrendben. Ezek nem szerepelnek a szakaszokban.
+   * Hiányában a `saveMode` szerinti beépített gombok látszanak (Mentés, [Mentés és bezárás], Mégse / Bezárás).
+   */
+  footer?: string[];
 }
 
 export type SaveMode = 'default' | 'extended';

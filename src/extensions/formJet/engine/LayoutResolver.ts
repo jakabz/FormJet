@@ -32,7 +32,7 @@ import { formatDateValue, parseDateValue, roundToTimeStep } from './DateFormat';
 import { engineStrings, format } from './EngineStrings';
 import { resolveNumberDefault } from './NumberFormat';
 import { parseTaxonomyValue, serializeTaxonomyValue } from './TaxonomyValue';
-import { isButtonElement, isLayoutElement, parseTexts, withTextElements } from './TextElement';
+import { isButtonElement, isLayoutElement, parseFooter, parseTexts, withTextElements } from './TextElement';
 import { ICurrentUser, resolveUserDefault } from './UserValue';
 import { isRelatedComplete, parseRelated } from './RelatedList';
 import { parseFieldStyles, parseFormStyles, parseSectionStyles, resolveModeStyle } from './FormStyle';
@@ -54,7 +54,7 @@ export interface IResolvedField {
   /** Szövegelemnél a megjelenő szöveg. */
   text?: string;
   /** Gombnál a megnyitandó cím, az ikon és a műveletek; a letiltást a `readOnly` jelzi. */
-  button?: { url?: string; newTab: boolean; icon?: string; actions: ButtonAction[] };
+  button?: { url?: string; newTab: boolean; icon?: string; primary: boolean; actions: ButtonAction[] };
   /** Többértékű keresőmező megjelenítése. */
   lookupDisplay: LookupDisplay;
   /** A mellékletek megjelenítése. */
@@ -88,6 +88,8 @@ export interface IResolvedForm {
   style: IFormStyle;
   labelPosition: 'top' | 'left';
   sections: IResolvedSection[];
+  /** A testreszabott alsó gombsor gombjai; hiányában a beépített gombok látszanak. */
+  footer?: IResolvedField[];
   /** A konfigurációban szereplő, de a sémában nem létező mezők. */
   missingFields: string[];
 }
@@ -169,8 +171,50 @@ export function resolveForm(
         return; // egy mező csak egyszer jelenhet meg, az első elhelyezés számít
       }
       placed[placement.field] = true;
+      fields.push(resolveItem(placement.field, fieldSchema, Math.min(clampColumns(placement.colSpan), columns), sectionVisible, sectionReadOnly));
+    });
 
-      const fieldConfig: IFieldConfig = config.fields[placement.field] ?? {};
+    return {
+      id: section.id,
+      // Feltételes érték: az első teljesülő szabály felülírja a címet, illetve a leírást (üres értékkel el is tünteti).
+      title: pickConditionalValue(section.conditional?.title, conditionValues) ?? section.title,
+      description: pickConditionalValue(section.conditional?.description, conditionValues) ?? section.description,
+      columns,
+      collapsible: !!section.collapsible,
+      collapsed: !!section.collapsible && !!section.collapsed,
+      visible: sectionVisible,
+      style: resolveModeStyle(section.style, mode),
+      related,
+      fields
+    };
+  });
+
+  // Az alsó gombsor gombjai ugyanígy oldódnak fel (láthatóság, letiltás, feltételes felirat, stílus).
+  const footer: IResolvedField[] | undefined = config.footer
+    ? config.footer
+        .filter((id) => schemaByName[id] !== undefined)
+        .map((id) => resolveItem(id, schemaByName[id], 1, true, false))
+    : undefined;
+
+  return {
+    mode,
+    title: config.title,
+    style: resolveModeStyle(config.style, mode),
+    labelPosition: config.labelPosition ?? 'top',
+    sections,
+    footer,
+    missingFields
+  };
+
+  /** Egy elhelyezett elem (mező, felirat, gomb) feloldása a szakasza láthatósága és letiltása mellett. */
+  function resolveItem(
+    name: string,
+    fieldSchema: IFieldSchema,
+    colSpan: number,
+    sectionVisible: boolean,
+    sectionReadOnly: boolean
+  ): IResolvedField {
+      const fieldConfig: IFieldConfig = config.fields[name] ?? {};
       const conditional: IFieldConfig['conditional'] = fieldConfig.conditional;
       const visible: boolean =
         sectionVisible && inMode(fieldConfig.visibleIn, mode, true) && evaluate(fieldConfig.visibleWhen, conditionValues);
@@ -191,56 +235,33 @@ export function resolveForm(
           inMode(fieldConfig.requiredIn, mode, false) ||
           (fieldConfig.requiredWhen !== undefined && evaluate(fieldConfig.requiredWhen, conditionValues)));
 
-      fields.push({
-        name: placement.field,
+      return {
+        name,
         schema: fieldSchema,
         // Feltételes érték: az első teljesülő szabály felülírja a beállítás alapértékét.
         label: pickConditionalValue(conditional?.label, conditionValues) || fieldConfig.label || fieldSchema.Title,
         description:
           pickConditionalValue(conditional?.description, conditionValues) ?? fieldConfig.description ?? fieldSchema.Description,
         placeholder: pickConditionalValue(conditional?.placeholder, conditionValues) ?? fieldConfig.placeholder,
-        text: config.texts?.[placement.field]?.content,
+        text: config.texts?.[name]?.content,
         button: isButton
           ? {
-              url: config.texts?.[placement.field]?.url,
-              newTab: !!config.texts?.[placement.field]?.newTab,
-              icon: config.texts?.[placement.field]?.icon,
-              actions: config.texts?.[placement.field]?.actions ?? []
+              url: config.texts?.[name]?.url,
+              newTab: !!config.texts?.[name]?.newTab,
+              icon: config.texts?.[name]?.icon,
+              primary: !!config.texts?.[name]?.primary,
+              actions: config.texts?.[name]?.actions ?? []
             }
           : undefined,
         lookupDisplay: fieldConfig.lookupDisplay ?? 'auto',
         attachmentsDisplay: fieldConfig.attachmentsDisplay ?? 'list',
-        colSpan: Math.min(clampColumns(placement.colSpan), columns),
+        colSpan,
         visible,
         readOnly,
         required,
         style: resolveModeStyle(fieldConfig.style, mode)
-      });
-    });
-
-    return {
-      id: section.id,
-      // Feltételes érték: az első teljesülő szabály felülírja a címet, illetve a leírást (üres értékkel el is tünteti).
-      title: pickConditionalValue(section.conditional?.title, conditionValues) ?? section.title,
-      description: pickConditionalValue(section.conditional?.description, conditionValues) ?? section.description,
-      columns,
-      collapsible: !!section.collapsible,
-      collapsed: !!section.collapsible && !!section.collapsed,
-      visible: sectionVisible,
-      style: resolveModeStyle(section.style, mode),
-      related,
-      fields
-    };
-  });
-
-  return {
-    mode,
-    title: config.title,
-    style: resolveModeStyle(config.style, mode),
-    labelPosition: config.labelPosition ?? 'top',
-    sections,
-    missingFields
-  };
+      };
+  }
 }
 
 /** A feloldott form összes mezője megjelenési sorrendben. */
@@ -259,6 +280,10 @@ export function unplacedFields(schema: IFieldSchema[], config: IFormConfig): IFi
     section.fields.forEach((placement) => {
       placed[placement.field] = true;
     });
+  });
+  // Az alsó gombsor gombjai nem szakaszba valók, ezért nem „elhelyezetlenek”.
+  (config.footer ?? []).forEach((id) => {
+    placed[id] = true;
   });
   return withTextElements(schema, config).filter((field) => !placed[field.InternalName]);
 }
@@ -544,7 +569,8 @@ export function parseConfig(raw: string): IParseConfigResult {
   // Migráció: régebbi schemaVersion esetén itt kell az `input`-ot az aktuális szerkezetre alakítani.
   // 1 → 2: csak a `texts` (szövegelemek) rész jött hozzá, az 1-es szerkezet átalakítás nélkül érvényes.
   // 2 → 3: csak a `variables` (változók) rész jött hozzá, a 2-es szerkezet átalakítás nélkül érvényes.
-  if (input.schemaVersion !== CONFIG_SCHEMA_VERSION && input.schemaVersion !== 1 && input.schemaVersion !== 2) {
+  // 3 → 4: csak a `footer` (alsó gombsor) rész jött hozzá, a 3-as szerkezet átalakítás nélkül érvényes.
+  if ([1, 2, 3, CONFIG_SCHEMA_VERSION].indexOf(input.schemaVersion as number) === -1) {
     return { error: format(engineStrings().UnknownSchemaVersion, String(input.schemaVersion)) };
   }
 
@@ -593,6 +619,8 @@ export function parseConfig(raw: string): IParseConfigResult {
     if (texts) config.texts = texts;
     const variables = parseVariables(input.variables, 'variables');
     if (variables) config.variables = variables;
+    const footer = parseFooter(input.footer, config.texts, 'footer');
+    if (footer) config.footer = footer;
     return { config };
   } catch (e) {
     return { error: e instanceof Error ? e.message : String(e) };

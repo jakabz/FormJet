@@ -1,8 +1,8 @@
 // A vizuális feltételszerkesztő modellje: a Condition és a szerkeszthető sorok közötti átalakítás.
 // Tiszta logika: nem importálhat services/-ből, components/-ből, @pnp/*-ból vagy @microsoft/*-ból.
 //
-// Vizuálisan a lapos feltételek szerkeszthetők: egyetlen mezőfeltétel, vagy mezőfeltételek `all` / `any` csoportja.
-// A beágyazott csoportok és a `not` csak JSON-ként szerkeszthetők.
+// Vizuálisan szerkeszthető: egyetlen mezőfeltétel, vagy `all` / `any` csoport, amelynek elemei mezőfeltételek vagy
+// újabb (beágyazott) `all` / `any` csoportok. A `not` csak JSON-ként szerkeszthető.
 
 import {
   Condition,
@@ -27,9 +27,28 @@ export interface IConditionRow {
   raw?: ConditionValue;
 }
 
+/** Beágyazott csoport: saját „minden / bármelyik” kapcsolattal és elemekkel. */
+export interface IConditionGroup {
+  kind: 'group';
+  match: ConditionMatch;
+  rows: ConditionItem[];
+}
+
+/** A szerkesztő egy eleme: mezőfeltétel-sor vagy beágyazott csoport. */
+export type ConditionItem = IConditionRow | IConditionGroup;
+
 export interface IConditionRows {
   match: ConditionMatch;
-  rows: IConditionRow[];
+  rows: ConditionItem[];
+}
+
+export function isConditionGroup(item: ConditionItem): item is IConditionGroup {
+  return (item as IConditionGroup).kind === 'group';
+}
+
+/** Új, üres csoport egy üres sorral (a felhasználó azonnal kitöltheti). */
+export function createEmptyGroup(match: ConditionMatch = 'any'): IConditionGroup {
+  return { kind: 'group', match, rows: [createEmptyRow()] };
 }
 
 const NO_VALUE_OPERATORS: ConditionOperator[] = ['empty', 'notEmpty'];
@@ -65,9 +84,32 @@ function toRow(condition: IFieldCondition): IConditionRow {
   return { field: condition.field, op: condition.op, text, values, raw: value };
 }
 
+/** Egy `all` / `any` csoport elemei; `undefined`, ha valahol `not` (vagy ismeretlen szerkezet) van benne. */
+function toGroupRows(condition: Condition): IConditionRows | undefined {
+  const group = condition as { all?: Condition[]; any?: Condition[] };
+  const match: ConditionMatch | undefined = Array.isArray(group.all) ? 'all' : Array.isArray(group.any) ? 'any' : undefined;
+  const items: Condition[] | undefined = match ? group[match] : undefined;
+  if (!match || !items) {
+    return undefined;
+  }
+  const rows: ConditionItem[] = [];
+  for (let i: number = 0; i < items.length; i++) {
+    if (isFieldCondition(items[i])) {
+      rows.push(toRow(items[i] as IFieldCondition));
+      continue;
+    }
+    const nested: IConditionRows | undefined = toGroupRows(items[i]);
+    if (!nested) {
+      return undefined;
+    }
+    rows.push({ kind: 'group', match: nested.match, rows: nested.rows });
+  }
+  return { match, rows };
+}
+
 /**
- * A feltétel szerkeszthető sorai. `undefined`, ha a feltétel vizuálisan nem szerkeszthető
- * (beágyazott csoport vagy `not`). Hiányzó feltételre üres sorlista.
+ * A feltétel szerkeszthető sorai (beágyazott csoportokkal). `undefined`, ha a feltétel vizuálisan nem szerkeszthető
+ * (`not` van benne). Hiányzó feltételre üres sorlista.
  */
 export function toConditionRows(condition: Condition | undefined): IConditionRows | undefined {
   if (!condition) {
@@ -76,13 +118,7 @@ export function toConditionRows(condition: Condition | undefined): IConditionRow
   if (isFieldCondition(condition)) {
     return { match: 'all', rows: [toRow(condition)] };
   }
-  const group = condition as { all?: Condition[]; any?: Condition[] };
-  const match: ConditionMatch | undefined = Array.isArray(group.all) ? 'all' : Array.isArray(group.any) ? 'any' : undefined;
-  const items: Condition[] | undefined = match ? group[match] : undefined;
-  if (!match || !items || !items.every(isFieldCondition)) {
-    return undefined;
-  }
-  return { match, rows: (items as IFieldCondition[]).map(toRow) };
+  return toGroupRows(condition);
 }
 
 function typed(text: string, fieldType: string | undefined, op: ConditionOperator): ConditionScalar {
@@ -115,13 +151,15 @@ export function rowToCondition(row: IConditionRow, fieldType: string | undefined
 }
 
 /**
- * A sorokból képzett feltétel: a félkész sorok kimaradnak; egy sor önálló mezőfeltétel, több sor csoport.
- * `undefined`, ha nincs kész sor.
+ * A sorokból képzett feltétel: a félkész sorok és az üres csoportok kimaradnak; egyetlen kész elem önmagában áll,
+ * több elem csoportot alkot (a beágyazott csoportok ugyanígy). `undefined`, ha nincs kész elem.
  */
 export function fromConditionRows(model: IConditionRows, typeOf: (field: string) => string | undefined): Condition | undefined {
-  const conditions: IFieldCondition[] = [];
-  model.rows.forEach((row) => {
-    const condition: IFieldCondition | undefined = rowToCondition(row, typeOf(row.field));
+  const conditions: Condition[] = [];
+  model.rows.forEach((item) => {
+    const condition: Condition | undefined = isConditionGroup(item)
+      ? fromConditionRows({ match: item.match, rows: item.rows }, typeOf)
+      : rowToCondition(item, typeOf(item.field));
     if (condition) {
       conditions.push(condition);
     }

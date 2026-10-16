@@ -15,11 +15,14 @@ import { ATTACHMENTS_FIELD } from '../engine/Attachments';
 import { validateCondition } from '../engine/ConditionEngine';
 import {
   changeRowOperator,
+  ConditionItem,
   ConditionMatch,
+  createEmptyGroup,
   createEmptyRow,
   fromConditionRows,
   IConditionRow,
   IConditionRows,
+  isConditionGroup,
   operatorNeedsValue,
   splitValues,
   toConditionRows
@@ -43,7 +46,12 @@ const classes = mergeStyleSets({
   grow: { flex: 1, minWidth: 0 },
   operator: { flex: '0 0 42%', minWidth: 0 },
   hint: { fontSize: 12, color: '#605e5c' },
-  add: { height: 28, padding: 0 }
+  add: { height: 28, padding: 0 },
+  addRow: { display: 'flex', gap: 12, flexWrap: 'wrap' },
+  // Beágyazott csoport: bal oldali sávval, hogy a szintek elkülönüljenek.
+  group: { padding: '6px 0 6px 10px', borderLeft: '3px solid #c7e0f4', display: 'flex', flexDirection: 'column', gap: 4 },
+  groupHeader: { display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
+  groupTitle: { fontSize: 12, fontWeight: 600, color: '#605e5c' }
 });
 
 /** Az operátorok felirata. Függvény, mert a szövegek csak futáskor állnak biztosan rendelkezésre. */
@@ -247,6 +255,80 @@ const RowEditor: React.FC<IRowEditorProps> = ({ row, schema, onChange, onRemove 
   );
 };
 
+/** Ennyi szint mélységig vehető fel újabb csoport (a JSON-ban ennél mélyebb is lehet). */
+const MAX_GROUP_DEPTH: number = 3;
+
+interface IItemsEditorProps {
+  match: ConditionMatch;
+  items: ConditionItem[];
+  schema: IFieldSchema[];
+  /** A beágyazás szintje: 0 a feltétel gyökere. */
+  depth: number;
+  onChange: (match: ConditionMatch, items: ConditionItem[]) => void;
+}
+
+/** Egy szint elemei (sorok és beágyazott csoportok), a kapcsolatuk választójával és a hozzáadó gombokkal. */
+const ItemsEditor: React.FC<IItemsEditorProps> = ({ match, items, schema, depth, onChange }) => {
+  const replace = (index: number, item: ConditionItem): void => onChange(match, items.map((current, i) => (i === index ? item : current)));
+  const remove = (index: number): void => onChange(match, items.filter((_, i) => i !== index));
+  return (
+    <div className={classes.rows}>
+      {items.length > 1 && (
+        <Dropdown
+          ariaLabel={strings.ConditionMatch}
+          options={[
+            { key: 'all', text: strings.ConditionMatchAll },
+            { key: 'any', text: strings.ConditionMatchAny }
+          ]}
+          selectedKey={match}
+          onChange={(_, option) => option && onChange(option.key as ConditionMatch, items)}
+        />
+      )}
+      {items.map((item, index) =>
+        isConditionGroup(item) ? (
+          <div key={index} className={classes.group}>
+            <div className={classes.groupHeader}>
+              <span className={classes.groupTitle}>{strings.ConditionGroup}</span>
+              <IconButton
+                iconProps={{ iconName: 'Cancel' }}
+                title={strings.ConditionGroupRemove}
+                ariaLabel={strings.ConditionGroupRemove}
+                onClick={() => remove(index)}
+              />
+            </div>
+            <ItemsEditor
+              match={item.match}
+              items={item.rows}
+              schema={schema}
+              depth={depth + 1}
+              onChange={(nextMatch, rows) => replace(index, { ...item, match: nextMatch, rows })}
+            />
+          </div>
+        ) : (
+          <RowEditor key={index} row={item} schema={schema} onChange={(next) => replace(index, next)} onRemove={() => remove(index)} />
+        )
+      )}
+      <div className={classes.addRow}>
+        <ActionButton
+          className={classes.add}
+          iconProps={{ iconName: 'Add' }}
+          text={strings.ConditionAdd}
+          onClick={() => onChange(match, [...items, createEmptyRow()])}
+        />
+        {depth < MAX_GROUP_DEPTH && (
+          <ActionButton
+            className={classes.add}
+            iconProps={{ iconName: 'BulletedTreeList' }}
+            text={strings.ConditionAddGroup}
+            // Az új csoport a szint kapcsolatának ellentétével indul (ÉS alatt VAGY és fordítva), ez a gyakoribb.
+            onClick={() => onChange(match, [...items, createEmptyGroup(match === 'all' ? 'any' : 'all')])}
+          />
+        )}
+      </div>
+    </div>
+  );
+};
+
 export interface IConditionEditorProps {
   label: string;
   value: Condition | undefined;
@@ -326,33 +408,12 @@ export const ConditionEditor: React.FC<IConditionEditorProps> = (props) => {
   return (
     <div>
       {header}
-      <div className={classes.rows}>
-        {model.rows.length > 1 && (
-          <Dropdown
-            ariaLabel={strings.ConditionMatch}
-            options={[
-              { key: 'all', text: strings.ConditionMatchAll },
-              { key: 'any', text: strings.ConditionMatchAny }
-            ]}
-            selectedKey={model.match}
-            onChange={(_, option) => option && update({ ...model, match: option.key as ConditionMatch })}
-          />
-        )}
-        {model.rows.map((row, index) => (
-          <RowEditor
-            key={index}
-            row={row}
-            schema={schema}
-            onChange={(next) => update({ ...model, rows: model.rows.map((item, i) => (i === index ? next : item)) })}
-            onRemove={() => update({ ...model, rows: model.rows.filter((_, i) => i !== index) })}
-          />
-        ))}
-      </div>
-      <ActionButton
-        className={classes.add}
-        iconProps={{ iconName: 'Add' }}
-        text={strings.ConditionAdd}
-        onClick={() => update({ ...model, rows: [...model.rows, createEmptyRow()] })}
+      <ItemsEditor
+        match={model.match}
+        items={model.rows}
+        schema={schema}
+        depth={0}
+        onChange={(match, rows) => update({ match, rows })}
       />
     </div>
   );

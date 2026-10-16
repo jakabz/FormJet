@@ -36,6 +36,8 @@ export interface IFormContext {
   setPendingImage: (fieldName: string, file: File | undefined) => void;
   /** A gomb műveleteinek futtatása (sorban, egymás után); a tervező előnézetében nem hívódik. */
   runButtonActions: (actions: ButtonAction[]) => Promise<void>;
+  /** Mentés folyamatban: a gombok ilyenkor tiltottak. */
+  busy: boolean;
 }
 
 export const FormContext: React.Context<IFormContext> = React.createContext<IFormContext>({
@@ -46,5 +48,6 @@ export const FormContext: React.Context<IFormContext> = React.createContext<IFor
   setAttachments: () => undefined,
   pendingImages: {},
   setPendingImage: () => undefined,
-  runButtonActions: () => Promise.resolve()
+  runButtonActions: () => Promise.resolve(),
+  busy: false
 });

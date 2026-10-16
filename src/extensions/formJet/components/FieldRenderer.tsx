@@ -9,7 +9,7 @@ import { Label } from '@fluentui/react/lib/Label';
 import { Spinner, SpinnerSize } from '@fluentui/react/lib/Spinner';
 import { TextField } from '@fluentui/react/lib/TextField';
 import { Toggle } from '@fluentui/react/lib/Toggle';
-import { DefaultButton, IButtonStyles } from '@fluentui/react/lib/Button';
+import { DefaultButton, IButtonStyles, PrimaryButton } from '@fluentui/react/lib/Button';
 import { IRawStyle, mergeStyleSets } from '@fluentui/react/lib/Styling';
 
 import * as strings from 'FormJetFormCustomizerStrings';
@@ -140,7 +140,8 @@ function choiceOptions(schema: IFieldSchema, selected: string[], withEmpty: bool
  * meg. A tervezőben semmit nem csinál, hogy a kattintás csak kijelölje az elemet.
  */
 const ButtonElement: React.FC<{ field: IResolvedField; designing: boolean }> = ({ field, designing }) => {
-  const { runButtonActions } = React.useContext(FormContext);
+  // Mentés közben (bármelyik gombról vagy a Mentésből indult) minden gomb tiltott, hogy ne induljon párhuzamos mentés.
+  const { runButtonActions, busy } = React.useContext(FormContext);
   const [running, setRunning] = React.useState<boolean>(false);
   const button = field.button;
   const actions: ButtonAction[] = button?.actions ?? [];
@@ -169,11 +170,13 @@ const ButtonElement: React.FC<{ field: IResolvedField; designing: boolean }> = (
       .catch(() => undefined);
   };
 
+  // A kiemelt gomb a Fluent elsődleges gombja; a megadott stílus ugyanúgy felülírja.
+  const ButtonControl: typeof DefaultButton = button?.primary ? PrimaryButton : DefaultButton;
   return (
-    <DefaultButton
+    <ButtonControl
       text={field.label}
       iconProps={button?.icon ? { iconName: button.icon } : undefined}
-      disabled={field.readOnly || running}
+      disabled={field.readOnly || running || (busy && !designing)}
       href={designing || field.readOnly ? undefined : url}
       target={newTab ? '_blank' : undefined}
       rel={newTab ? 'noopener noreferrer' : undefined}

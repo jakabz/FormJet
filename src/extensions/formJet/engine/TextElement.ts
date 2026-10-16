@@ -4,7 +4,7 @@
 // Tiszta logika: nem importálhat services/-ből, components/-ből, @pnp/*-ból vagy @microsoft/*-ból.
 
 import { IFieldSchema } from '../models/IFieldSchema';
-import { IFormConfig, ITextElement, LayoutElementKind } from '../models/IFormConfig';
+import { IFieldConfig, IFormConfig, ITextElement, LayoutElementKind } from '../models/IFormConfig';
 import { isIconName, parseButtonActions } from './ButtonAction';
 import { engineStrings, format } from './EngineStrings';
 
@@ -100,12 +100,96 @@ export function removeTextElement(config: IFormConfig, id: string): IFormConfig 
   delete next.fields[id];
   const texts: Record<string, ITextElement> = { ...(config.texts ?? {}) };
   delete texts[id];
+  // Az alsó gombsorból is kikerül (a gombsor üresen is megmarad: ilyenkor nincs alsó gomb).
+  if (config.footer) {
+    next.footer = config.footer.filter((item) => item !== id);
+  }
   if (Object.keys(texts).length > 0) {
     next.texts = texts;
   } else {
     delete next.texts;
   }
   return next;
+}
+
+/** Feliratok az alapértelmezett alsó gombsorhoz (a motor nem importálhatja a lokalizációt, a hívó adja át). */
+export interface IFooterCaptions {
+  save: string;
+  saveAndClose: string;
+  cancel: string;
+  close: string;
+}
+
+/** Új gomb az alsó gombsor végére. */
+export function addFooterButton(config: IFormConfig, name: string): { config: IFormConfig; id: string } {
+  const texts: Record<string, ITextElement> = config.texts ?? {};
+  let n: number = Object.keys(texts).filter((key) => key.indexOf(ID_PREFIXES.button) === 0).length + 1;
+  while (texts[`${ID_PREFIXES.button}${n}`]) {
+    n++;
+  }
+  const id: string = `${ID_PREFIXES.button}${n}`;
+  return {
+    id,
+    config: { ...config, texts: { ...texts, [id]: { kind: 'button', name } }, footer: [...(config.footer ?? []), id] }
+  };
+}
+
+/**
+ * Az alsó gombsor testreszabása: a `saveMode` szerinti beépített gombok gombelemként a konfigurációba kerülnek,
+ * ugyanazzal a viselkedéssel. Alapértelmezett: Mentés (ment és bezár) + Mégse; bővített: Mentés (nyitva marad) +
+ * Mentés és bezárás + Mégse. A mentő gombok megtekintéskor nem látszanak, a Mégse felirata ott „Bezárás”.
+ */
+export function createDefaultFooter(config: IFormConfig, captions: IFooterCaptions): IFormConfig {
+  let next: IFormConfig = { ...config };
+  const ids: string[] = [];
+  const add = (name: string, element: Partial<ITextElement>, field: IFieldConfig): void => {
+    const added = addFooterButton(next, name);
+    next = {
+      ...added.config,
+      texts: { ...(added.config.texts ?? {}), [added.id]: { kind: 'button', name, ...element } },
+      fields: { ...added.config.fields, [added.id]: field }
+    };
+    ids.push(added.id);
+  };
+  const saving: IFieldConfig = { visibleIn: ['new', 'edit'] };
+  if (config.saveMode === 'extended') {
+    add(captions.save, { primary: true, actions: [{ type: 'save', keepOpen: true }] }, saving);
+    add(captions.saveAndClose, { primary: true, actions: [{ type: 'save' }] }, saving);
+  } else {
+    add(captions.save, { primary: true, actions: [{ type: 'save' }] }, saving);
+  }
+  add(captions.cancel, { actions: [{ type: 'close' }] }, {
+    conditional: { label: [{ when: { field: '[IsDisplayMode]', op: 'eq', value: true }, value: captions.close }] }
+  });
+  return { ...next, footer: [...(config.footer ?? []), ...ids] };
+}
+
+/** Vissza a beépített gombsorhoz: az alsó gombok (és a beállításaik) törlődnek. */
+export function removeFooter(config: IFormConfig): IFormConfig {
+  let next: IFormConfig = config;
+  (config.footer ?? []).forEach((id) => {
+    next = removeTextElement(next, id);
+  });
+  const result: IFormConfig = { ...next };
+  delete result.footer;
+  return result;
+}
+
+/** Az alsó gombsor ellenőrzése: csak létező gombelemek azonosítói maradnak, ismétlés nélkül. */
+export function parseFooter(input: unknown, texts: Record<string, ITextElement> | undefined, path: string): string[] | undefined {
+  if (input === undefined) {
+    return undefined;
+  }
+  if (!Array.isArray(input)) {
+    throw new Error(format(engineStrings().MustBeArray, path));
+  }
+  const ids: string[] = [];
+  input.forEach((id: unknown) => {
+    if (typeof id === 'string' && texts?.[id]?.kind === 'button' && ids.indexOf(id) === -1) {
+      ids.push(id);
+    }
+  });
+  return ids;
 }
 
 /** A konfiguráció `texts` részének ellenőrzése; hibás tartalomra kivételt dob (a parseConfig kezeli). */
@@ -139,6 +223,9 @@ export function parseTexts(input: unknown, path: string): Record<string, ITextEl
     }
     if (isButton && item.newTab === true) {
       text.newTab = true;
+    }
+    if (isButton && item.primary === true) {
+      text.primary = true;
     }
     // A hibás ikonnév nem teszi érvénytelenné az elrendezést: egyszerűen kimarad (a tervező jelzi).
     if (isButton && isIconName(item.icon)) {

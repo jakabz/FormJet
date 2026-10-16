@@ -1,9 +1,11 @@
 import { Condition } from '../../models/IFormConfig';
 import {
   changeRowOperator,
+  createEmptyGroup,
   createEmptyRow,
   fromConditionRows,
   IConditionRow,
+  isConditionGroup,
   operatorNeedsValue,
   rowToCondition,
   splitValues,
@@ -42,10 +44,18 @@ describe('ConditionModel', () => {
       expect(rows?.rows[1]).toEqual({ field: 'Title', op: 'empty', text: '', values: [], raw: undefined });
     });
 
-    it('beágyazott csoport és `not` vizuálisan nem szerkeszthető', () => {
+    it('a `not` vizuálisan nem szerkeszthető, bárhol is van', () => {
       expect(toConditionRows({ not: { field: 'A', op: 'empty' } })).toBeUndefined();
-      expect(toConditionRows({ all: [{ field: 'A', op: 'empty' }, { any: [{ field: 'B', op: 'empty' }] }] })).toBeUndefined();
       expect(toConditionRows({ all: [{ not: { field: 'A', op: 'empty' } }] })).toBeUndefined();
+      expect(toConditionRows({ all: [{ field: 'A', op: 'empty' }, { any: [{ not: { field: 'B', op: 'empty' } }] }] })).toBeUndefined();
+    });
+
+    it('a beágyazott csoport csoport-elemként jelenik meg', () => {
+      const rows = toConditionRows({ all: [{ field: 'A', op: 'empty' }, { any: [{ field: 'B', op: 'empty' }, { field: 'C', op: 'notEmpty' }] }] });
+      expect(rows?.match).toBe('all');
+      expect(rows?.rows).toHaveLength(2);
+      const group = rows?.rows[1];
+      expect(group && isConditionGroup(group) ? [group.match, group.rows.length] : undefined).toEqual(['any', 2]);
     });
   });
 
@@ -57,7 +67,24 @@ describe('ConditionModel', () => {
         { field: 'Urgent', op: 'eq', value: true },
         { field: 'Title', op: 'notEmpty' },
         { all: [{ field: 'Amount', op: 'lt', value: '1 000' }, { field: 'Status', op: 'in', value: ['A', 2] }] },
-        { any: [{ field: 'Title', op: 'contains', value: 'x' }, { field: 'Title', op: 'empty' }] }
+        { any: [{ field: 'Title', op: 'contains', value: 'x' }, { field: 'Title', op: 'empty' }] },
+        // A képen szereplő országos csoportszabály szerkezete: VAGY-csoportban ÉS-csoportok, bennük VAGY-csoport.
+        {
+          any: [
+            {
+              all: [
+                { any: [{ field: '[Group:3]', op: 'eq', value: true }, { field: '[Group:4]', op: 'eq', value: true }] },
+                { field: '[Var:SavedCountry]', op: 'eq', value: 'ALBANIA' }
+              ]
+            },
+            {
+              all: [
+                { any: [{ field: '[Group:5]', op: 'eq', value: true }, { field: '[Group:6]', op: 'eq', value: true }] },
+                { field: 'Country', op: 'eq', value: 'BOSNIA-HERZEGOVINA' }
+              ]
+            }
+          ]
+        }
       ];
       conditions.forEach((condition) => expect(roundTrip(condition)).toEqual(condition));
     });
@@ -136,5 +163,42 @@ describe('ConditionModel', () => {
   it('splitValues', () => {
     expect(splitValues(' a, b ,, c ')).toEqual(['a', 'b', 'c']);
     expect(splitValues('')).toEqual([]);
+  });
+});
+
+describe('ConditionModel – beágyazott csoportok', () => {
+  const typeOfNested = (field: string): string | undefined => (field.indexOf('[Group:') === 0 ? 'Boolean' : 'Text');
+
+  it('a csoportból feltétel lesz; az üres csoport és a félkész sor kimarad, az egyelemű csoport kiterül', () => {
+    const condition = fromConditionRows(
+      {
+        match: 'any',
+        rows: [
+          {
+            kind: 'group',
+            match: 'all',
+            rows: [
+              { kind: 'group', match: 'any', rows: [{ ...createEmptyRow(), field: '[Group:3]', text: 'true' }, createEmptyRow()] },
+              { ...createEmptyRow(), field: 'Country', text: 'ALBANIA' }
+            ]
+          },
+          createEmptyGroup(),
+          { ...createEmptyRow(), field: 'Title', op: 'notEmpty' }
+        ]
+      },
+      typeOfNested
+    );
+    expect(condition).toEqual({
+      any: [
+        { all: [{ field: '[Group:3]', op: 'eq', value: true }, { field: 'Country', op: 'eq', value: 'ALBANIA' }] },
+        { field: 'Title', op: 'notEmpty' }
+      ]
+    });
+  });
+
+  it('createEmptyGroup: üres sorral, alapból VAGY kapcsolattal', () => {
+    const group = createEmptyGroup();
+    expect([group.kind, group.match, group.rows.length]).toEqual(['group', 'any', 1]);
+    expect(createEmptyGroup('all').match).toBe('all');
   });
 });

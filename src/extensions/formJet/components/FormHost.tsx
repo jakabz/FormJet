@@ -39,6 +39,7 @@ import * as SchemaService from '../services/SchemaService';
 import { withTimeout } from '../services/sp';
 import { DesignerPanel, DesignerSelection, DesignerTab } from './DesignerPanel';
 import { EMPTY_ATTACHMENTS, FormContext, IAttachmentsState, IFormContext } from './FormContext';
+import { FieldRenderer } from './FieldRenderer';
 import { FormRenderer, IFormRendererProps } from './FormRenderer';
 
 // A húzd-és-ejtsd előnézet csak a tervezőben kell; külön csomagrészként töltődik be.
@@ -107,6 +108,9 @@ const classes = mergeStyleSets({
   },
   preview: { minWidth: 0 },
   previewBar: { display: 'flex', alignItems: 'flex-end', gap: 12, flexWrap: 'wrap', marginBottom: 16 },
+  footerItem: { cursor: 'pointer', borderRadius: 2, outlineOffset: 3, selectors: { ':hover': { outline: '1px dashed #c8c6c4' } } },
+  footerSelected: { outline: '2px solid #0078d4', selectors: { ':hover': { outline: '2px solid #0078d4' } } },
+  footerHidden: { opacity: 0.45 },
   panel: {
     position: 'fixed',
     // A SharePoint fejléce alatt kezdődik; a változót a FormHost állítja be a görgetett terület helyéből.
@@ -467,9 +471,10 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
       listUrl: props.listUrl,
       pendingImages,
       setPendingImage,
-      runButtonActions: runActions
+      runButtonActions: runActions,
+      busy: saving
     }),
-    [props.cultureName, props.uiCultureName, props.listUrl, mode, itemId, loaded, attachments, pendingImages, setPendingImage, runActions]
+    [props.cultureName, props.uiCultureName, props.listUrl, mode, itemId, loaded, attachments, pendingImages, setPendingImage, runActions, saving]
   );
 
   const onFieldChange = React.useCallback((name: string, value: string): void => {
@@ -725,11 +730,17 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
         onFieldChange(action.field, value);
       } else if (action.type === 'save') {
         if (mode !== 'display') {
-          await save(false, working);
+          // A „nyitva marad” változat nem zár be (új elemnél a létrehozott elem szerkesztésével folytatódik).
+          await save(false, working, !action.keepOpen);
         }
         return;
       } else {
-        props.onClosed();
+        // Ha az elem már mentve van (korábbi mentés, vagy csak a mellékletek hibáztak), a bezárás mentettként jelez vissza.
+        if (attachmentRetryId !== undefined || savedOnce) {
+          props.onSaved();
+        } else {
+          props.onClosed();
+        }
         return;
       }
     }
@@ -835,6 +846,25 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
           />
         </div>
         {preview}
+        {/* A testreszabott alsó gombsor előnézete: kattintásra a gomb kijelölődik, a rejtett gomb halvány. */}
+        {resolved.footer && (
+          <FormContext.Provider value={formContext}>
+            <div className={classes.actions}>
+              {resolved.footer.map((button) => (
+                <div
+                  key={button.name}
+                  className={`${classes.footerItem} ${selection.kind === 'field' && selection.name === button.name ? classes.footerSelected : ''} ${
+                    button.visible ? '' : classes.footerHidden
+                  }`}
+                  title={strings.DesignFieldSettings}
+                  onClick={() => selectDesignElement({ kind: 'field', name: button.name })}
+                >
+                  <FieldRenderer field={button} value="" onChange={onFieldChange} designing />
+                </div>
+              ))}
+            </div>
+          </FormContext.Provider>
+        )}
       </div>
       <div
         className={classes.panel}
@@ -934,6 +964,18 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
       ) : (
         <>
           {renderer}
+          {resolved.footer ? (
+            // Testreszabott alsó gombsor: a gombok a saját láthatóságuk, letiltásuk és műveleteik szerint.
+            <FormContext.Provider value={formContext}>
+              <div className={classes.actions}>
+                {resolved.footer
+                  .filter((button) => button.visible)
+                  .map((button) => (
+                    <FieldRenderer key={button.name} field={button} value="" onChange={onFieldChange} />
+                  ))}
+              </div>
+            </FormContext.Provider>
+          ) : (
           <div className={classes.actions}>
             {mode !== 'display' && (
               <PrimaryButton
@@ -957,6 +999,7 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
               onClick={attachmentRetryId !== undefined || savedOnce ? props.onSaved : props.onClosed}
             />
           </div>
+          )}
         </>
       )}
 

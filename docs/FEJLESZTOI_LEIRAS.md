@@ -168,7 +168,8 @@ A tartalomtípus mezői közül a rejtett és a számított megjelenítő (`Comp
 | `listId` | string | igen | A cél lista GUID-ja. |
 | `contentTypeId` | string | igen | A lista tartalomtípusának azonosítója. |
 | `title` | string | nem | A form fejléce. |
-| `saveMode` | `'default'` \| `'extended'` | nem | A mentés gombjai. Hiányában `default`: Mentés (ment és bezár) + Mégse. `extended`: Mentés (ment, a form nyitva marad) + Mentés és bezárás + Mégse. Az alapértelmezés nem tárolódik. |
+| `footer` | `string[]` | nem | A testreszabott alsó gombsor: gombelemek (`texts`, `kind: 'button'`) azonosítói sorrendben. Hiányában a `saveMode` szerinti beépített gombok látszanak. Lásd „Alsó gombsor”. |
+| `saveMode` | `'default'` \| `'extended'` | nem | A beépített gombsor gombjai (csak `footer` nélkül számít). Hiányában `default`: Mentés (ment és bezár) + Mégse. `extended`: Mentés (ment, a form nyitva marad) + Mentés és bezárás + Mégse. Az alapértelmezés nem tárolódik. |
 | `labelPosition` | `'top'` \| `'left'` | nem | Címkék helye. Alapértelmezés: `top`. A `left` még nincs megvalósítva a renderelőben. |
 | `sections` | `ISectionConfig[]` | igen | Szekciók megjelenési sorrendben. |
 | `fields` | `Record<InternalName, IFieldConfig>` | igen | Mezőnkénti beállítások. |
@@ -272,6 +273,7 @@ A `texts` mező nélküli elemeket tárol: a **felirat** a formon megjelenő, fo
 | `content` | string | nem | Csak felirat: a formon megjelenő szöveg; a sortörések megmaradnak. |
 | `url` | string | nem | Csak gomb: a megnyitandó cím. Csak `http(s)://`, `mailto:` vagy webhelyen belüli cím nyílik meg (`UrlValue.isSafeUrl`), más címmel a gomb nem navigál. |
 | `newTab` | boolean | nem | Csak gomb: a cím új lapon nyílik meg (`rel="noopener noreferrer"`). |
+| `primary` | boolean | nem | Csak gomb: kiemelt (Fluent `PrimaryButton`). |
 | `icon` | string | nem | Csak gomb: Fluent UI ikonnév (`ButtonAction.isIconName`: csak betűk és számok); a hibás nevet a `parseConfig` elhagyja, az elrendezés érvényes marad. |
 | `actions` | `ButtonAction[]` | nem | Csak gomb: kattintásra sorban lefutó lépések. Ha van lépés, az `url` nem számít. |
 
@@ -294,7 +296,9 @@ A `texts` mező nélküli elemeket tárol: a **felirat** a formon megjelenő, fo
   ]
   ```
 
-  - `setValue`: a mező értéke a kezdőérték formátumában, a `LayoutResolver.resolveFieldValue` alakítja form-stringgé (`[today]`, `[me]`, …). A mező nélküli (félkész) lépés megmarad, futáskor kimarad. `save`: a `FormHost.save`, sikeres mentés után `formSaved()`. `close`: `formClosed()` mentés nélkül.
+  - `setValue`: a mező értéke a kezdőérték formátumában, a `LayoutResolver.resolveFieldValue` alakítja form-stringgé (`[today]`, `[me]`, …). A mező nélküli (félkész) lépés megmarad, futáskor kimarad. `save`: a `FormHost.save`, sikeres mentés után `formSaved()`; `keepOpen: true` esetén a form nyitva marad (mint a bővített Mentés, lásd „Mentés”). `close`: `formClosed()` mentés nélkül (ha a formon már volt mentés, `formSaved()`).
+  - A gomb felirata a mező címkéjének feltételes szabályaival változhat (`IFieldConfig.conditional.label`); a feloldott felirat az `IResolvedField.label`.
+  - **Alsó gombsor** (`IFormConfig.footer`): gombelemek azonosítói; ezek nem szerepelnek a szakaszokban (az `unplacedFields` kihagyja őket), a `resolveForm` külön oldja fel őket (`IResolvedForm.footer`, ugyanazzal a `resolveItem`-mel, mint a szakaszok elemeit). A `FormHost` a beépített Mentés / Mégse gombok helyett ezeket rajzolja (`FieldRenderer`), tervezéskor az előnézet alatt, kattintással kijelölhetően. A `TextElement.createDefaultFooter` a `saveMode` szerinti beépített gombokat gombelemként hozza létre (mentő gombok csak új elemnél és szerkesztéskor látszanak, a Mégse felirata megtekintéskor „Bezárás”), a `removeFooter` visszaállít, az `addFooterButton` új gombot vesz fel. Mentés közben minden gomb tiltott (`FormContext.busy`).
   - **Végrehajtás:** a `FormHost.runButtonActions` (a `FormContext.runButtonActions`-on át) a lépéseket sorban, `await`-tel futtatja. A beállított értékeket egy munkapéldányon gyűjti, és a mentést ezzel hívja (`save(false, working)`), mert a React állapot ekkor még nem frissült; a mentés a láthatóságot és a szerkeszthetőséget is erre számolja. A `save` és a `close` lezárja a sort (`effectiveActions`): új elemnél egy második mentés másolatot hozna létre, és a `formSaved()` a formot amúgy is bezárja. Sikertelen mentésnél a form nyitva marad.
   - **A beállított mező rejtetten és csak olvashatóként is mentődik** (a 2. kulcsdöntés egyeztetett kivétele): a `runButtonActions` a mezőt felveszi a `buttonSetFields` halmazba, és a `save` ezeket a látható, szerkeszthető mezőkön felül is a `changed` objektumba teszi, ha az értékük eltér a betöltéskoritól. A halmaz az űrlap élettartamáig megmarad (ütközés utáni felülírásnál, javítás utáni újramentésnél is érvényes). Csak a SharePoint szerint írható, form-string értékű mező állítható be (`ButtonAction.isButtonSettableField`: nem csak olvasható, a form kezeli a típusát, nem melléklet és nem kép); más mezőnél a lépés kimarad.
   - A lépésszerkesztő értékmezője a mező típusához igazodik (`ActionValueEditor`): választásnál a mező értékei közül (saját értéket engedő oszlopnál beírható is, üres választással törölhető), több választásnál több is (`;#A;#B;#`), igen/nem mezőnél Igen / Nem (`1` / `0`); egyébként szövegmező a kezdőérték formátumában. Másik mező választásakor az érték törlődik.
@@ -457,7 +461,7 @@ A feltételek a form **aktuális** értékeire futnak, nem a mentett értékekre
 
 **Szerkesztés a tervezőben.** A feltételeket a `ConditionEditor` szerkeszti, alapból vizuálisan: soronként egy mező, egy összehasonlítás és egy érték; több sornál választható, hogy minden vagy bármelyik feltételnek kell teljesülnie.
 
-- Vizuálisan a lapos feltételek szerkeszthetők: egyetlen mezőfeltétel, vagy mezőfeltételek `all` / `any` csoportja. A beágyazott csoportot vagy `not`-ot tartalmazó feltétel automatikusan JSON-ként jelenik meg; a „Szerkesztés JSON-ként” hivatkozással bármelyik feltétel átváltható.
+- Vizuálisan szerkeszthető az egyetlen mezőfeltétel, és az `all` / `any` csoport, amelynek elemei mezőfeltételek vagy beágyazott `all` / `any` csoportok (`ConditionModel`: `IConditionGroup`, `ConditionItem`; a szerkesztőben `ItemsEditor`, rekurzívan, a felületen legfeljebb 3 szint mélyen vehető fel új csoport). Csak a `not`-ot tartalmazó feltétel jelenik meg automatikusan JSON-ként; a „Szerkesztés JSON-ként” hivatkozással bármelyik feltétel átváltható. A sorokból képzett feltételben a félkész sor és az üres csoport kimarad, az egyelemű csoport kiterül.
 - Az érték vezérlője a mezőhöz igazodik: választás mezőnél a választható értékek listája (`ezek egyike` operátornál több is), igen/nem mezőnél Igen / Nem, egyébként szövegmező.
 - Az érték típusa: szám és pénznem mezőnél, illetve a `nagyobb` / `kisebb` operátornál a tiszta szám számként kerül a feltételbe, igen/nem mezőnél logikai értékként, egyébként szövegként. A nem szerkesztett sor értéke és típusa változatlan marad.
 - A félkész sor (nincs mező, vagy hiányzik az érték) a szerkesztőben megmarad, de a konfigurációba nem kerül be.
@@ -585,7 +589,7 @@ A felület angolul és magyarul érhető el; a nyelvet az SPFx a felhasználó S
 
 - **Visszafelé kompatibilis bővítés** (új opcionális mező): nem kell verzióemelés. A `LayoutResolver`-ben legyen alapértelmezés a hiányzó értékre.
 - **Törő változás** (átnevezés, szerkezetváltás): `schemaVersion` emelés, és a `parseConfig`-ban migráció a régi verzióról. A régi konfigurációk éles listákban vannak, mentés nélkül is működniük kell.
-- Verziók: **1** – kiinduló szerkezet; **2** – szövegelemek (`texts`); **3** – változók (`variables`). A 2-es új konfigurációrészt hozott, ezért kapott új verziót; az 1-es szerkezet változatlanul érvényes, átalakítás nincs. A 2-esként mentett konfigurációt a korábbi csomag (például a böngészőben még gyorsítótárazott régi változat) ismeretlen verzióként elutasítja, és az alapértelmezett elrendezést mutatja.
+- Verziók: **1** – kiinduló szerkezet; **2** – szövegelemek (`texts`); **3** – változók (`variables`); **4** – alsó gombsor (`footer`). A 2-es új konfigurációrészt hozott, ezért kapott új verziót; az 1-es szerkezet változatlanul érvényes, átalakítás nincs. A 2-esként mentett konfigurációt a korábbi csomag (például a böngészőben még gyorsítótárazott régi változat) ismeretlen verzióként elutasítja, és az alapértelmezett elrendezést mutatja.
 
 ### Tervező funkció hozzáadása
 

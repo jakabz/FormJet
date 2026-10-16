@@ -26,7 +26,16 @@ import { AUTHOR_VARIABLE, groupVariable, MODE_VARIABLES } from '../engine/Condit
 import { variableRef } from '../engine/FormVariables';
 import { format } from '../engine/EngineStrings';
 import { parseConfig, unplacedFields } from '../engine/LayoutResolver';
-import { addTextElement, isButtonElement, isLayoutElement, isTextElement, removeTextElement } from '../engine/TextElement';
+import {
+  addFooterButton,
+  addTextElement,
+  createDefaultFooter,
+  isButtonElement,
+  isLayoutElement,
+  isTextElement,
+  removeFooter,
+  removeTextElement
+} from '../engine/TextElement';
 import { isSafeUrl } from '../engine/UrlValue';
 import { IFieldSchema } from '../models/IFieldSchema';
 import {
@@ -205,7 +214,9 @@ export const DesignerPanel: React.FC<IDesignerPanelProps> = (props) => {
   // A nem elhelyezett mezők sávja összecsukható; alapból nyitva.
   const [paletteOpen, setPaletteOpen] = React.useState<boolean>(true);
   // Szövegelem felvétele: a felugró ablak melyik szekcióhoz nyílt meg, és a beírt megnevezés.
-  const [elementDialog, setElementDialog] = React.useState<{ sectionId: string; kind: LayoutElementKind } | undefined>();
+  const [elementDialog, setElementDialog] = React.useState<
+    { sectionId: string; kind: LayoutElementKind; footer?: boolean } | undefined
+  >();
   const [newTextName, setNewTextName] = React.useState<string>('');
   const [bulkOpen, setBulkOpen] = React.useState<boolean>(false);
 
@@ -262,7 +273,10 @@ export const DesignerPanel: React.FC<IDesignerPanelProps> = (props) => {
     if (newTextName.trim() === '') {
       return;
     }
-    const added = addTextElement(draft, newTextName.trim(), elementDialog?.sectionId, elementDialog?.kind);
+    // Az alsó gombsorba szánt gomb a gombsor végére kerül, a többi elem a szakasz végére.
+    const added = elementDialog?.footer
+      ? addFooterButton(draft, newTextName.trim())
+      : addTextElement(draft, newTextName.trim(), elementDialog?.sectionId, elementDialog?.kind);
     props.onChange(added.config);
     setElementDialog(undefined);
     setNewTextName('');
@@ -342,18 +356,6 @@ export const DesignerPanel: React.FC<IDesignerPanelProps> = (props) => {
   const renderFormProps = (): JSX.Element => (
     <div className={classes.tab}>
       <TextField label={strings.FormTitle} value={draft.title ?? ''} onChange={(_, v) => props.onChange(compact({ ...draft, title: v }))} />
-      <Dropdown
-        label={strings.SaveMode}
-        options={[
-          { key: 'default', text: strings.SaveModeDefault },
-          { key: 'extended', text: strings.SaveModeExtended }
-        ]}
-        selectedKey={draft.saveMode ?? 'default'}
-        onChange={(_, option) =>
-          option && props.onChange(compact({ ...draft, saveMode: option.key === 'default' ? undefined : (option.key as SaveMode) }))
-        }
-      />
-      <div className={classes.hint}>{strings.SaveModeHint}</div>
       <DefaultButton
         className={classes.addElement}
         iconProps={{ iconName: 'MultiSelect' }}
@@ -378,9 +380,99 @@ export const DesignerPanel: React.FC<IDesignerPanelProps> = (props) => {
               </div>
             </div>
           ))}
+          {(draft.footer ?? []).length > 0 && (
+            <div>
+              <span className={classes.treeSection}>{strings.FooterTree}</span>
+              <div className={classes.treeFields}>
+                {(draft.footer ?? []).map((id) => (
+                  <Link key={id} className={classes.treeField} onClick={() => select({ kind: 'field', name: id })}>
+                    {draft.texts?.[id]?.name || id}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
       <DefaultButton className={classes.addElement} iconProps={{ iconName: 'Add' }} text={strings.NewSection} onClick={addSection} />
+      <div>
+        <Label>{strings.FooterButtons}</Label>
+        {draft.footer === undefined ? (
+          <>
+            <Dropdown
+              label={strings.SaveMode}
+              options={[
+                { key: 'default', text: strings.SaveModeDefault },
+                { key: 'extended', text: strings.SaveModeExtended }
+              ]}
+              selectedKey={draft.saveMode ?? 'default'}
+              onChange={(_, option) =>
+                option && props.onChange(compact({ ...draft, saveMode: option.key === 'default' ? undefined : (option.key as SaveMode) }))
+              }
+            />
+            <div className={classes.hint}>{strings.SaveModeHint}</div>
+            <div className={classes.hint}>{strings.FooterBuiltInHint}</div>
+            <DefaultButton
+              className={classes.addElement}
+              iconProps={{ iconName: 'Edit' }}
+              text={strings.FooterCustomize}
+              onClick={() =>
+                props.onChange(
+                  createDefaultFooter(draft, {
+                    save: strings.Save,
+                    saveAndClose: strings.SaveAndClose,
+                    cancel: strings.Cancel,
+                    close: strings.Close
+                  })
+                )
+              }
+            />
+          </>
+        ) : (
+          <>
+            {draft.footer.length === 0 && <div className={classes.hint}>{strings.FooterEmpty}</div>}
+            {draft.footer.map((id, i) => (
+              <div key={id} className={classes.row}>
+                <span className={classes.rowName} title={strings.FieldSettings} onClick={() => select({ kind: 'field', name: id })}>
+                  {draft.texts?.[id]?.name || id}
+                </span>
+                <IconButton
+                  iconProps={{ iconName: 'Back' }}
+                  title={strings.FooterMoveLeft}
+                  disabled={i === 0}
+                  onClick={() => props.onChange({ ...draft, footer: move(draft.footer ?? [], i, i - 1) })}
+                />
+                <IconButton
+                  iconProps={{ iconName: 'Forward' }}
+                  title={strings.FooterMoveRight}
+                  disabled={i === (draft.footer ?? []).length - 1}
+                  onClick={() => props.onChange({ ...draft, footer: move(draft.footer ?? [], i, i + 1) })}
+                />
+                <IconButton
+                  iconProps={{ iconName: 'Delete' }}
+                  title={strings.FooterButtonDelete}
+                  onClick={() => props.onChange(removeTextElement(draft, id))}
+                />
+              </div>
+            ))}
+            <DefaultButton
+              className={classes.addElement}
+              iconProps={{ iconName: 'ButtonControl' }}
+              text={strings.ButtonElementAdd}
+              onClick={() => {
+                setNewTextName('');
+                setElementDialog({ sectionId: '', kind: 'button', footer: true });
+              }}
+            />
+            <DefaultButton
+              className={classes.addElement}
+              iconProps={{ iconName: 'Undo' }}
+              text={strings.FooterReset}
+              onClick={() => props.onChange(removeFooter(draft))}
+            />
+          </>
+        )}
+      </div>
     </div>
   );
 
@@ -621,11 +713,16 @@ export const DesignerPanel: React.FC<IDesignerPanelProps> = (props) => {
         {selectedField && fieldSchema && isButtonElement(fieldSchema) && (
           <>
             <div className={classes.hint}>{strings.ButtonElementHint}</div>
-            <TextField
-              label={strings.ButtonElementName}
-              value={draft.texts?.[selectedField]?.name ?? ''}
-              onChange={(_, v) => updateText(selectedField, { name: v ?? '' })}
-            />
+            {/* A gomb felirata is feltételhez köthető (a mező címkéjének szabályaival). */}
+            {conditionalField(
+              'label',
+              strings.ButtonElementName,
+              <TextField
+                label={strings.ButtonElementName}
+                value={draft.texts?.[selectedField]?.name ?? ''}
+                onChange={(_, v) => updateText(selectedField, { name: v ?? '' })}
+              />
+            )}
             <div className={classes.iconRow}>
               <TextField
                 className={classes.iconName}
@@ -638,6 +735,11 @@ export const DesignerPanel: React.FC<IDesignerPanelProps> = (props) => {
               {/* Előnézet: a megadott ikon (ismeretlen névnél üres). */}
               <Icon className={classes.iconPreview} iconName={iconPreview(draft.texts?.[selectedField]?.icon)} />
             </div>
+            <Checkbox
+              label={strings.ButtonElementPrimary}
+              checked={!!draft.texts?.[selectedField]?.primary}
+              onChange={(_, checked) => updateText(selectedField, { primary: checked || undefined })}
+            />
             <ButtonActionsEditor
               buttonTitle={draft.texts?.[selectedField]?.name || selectedField}
               actions={draft.texts?.[selectedField]?.actions ?? []}
