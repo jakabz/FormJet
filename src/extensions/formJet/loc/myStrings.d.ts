@@ -120,6 +120,8 @@ declare interface IFormJetFormCustomizerStrings {
   InvalidJsonShort: string;
   ConditionAdd: string;
   ConditionAddGroup: string;
+  ConditionAnd: string;
+  ConditionOr: string;
   ConditionGroup: string;
   ConditionGroupRemove: string;
   ConditionRemove: string;

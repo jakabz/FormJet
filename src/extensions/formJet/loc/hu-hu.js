@@ -117,6 +117,8 @@ define([], function() {
     "InvalidJsonShort": "Hibás JSON.",
     "ConditionAdd": "Feltétel hozzáadása",
     "ConditionAddGroup": "Csoport hozzáadása",
+    "ConditionAnd": "ÉS",
+    "ConditionOr": "VAGY",
     "ConditionGroup": "Csoport",
     "ConditionGroupRemove": "Csoport törlése",
     "ConditionRemove": "Feltétel eltávolítása",

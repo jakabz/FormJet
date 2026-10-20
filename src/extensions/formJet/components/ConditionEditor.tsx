@@ -48,6 +48,7 @@ const classes = mergeStyleSets({
   hint: { fontSize: 12, color: '#605e5c' },
   add: { height: 28, padding: 0 },
   addRow: { display: 'flex', gap: 12, flexWrap: 'wrap' },
+  connector: { fontSize: 11, fontWeight: 600, color: '#0078d4', letterSpacing: 0.5, paddingLeft: 4 },
   // Beágyazott csoport: bal oldali sávval, hogy a szintek elkülönüljenek.
   group: { padding: '6px 0 6px 10px', borderLeft: '3px solid #c7e0f4', display: 'flex', flexDirection: 'column', gap: 4 },
   groupHeader: { display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
@@ -284,9 +285,12 @@ const ItemsEditor: React.FC<IItemsEditorProps> = ({ match, items, schema, depth,
           onChange={(_, option) => option && onChange(option.key as ConditionMatch, items)}
         />
       )}
-      {items.map((item, index) =>
-        isConditionGroup(item) ? (
-          <div key={index} className={classes.group}>
+      {items.map((item, index) => (
+        <React.Fragment key={index}>
+          {/* Az elemek között a szint kapcsolata, hogy egymásba ágyazva is látsszon, mi mivel ÉS / VAGY. */}
+          {index > 0 && <div className={classes.connector}>{match === 'all' ? strings.ConditionAnd : strings.ConditionOr}</div>}
+          {isConditionGroup(item) ? (
+          <div className={classes.group}>
             <div className={classes.groupHeader}>
               <span className={classes.groupTitle}>{strings.ConditionGroup}</span>
               <IconButton
@@ -305,9 +309,10 @@ const ItemsEditor: React.FC<IItemsEditorProps> = ({ match, items, schema, depth,
             />
           </div>
         ) : (
-          <RowEditor key={index} row={item} schema={schema} onChange={(next) => replace(index, next)} onRemove={() => remove(index)} />
-        )
-      )}
+          <RowEditor row={item} schema={schema} onChange={(next) => replace(index, next)} onRemove={() => remove(index)} />
+          )}
+        </React.Fragment>
+      ))}
       <div className={classes.addRow}>
         <ActionButton
           className={classes.add}

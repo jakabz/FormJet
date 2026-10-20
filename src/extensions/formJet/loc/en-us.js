@@ -117,6 +117,8 @@ define([], function() {
     "InvalidJsonShort": "Invalid JSON.",
     "ConditionAdd": "Add condition",
     "ConditionAddGroup": "Add group",
+    "ConditionAnd": "AND",
+    "ConditionOr": "OR",
     "ConditionGroup": "Group",
     "ConditionGroupRemove": "Delete group",
     "ConditionRemove": "Remove condition",

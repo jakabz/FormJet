@@ -347,7 +347,7 @@ Feltétellel azt adod meg, hogy egy szekció vagy mező mikor látszódjon, miko
 
 Több feltételnél megjelenik egy választó: **Minden feltétel teljesül** vagy **Bármelyik feltétel teljesül**.
 
-**Csoportok.** A **Csoport hozzáadása** gombbal a feltételek közé egy csoport kerül, saját „Minden / Bármelyik” választóval és saját feltételekkel; csoportba újabb csoport is tehető (legfeljebb három szintig). Így összetett szabályok is összerakhatók, például: *bármelyik* teljesüljön ezek közül: (*minden* teljesül: (Sales admin – Albánia VAGY Marketing manager – Albánia) ÉS Country = ALBANIA), (*minden* teljesül: (… Bosznia …) ÉS Country = BOSNIA-HERZEGOVINA), … A csoportot a fejlécében lévő X törli. A tagadást (*not*) tartalmazó feltétel továbbra is csak JSON-ként szerkeszthető.
+**Csoportok.** A **Csoport hozzáadása** gombbal a feltételek közé egy csoport kerül, saját „Minden / Bármelyik” választóval és saját feltételekkel; csoportba újabb csoport is tehető (legfeljebb három szintig). Így összetett szabályok is összerakhatók, például: *bármelyik* teljesüljön ezek közül: (*minden* teljesül: (Sales admin – Albánia VAGY Marketing manager – Albánia) ÉS Country = ALBANIA), (*minden* teljesül: (… Bosznia …) ÉS Country = BOSNIA-HERZEGOVINA), … A feltételek között kiírt **ÉS** / **VAGY** mutatja, hogy az adott szinten mi a kapcsolat. **Példa:** „(A ÉS B) VAGY (C ÉS D)”: a legfelső szinten válaszd a *Bármelyik feltétel teljesül* lehetőséget, majd vegyél fel két csoportot (ezek maguktól *Minden feltétel teljesül* kapcsolattal indulnak), az egyikbe A-t és B-t, a másikba C-t és D-t. A csoportot a fejlécében lévő X törli. A tagadást (*not*) tartalmazó feltétel továbbra is csak JSON-ként szerkeszthető.
 
 | Összehasonlítás | Mikor teljesül |
 | --- | --- |
