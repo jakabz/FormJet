@@ -328,10 +328,26 @@ export function resolveDateDefault(raw: string, culture: string, dateOnly: boole
   return parsed ? formatDateValue(parsed, culture, dateOnly) : undefined;
 }
 
+const ME_TOKEN_PATTERN: RegExp = /\[me\]/gi;
+const TODAY_TOKEN_PATTERN: RegExp = /\[today\]/gi;
+/** Szöveges mezők, amelyeknél a `[me]` / `[today]` szövegként helyettesítődik. */
+const TEXT_TOKEN_TYPES: string[] = ['Text', 'Note'];
+
+/**
+ * Szöveges mező értéke: a `[me]` a bejelentkezett felhasználó megjelenő neve, a `[today]` a mai nap a web kultúrája
+ * szerinti rövid dátumként (`toLocaleDateString`). Szövegbe ágyazva is működik (például `Rögzítette: [me]`).
+ */
+export function resolveTextDefault(raw: string, culture: string, now: Date, currentUser?: ICurrentUser): string {
+  return raw
+    .replace(ME_TOKEN_PATTERN, currentUser?.displayName ?? '')
+    .replace(TODAY_TOKEN_PATTERN, () => now.toLocaleDateString(culture));
+}
+
 /**
  * Kezdőértékek New módban: a konfig defaultValue-ja, ennek hiányában a séma DefaultValue-ja
  * (egyszerű típusoknál és dátumnál). A dátum a web kultúrája szerinti form-stringgé alakul;
- * személy mezőnél a `[me]` a bejelentkezett felhasználó (`currentUser`).
+ * személy mezőnél a `[me]` a bejelentkezett felhasználó (`currentUser`); szöveges mezőnél a `[me]` a neve, a `[today]`
+ * a mai nap szövegként (`resolveTextDefault`).
  */
 export function getInitialValues(
   schema: IFieldSchema[],
@@ -363,7 +379,7 @@ export function getInitialValues(
 
 /**
  * A tervezőben megadott érték (kezdőérték formátum) form-stringgé alakítva: dátumnál `[today]` vagy a web formátuma
- * szerinti dátum, személynél `[me]` vagy e-mail-cím; egyébként maga az érték. A gomb „mező értékének beállítása”
+ * szerinti dátum, személynél `[me]` vagy e-mail-cím, szöveges mezőnél a `[me]` / `[today]` szövegként; egyébként maga az érték. A gomb „mező értékének beállítása”
  * lépése használja; a nem értelmezhető dátum változatlan marad (a mentés jelzi a hibát).
  */
 export function resolveFieldValue(
@@ -381,6 +397,9 @@ export function resolveFieldValue(
   }
   if (field.TypeAsString === 'User' || field.TypeAsString === 'UserMulti') {
     return resolveUserDefault(raw, field.TypeAsString === 'UserMulti', currentUser);
+  }
+  if (TEXT_TOKEN_TYPES.indexOf(field.TypeAsString) !== -1) {
+    return resolveTextDefault(raw, culture, now, currentUser);
   }
   return raw;
 }
@@ -408,6 +427,8 @@ function computeInitialValues(
       if (value !== '') {
         values[field.InternalName] = value;
       }
+    } else if (configured !== undefined && TEXT_TOKEN_TYPES.indexOf(field.TypeAsString) !== -1) {
+      values[field.InternalName] = resolveTextDefault(configured, culture, now, currentUser);
     } else if (configured !== undefined) {
       values[field.InternalName] = configured;
     } else if (field.DefaultValue && field.TermSetId !== undefined) {

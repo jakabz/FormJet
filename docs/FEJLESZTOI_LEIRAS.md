@@ -199,7 +199,7 @@ A tartalomtípus mezői közül a rejtett és a számított megjelenítő (`Comp
 | `readOnlyIn` | `FormMode[]` | egyik sem | Csak olvasható módonként. Display módban minden csak olvasható. |
 | `requiredIn` | `FormMode[]` | egyik sem | Kötelezőség módonként. **Csak szigorít.** |
 | `visibleWhen`, `readOnlyWhen`, `requiredWhen` | `Condition` | – | Feltételes változatok. |
-| `defaultValue` | string | – | Kezdőérték New módban, form-string formátumban. Dátum mezőnél `[today]`, ISO dátum vagy a web formátuma szerinti dátum is megadható. Személy mezőnél `[me]`, e-mail-cím vagy ezek pontosvesszővel elválasztott listája is. |
+| `defaultValue` | string | – | Kezdőérték New módban, form-string formátumban. Dátum mezőnél `[today]`, ISO dátum vagy a web formátuma szerinti dátum is megadható. Személy mezőnél `[me]`, e-mail-cím vagy ezek pontosvesszővel elválasztott listája is. Szöveges mezőnél (`Text`, `Note`) a `[me]` a felhasználó megjelenő neve (`displayName`), a `[today]` a mai nap a web kultúrája szerint (`toLocaleDateString`), szövegbe ágyazva is (`LayoutResolver.resolveTextDefault`). |
 | `conditional` | `{ label?, description?, placeholder?, defaultValue? }`, mindegyik `IConditionalValue[]` | – | Feltételes értékek (lásd lent). |
 | `attachmentsDisplay` | `'list'` \| `'compact'` | `list` | A mellékletek megjelenítése: soronként egy fájl, vagy tömören, egymás mellett. Csak az `Attachments` mezőnél. |
 | `lookupDisplay` | `'auto'` \| `'checklist'` \| `'dropdown'` | `auto` | Többértékű keresőmező megjelenítése: mindig nyitott jelölőnégyzetes lista vagy lenyíló lista. `auto`: legfeljebb 8 választható elemnél jelölőnégyzetes lista, efelett lenyíló. |

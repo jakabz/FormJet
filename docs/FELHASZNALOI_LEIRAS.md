@@ -333,7 +333,8 @@ Egyes mezőtípusoknál további beállítás is megjelenik:
 
 | Mezőtípus | Mit írj be | Példa |
 | --- | --- | --- |
-| Szöveg, választás | Maga az érték | `Irodaszer` |
+| Szöveg | Maga az érték; a `[me]` helyére az űrlapot kitöltő felhasználó neve, a `[today]` helyére a mai dátum kerül, szövegbe ágyazva is | `Irodaszer` vagy `Rögzítette: [me], [today]` |
+| Választás | Maga az érték | `Irodaszer` |
 | Szám, pénznem | A webhely tizedesjelével | `12,5` |
 | Százalék | A százalékérték | `25` |
 | Igen / Nem | `1` (igen) vagy `0` (nem) | `1` |

@@ -7,6 +7,7 @@ import {
   isEditableField,
   parseConfig,
   resolveDateDefault,
+  resolveFieldValue,
   resolveForm,
   unplacedFields
 } from '../LayoutResolver';
@@ -264,6 +265,26 @@ describe('LayoutResolver – kezdőértékek', () => {
     expect(getInitialValues(schema, config, 'hu-HU', now)).toEqual({
       PM: JSON.stringify([{ Key: 'bela@contoso.com', DisplayText: 'bela@contoso.com' }])
     });
+  });
+
+  it('szöveg: a [me] a felhasználó neve, a [today] a mai nap a web kultúrája szerint, szövegbe ágyazva is', () => {
+    const schema = [field('T', 'Text'), field('N', 'Note'), field('D', 'Text'), field('C', 'Choice')];
+    const config = parseConfig(
+      configJson({
+        fields: { T: { defaultValue: '[me]' }, N: { defaultValue: 'Rögzítette: [Me], [today]' }, D: { defaultValue: '[today]' }, C: { defaultValue: '[me]' } }
+      })
+    ).config as IFormConfig;
+    const me = { loginName: 'anna@contoso.com', displayName: 'Kiss Anna' };
+    const today: string = now.toLocaleDateString('hu-HU');
+    expect(getInitialValues(schema, config, 'hu-HU', now, me)).toEqual({
+      T: 'Kiss Anna',
+      N: `Rögzítette: Kiss Anna, ${today}`,
+      D: today,
+      C: '[me]'
+    });
+    // Bejelentkezett felhasználó nélkül a [me] üres szöveg.
+    expect(getInitialValues(schema, config, 'hu-HU', now).T).toBe('');
+    expect(resolveFieldValue(field('T', 'Text'), 'Kész: [today]', 'en-US', now)).toBe(`Kész: ${now.toLocaleDateString('en-US')}`);
   });
 
   it('felügyelt metaadat: a belső sorszámos alapértékből form-string lesz', () => {
