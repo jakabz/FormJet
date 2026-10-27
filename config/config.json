@@ -10,6 +10,14 @@
         }
       ]
     },
+    "form-jet-command-set": {
+      "components": [
+        {
+          "entrypoint": "./lib/extensions/formJetCommands/FormJetCommandSet.js",
+          "manifest": "./src/extensions/formJetCommands/FormJetCommandSet.manifest.json"
+        }
+      ]
+    },
     "form-jet-setup-web-part": {
       "components": [
         {

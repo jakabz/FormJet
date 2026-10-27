@@ -9,7 +9,7 @@ import { parseImageValue } from '../engine/ImageValue';
 import { parseLocationValue, serializeLocationValue } from '../engine/LocationValue';
 import { serializeTaxonomyValue } from '../engine/TaxonomyValue';
 import { serializeUrlValue } from '../engine/UrlValue';
-import { FieldErrors, FormValues } from '../models/IFieldSchema';
+import { FieldErrors, FormValues, IFieldSchema } from '../models/IFieldSchema';
 import { getSP } from './sp';
 
 export interface IItemData {
@@ -285,4 +285,35 @@ export async function save(target: ISaveTarget, changed: FormValues): Promise<IS
     }
   });
   return { itemId, errors };
+}
+
+/**
+ * Az elem visszaírható form-string értékei a megadott séma szerint: a FieldValuesForEdit, kiegészítve azokkal a
+ * mezőkkel, amelyeket külön kell lekérdezni (személy, keresőmező, hivatkozás, hely, felügyelt metaadat, kép).
+ * Ugyanazt adja, mint az űrlap betöltésekor összeállított értékek; a lista helyi menüjének műveletei használják.
+ */
+export async function loadEditableValues(
+  listId: string,
+  itemId: number,
+  schema: IFieldSchema[]
+): Promise<{ values: FormValues; authorId?: number; contentTypeId?: string }> {
+  const item: IItemData = await load(listId, itemId);
+  const names = (types: string[]): string[] =>
+    schema.filter((field) => types.indexOf(field.TypeAsString) !== -1).map((field) => field.InternalName);
+  const userFields: string[] = names(['User', 'UserMulti']);
+  const lookupFields: ILookupFieldRef[] = schema
+    .filter((field) => field.LookupListId !== undefined)
+    .map((field) => ({ name: field.InternalName, multiple: field.TypeAsString === 'LookupMulti' }));
+  const taxonomyFields: ITaxonomyFieldRef[] = schema
+    .filter((field) => field.TermSetId !== undefined)
+    .map((field) => ({ name: field.InternalName, multiple: field.TypeAsString === 'TaxonomyFieldTypeMulti' }));
+  const parts: FormValues[] = await Promise.all([
+    userFields.length > 0 ? loadUserValues(listId, itemId, userFields) : Promise.resolve({}),
+    lookupFields.length > 0 ? loadLookupValues(listId, itemId, lookupFields) : Promise.resolve({}),
+    names(['URL']).length > 0 ? loadUrlValues(listId, itemId, names(['URL'])) : Promise.resolve({}),
+    names(['Location']).length > 0 ? loadLocationValues(listId, itemId, names(['Location'])) : Promise.resolve({}),
+    taxonomyFields.length > 0 ? loadTaxonomyValues(listId, itemId, taxonomyFields) : Promise.resolve({}),
+    names(['Thumbnail']).length > 0 ? loadImageValues(listId, itemId, names(['Thumbnail'])) : Promise.resolve({})
+  ]);
+  return { values: Object.assign({}, item.values, ...parts), authorId: item.authorId, contentTypeId: item.contentTypeId };
 }

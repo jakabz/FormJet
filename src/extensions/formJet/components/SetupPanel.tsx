@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { DefaultButton } from '@fluentui/react/lib/Button';
 import { Link } from '@fluentui/react/lib/Link';
+import { Panel, PanelType } from '@fluentui/react/lib/Panel';
 import { MessageBar, MessageBarType } from '@fluentui/react/lib/MessageBar';
 import { Spinner, SpinnerSize } from '@fluentui/react/lib/Spinner';
 import { Toggle } from '@fluentui/react/lib/Toggle';
@@ -14,6 +15,7 @@ import { format } from '../engine/EngineStrings';
 import * as ConfigService from '../services/ConfigService';
 import * as PermissionService from '../services/PermissionService';
 import * as SetupService from '../services/SetupService';
+import { ListCommandsEditor } from './ListCommandsEditor';
 
 const classes = mergeStyleSets({
   root: { padding: '8px 0' },
@@ -54,6 +56,8 @@ export const SetupPanel: React.FC = () => {
   const [error, setError] = React.useState<string | undefined>();
   // Az éppen futó művelet kulcsa; amíg fut, a vezérlők le vannak tiltva.
   const [busy, setBusy] = React.useState<string | undefined>();
+  // A menüpont-szerkesztőben megnyitott lista.
+  const [commandsList, setCommandsList] = React.useState<{ id: string; title: string } | undefined>();
 
   const load = React.useCallback(async (): Promise<void> => {
     setLoading(true);
@@ -184,6 +188,7 @@ export const SetupPanel: React.FC = () => {
                 <th>{strings.SetupColumnContentType}</th>
                 <th>{strings.SetupColumnForm}</th>
                 <th>{strings.SetupBindingFormJet}</th>
+                <th>{strings.SetupColumnCommands}</th>
               </tr>
             </thead>
             <tbody>
@@ -215,6 +220,17 @@ export const SetupPanel: React.FC = () => {
                           }
                         />
                       </td>
+                      <td>
+                        {/* A menüpontok listánként vannak (nem tartalomtípusonként), ezért csak az első sorban. */}
+                        {index === 0 && (
+                          <DefaultButton
+                            iconProps={{ iconName: 'ContextMenu' }}
+                            text={strings.SetupCommandsEdit}
+                            disabled={disabled}
+                            onClick={() => setCommandsList({ id: list.id, title: list.title })}
+                          />
+                        )}
+                      </td>
                     </tr>
                   );
                 })
@@ -223,6 +239,20 @@ export const SetupPanel: React.FC = () => {
           </table>
         )}
       </div>
+
+      <Panel
+        isOpen={commandsList !== undefined}
+        // A lépések és az értékadások több vezérlőt tesznek egymás mellé, ezért a közepesnél szélesebb panel.
+        type={PanelType.custom}
+        customWidth="760px"
+        headerText={commandsList ? format(strings.SetupCommandsTitle, commandsList.title) : ''}
+        isBlocking
+        onDismiss={() => setCommandsList(undefined)}
+      >
+        {commandsList && (
+          <ListCommandsEditor key={commandsList.id} listId={commandsList.id} listTitle={commandsList.title} onClose={() => setCommandsList(undefined)} />
+        )}
+      </Panel>
     </div>
   );
 };

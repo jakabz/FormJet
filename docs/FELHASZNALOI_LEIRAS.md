@@ -192,7 +192,38 @@ Azt, hogy egy listán a FormJet űrlap vagy a SharePoint beépített űrlapja ny
 
 Kikapcsoláskor a lista visszaáll a SharePoint beépített űrlapjára; a mentett elrendezés megmarad, és újbóli bekapcsoláskor ismét érvényes.
 
-A webpart **Konfigurációs lista** része azt a listát mutatja, amelyben az elrendezések tárolódnak. Ha még nincs meg, a **Lista létrehozása** gombbal létrehozható (az első elrendezés mentésekor magától is létrejön). A **Csak olvasás a tagoknak** gombbal beállítható, hogy az elrendezéseket csak a tulajdonosok módosíthassák; ezt érdemes megtenni.
+### Menüpontok a lista helyi menüjében
+
+A lista elemeinek helyi menüjébe (az elem melletti … menü, illetve jobb kattintás) saját menüpontok tehetők, amelyek a kijelölt elemen végeznek el valamit, például átállítják a státuszát, módosítják egy másik lista kapcsolódó elemeit, vagy új elemet vesznek fel egy másik listába.
+
+**Beállítás** (webhelytulajdonosként, a **FormJet beállítása** webparton):
+
+1. A **Listák** táblázatban a lista sorában kattints a **Menüpontok…** gombra. Oldalt megnyílik a lista menüpontjainak szerkesztője.
+2. A **Menüpont hozzáadása** gombbal vegyél fel menüpontot (listánként legfeljebb 10), és add meg:
+   - **Felirat:** ez látszik a menüben.
+   - **Látható, ha:** feltétel a kijelölt elem értékeire (például Status = Új), a csoporttagságra vagy arra, hogy a felhasználó az elem létrehozója-e. Üresen mindig látszik.
+   - **Megerősítő kérdés** és **Üzenet sikeres futás után:** üresen általános szöveg jelenik meg.
+   - **Lépések:** sorban, egymás után futnak le (lásd lent).
+3. Kattints a **Mentés** gombra. Ekkor a FormJet menü a listára kerül; ha minden menüpontot törölsz és mentesz, lekerül róla.
+
+**Lépések:**
+
+| Lépés | Mit csinál |
+| --- | --- |
+| A kijelölt elem mezőjének beállítása | A kijelölt elem kiválasztott mezőjébe beírja az értéket. |
+| Egy másik lista egyező elemeinek módosítása | Egy másik lista **minden** olyan elemét módosítja, amelynek a megadott mezője megegyezik a kijelölt elem megadott mezőjével (például a rendelés azonosítójával), és beállítja bennük a megadott mezőket. |
+| Új elem felvétele egy listába | Új elemet vesz fel a kiválasztott listába a megadott mezőértékekkel. |
+
+Az értékek megadásánál minden értéknél választható **Az érték forrása**:
+
+- **Megadott érték:** konstans (például `Áttekintés alatt`), `[today]` (a mai nap), `[me]` (az, aki a menüpontot futtatja), vagy szövegbe ágyazva a kijelölt elem egy mezője kapcsos zárójelben, például `Áttekintés: {Title}`.
+- **A kijelölt elem mezője:** a kijelölt elem egy oszlopa listából választva (az azonosító, ID is). A mező értéke változatlanul kerül át, így személy, keresőmező vagy dátum is másolható.
+
+**Használat:** jelölj ki **egy** elemet a listában, nyisd meg a helyi menüjét, és válaszd a menüpontot. A megerősítés után a lépések lefutnak, a végén üzenet jelzi, hány mező, illetve elem módosult és hány új elem jött létre; bezáráskor a lista frissül. Ha egy lépés nem sikerül (például hiányzik egy kötelező mező vagy nincs jogod), a futás megáll, és hibaüzenet jelenik meg; a már elvégzett lépések megmaradnak.
+
+A menüpont elrejtése nem jogosultsági védelem: a lépések a futtató felhasználó nevében, az ő jogaival futnak.
+
+A webpart **Konfigurációs lista** része azt a listát mutatja, amelyben az elrendezések tárolódnak. Ha még nincs meg, a **Lista létrehozása** gombbal létrehozható (az első elrendezés mentésekor magától is létrejön). A **Csak olvasás a tulajdonosokon kívül** gombbal beállítható, hogy az elrendezéseket és a menüpontokat csak a tulajdonosok és a webhelygazdák módosíthassák; mindenki más, aki eddig szerkeszthette a listát, csak olvasni tudja. Ezt érdemes megtenni.
 
 ## 5. Elrendezés: szekciók és mezők
 

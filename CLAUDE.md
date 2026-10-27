@@ -33,14 +33,17 @@ Az SPFx verziótól függ, hogy gulp (≤ 1.21) vagy Heft (1.22+) a build eszkö
 - A Node.js verziónak egyeznie kell az SPFx verzió által előírttal (`.nvmrc` vagy a `package.json` `engines` mezője).
 - Az `npm test` (és az `npm run build`) ugyanabba a `lib` / `dist` mappába fordít, mint a futó `npm start`. Ha a fejlesztői szerver fut, ne indítsd el mellette: vagy állíttasd le a felhasználóval, vagy a projekt egy másolatán futtasd.
 - A futó `npm start` a `loc/` fájlok változását nem veszi át: új vagy módosított szöveg után le kell állítani és újra kell indítani, különben az új szövegek üresek. Emiatt felhasználói szöveget ne használj modul betöltésekor lefutó kódban (modulszintű `format(strings.…)`), csak függvényben vagy komponensben.
+- A lista helyi menüje (Command Set) helyi kipróbálásához a `serve.json`-ba egy `customActions` bejegyzés kell a lista nézetére (lásd a fejlesztői leírást).
 - A helyi futtatás a `config/serve.json` Form Customizer konfigurációját használja (`pageUrl`, `RootFolder`, `PageType`: 8 = New, 6 = Edit, 4 = Display, Edit/Display esetén `ID`).
 - Telepítés egy site-ra: a csomag **FormJet beállítása** webpartjával (a webhelyen, böngészőből), vagy a `scripts/Provision-FormJet.ps1` szkripttel (PnP.PowerShell). A szkriptet **ne futtasd** a felhasználó kifejezett kérése nélkül, mert éles SharePoint site-ot módosít.
 
 ## Architektúra
 
 ```
-src/webparts/formJetSetup/   Beállító webpart (külön bundle): a FormJet be- és kikapcsolása a webhely listáin
+src/webparts/formJetSetup/   Beállító webpart (külön bundle): a FormJet be- és kikapcsolása a webhely listáin, a listák menüpontjai
   FormJetSetupWebPart.ts     belépési pont → components/SetupPanel
+src/extensions/formJetCommands/  Lista helyi menü (ListView Command Set, külön bundle): FormJet menüpontok a kijelölt elemen
+  FormJetCommandSet.ts       belépési pont: 10 menüpont-hely (manifest), felirat és láthatóság a lista konfigurációjából, futtatás
 src/extensions/formJet/
   FormJetFormCustomizer.ts   SPFx belépési pont: mód, lista, elem → FormHost; formSaved()/formClosed()
   models/                    IFormConfig (konfigurációs séma), IFieldSchema (mezőséma, FormValues, FieldErrors)
@@ -64,6 +67,7 @@ src/extensions/formJet/
     UserValue.ts             User / UserMulti form-string (JSON tömb `Key`-jel) értelmezése és előállítása
     FormVariables.ts         a form változói (feltétel vagy átalakított mezőérték): kiértékelés függőségi sorrendben, átnevezés, a `variables` ellenőrzése
     BulkConditions.ts        feltétel tömeges beállítása több mezőre (felülírás, ÉS / VAGY hozzáfűzés, törlés)
+    ListCommands.ts          a lista menüpontjai: a konfiguráció ellenőrzése, láthatóság, értéksablonok (`{Mező}`)
     EngineStrings.ts         a motor üzenetei (alapból angol; az onInit a loc `Engine` részét adja át) + format()
     LayoutMoves.ts           a tervező húzd-és-ejtsd műveletei: szekció és mező áthelyezése, új mező felvétele a konfiguráción
     LayoutResolver.ts        séma + konfig + mód + értékek → IResolvedForm; alapértelmezett konfig; parseConfig
@@ -75,6 +79,7 @@ src/extensions/formJet/
     AttachmentService.ts     mellékletek listázása (mérettel), feltöltése és törlése (lomtárba), egymás után futtatva
     ConfigService.ts         konfiguráció olvasása / mentése ETag-gel (412 → ConfigConflictError); a konfigurációs lista létrehozása és jogosultsága
     SetupService.ts          a webhely listái és tartalomtípusai, a FormJet be- és kikapcsolása (a beállító webparthoz)
+    ListCommandService.ts    a lista menüpontjai: konfiguráció (FormConfigurations, `listcommands` kulcs), a helyi menü be- és kikötése (egyéni művelet), a lépések végrehajtása
     GroupService.ts          a webhely SharePoint csoportjai; a felhasználó tagsága (közvetlen + címtárbeli csoporton át, Microsoft Graph, AAD tokennel – nem PnPjs)
     LocationService.ts       helykeresés a Microsoft 365 helykeresőjével (Outlook végpont, AAD tokennel – nem PnPjs)
     LookupService.ts         a keresőmező választható elemei a hivatkozott listából (gyorsítótárazva)
@@ -107,7 +112,9 @@ src/extensions/formJet/
     DesignerPanel.tsx        admin tervező panel: a kijelölt elem (űrlap / szakasz / mező) tulajdonságai és stílusa; űrlapnál Változók és JSON fül, fa nézet
     VariablesPanel.tsx       a tervező Változók füle
     BulkConditionDialog.tsx  „Feltétel több mezőre” felugró ablak (az űrlap tulajdonságai között)
-    SetupPanel.tsx           a beállító webpart felülete: konfigurációs lista, listánkénti kapcsolók
+    SetupPanel.tsx           a beállító webpart felülete: konfigurációs lista, listánkénti kapcsolók, menüpontok
+    ListCommandsEditor.tsx   a beállító webpart menüpont-szerkesztője (felirat, feltétel, megerősítés, lépések)
+    CommandDialog.tsx        a menüpont futtatása: megerősítés, várakozás, visszajelzés
     StylePanel.tsx           a tervező Stílus füle: form, szekció és mező stílusa módonként
 scripts/Provision-FormJet.ps1  konfigurációs lista + tartalomtípus bekötés
 samples/config-example.json    példa konfiguráció
@@ -132,7 +139,7 @@ Rétegszabályok:
 7. **A stílus strukturált, nem szabad CSS.** A konfiguráció `style` részeibe csak a `FormStyle.ts` specifikációjában szereplő tulajdonság kerülhet; a szín kizárólag hex érték, a színátmenet ellenőrzött részekből (típus, szög, két hex szín) áll össze a `backgroundCss`-ben. Szabad CSS mezőt, `url()`-t vagy tetszőleges CSS értéket ne engedj be egyeztetés nélkül.
 8. **A kapcsolódó elemek csak olvashatók.** A `related` szekció egy másik lista elemeit listázza, de nem ír bele; a kapcsolódó elemek formon belüli szerkesztése vagy mentése egyeztetést igényel. A CAML lekérdezésbe kerülő mezőnevek csak belső névnek megfelelő értékek lehetnek (`RelatedList.ts`).
 9. **A mellékletek pszeudo-mezőként működnek, és az elem mentése után kerülnek fel.** Az `Attachments` a sémában mezőként szerepel (ha a listán engedélyezve van), így bármelyik szekcióba elhelyezhető, de értéke nem form-string, és soha nem kerül a `changed` objektumba. Ha az elem mentése sikerült, de egy melléklet művelete nem, a form nyitva marad, és a Mentés már csak a mellékleteket próbálja újra (`attachmentRetryId`) – új elemnél így nem jön létre másolat. Ezt a sorrendet ne változtasd meg egyeztetés nélkül.
-10. **A beállító webpart csak a saját webhelyét kezeli**, és csak a tartalomtípus három űrlap-összetevőjét, valamint a `FormConfigurations` listát módosítja. Több webhely kezelése, más listák jogosultságának módosítása vagy tenant-szintű művelet egyeztetést igényel.
+10. **A beállító webpart csak a saját webhelyét kezeli**, és csak a tartalomtípus három űrlap-összetevőjét, a `FormConfigurations` listát, valamint (egyeztetett bővítés) a listák FormJet helyi menüjének egyéni műveletét módosítja. Ez utóbbinál csak a saját, `COMMAND_SET_COMPONENT_ID`-ra mutató listaszintű egyéni műveletét hozza létre vagy törli (`ListCommandService.setEnabled`), más egyéni művelethez nem nyúl. Több webhely kezelése, más listák jogosultságának módosítása vagy tenant-szintű művelet egyeztetést igényel.
 
 ## Konfigurációs séma
 
@@ -145,6 +152,7 @@ A típusok forrása: `models/IFormConfig.ts`. Példa: `samples/config-example.js
 - Feltételes értékek (`IFieldConfig.conditional` és `ISectionConfig.conditional`, `engine/ConditionalValue.ts`): a mező címkéje, leírása, helykitöltője és kezdőértéke, valamint a szekció címe és leírása szabálylistát kaphat (`{ when, value }`), az első teljesülő szabály érvényes, egyébként az alapérték. A címke, a leírás és a helykitöltő a `resolveForm`-ban oldódik fel; a kezdőérték szabályai csak New módban, a megnyitáskor értékelődnek ki (`getInitialValues`).
 - Alsó gombsor (`footer`, sémaverzió 4): gombelemek azonosítói; hiányában a `saveMode` szerinti beépített gombok látszanak. A `createDefaultFooter` a beépítetteket gombelemként hozza létre; a gombok ugyanúgy oldódnak fel, mint a szakaszok elemei (`IResolvedForm.footer`). A mentés lépés `keepOpen` változata nyitva hagyja a formot.
 - Változók (`variables`, sémaverzió 3): feltétel fajta (igen / nem) vagy érték fajta (mező élő vagy mentett értéke + előre megírt átalakítások: `substring`, `number`, `trim`, `lower`, `upper`). A `contextValues` értékeli ki őket függőségi sorrendben; a körkörös hivatkozás nem / üres értéket ad. A mentett értékeket a `resolveForm` `savedValues` paramétere adja. Kifejezésnyelvet (szöveges képletet) nem vezettünk be szándékosan; új átalakítás a `VariableTransform` bővítésével jön.
+- Lista menüpontok (`models/IListCommands.ts`, `engine/ListCommands.ts`, saját sémaverzió: 1): listánként a `FormConfigurations` listában, a tartalomtípus helyén a `listcommands` kulccsal. Lépések: a kijelölt elem mezőjének beállítása, egy másik lista egyező (`matchField` = kijelölt elem `sourceField`) elemeinek módosítása, új elem felvétele; a mentés itt is `validateUpdateListItem` form-stringekkel. A Command Set manifestje 10 helyet ad (`LIST_COMMAND_SLOTS`); bővítéshez a manifestet és az állandót is módosítani kell. Kódot nem futtatunk.
 - Új feltétel-operátor: `ConditionOperator` típus + `ConditionEngine.evalField` + felirat a `ConditionEditor` `operatorLabels` függvényében (és a loc fájlokban) + a JSON mód súgószövege (`ConditionHelp`) + teszt.
 
 ## SharePoint sajátosságok

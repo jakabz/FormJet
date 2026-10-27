@@ -653,7 +653,7 @@ A csomag a Form Customizer mellett egy webpartot is tartalmaz (`src/webparts/for
 
 - **Listák:** a webhely listái (dokumentumtárak és rejtett listák nélkül) tartalomtípusonként, az aktuális űrlappal: FormJet, beépített SharePoint űrlap, vagy másik egyéni űrlap. A kapcsoló a tartalomtípus mindhárom űrlapját (új, szerkesztő, megtekintő) a FormJet összetevőre állítja, illetve üríti (`SetupService.setBinding`).
 - **Konfigurációs lista:** ha a `FormConfigurations` lista hiányzik, létrehozható (`ConfigService.ensureList`); a lista az első elrendezés mentésekor magától is létrejön (`ConfigService.save`).
-- **Jogosultság:** a „Csak olvasás a tagoknak” gomb a listának saját jogosultságot ad, és a webhely tagjainak csoportját olvasásra állítja (`ConfigService.restrictListToReadOnly`). A szerepkört típus szerint keresi, így nem függ a webhely nyelvétől. Más, egyedileg jogosított csoportokat nem módosít.
+- **Jogosultság:** a „Csak olvasás a tulajdonosokon kívül” gomb a listának saját jogosultságot ad (a webhelyét lemásolva), majd minden szerepkör-hozzárendelésnél az írási szerepköröket (szerkesztés, közreműködés, egyéni szerepkör) olvasásra cseréli (`ConfigService.restrictListToReadOnly`). Kimarad a teljes hozzáféréssel (`RoleTypeKind` 5) rendelkező résztvevő és a webhely tulajdonosi csoportja; a csak korlátozott hozzáférésű (`RoleTypeKind` 1) résztvevő nem kap olvasási jogot. A szerepköröket típus szerint keresi, így nem függ a webhely nyelvétől. A webhelygazdák (site collection admin) jogát a lista jogosultsága nem korlátozza.
 - A módosításokhoz webhelytulajdonosi jog kell; e nélkül a vezérlők le vannak tiltva.
 
 Tudnivalók a kódhoz:
@@ -662,6 +662,48 @@ Tudnivalók a kódhoz:
 - A FormJet összetevő azonosítója a `SetupService.FORMJET_COMPONENT_ID` állandóban van; egyeznie kell a `FormJetFormCustomizer.manifest.json` `id` értékével.
 - A megtekintő űrlap tulajdonságának neve a REST felületen kétféle lehet (`DisplayFormClientSideComponentId` / `DispFormClientSideComponentId`); a `SetupService` azt használja, amelyik a lekérdezés válaszában szerepel.
 - Helyi kipróbálás: `npm start -- --serve-config setup` a hosted workbench-et nyitja meg, ahol a webpart felvehető.
+
+### A lista helyi menüje (FormJet menüpontok)
+
+A csomag harmadik összetevője egy ListView Command Set (`src/extensions/formJetCommands/`, külön bundle). A lista elemeinek helyi menüjébe tesz menüpontokat, amelyek a kijelölt elemen futnak.
+
+- **Konfiguráció:** listánként egy bejegyzés a `FormConfigurations` listában, a tartalomtípus helyén a `listcommands` kulccsal (`ConfigService.loadEntry` / `saveEntry`, ETag-gel). Séma: `models/IListCommands.ts` (`schemaVersion: 1`), ellenőrzés: `ListCommands.parseListCommands`.
+
+  ```json
+  { "schemaVersion": 1, "listId": "…", "commands": [ {
+      "id": "cmd:1", "title": "Áttekintésre küldés",
+      "visibleWhen": { "field": "Status", "op": "eq", "value": "Új" },
+      "confirm": "Biztosan áttekintésre küldöd?", "successMessage": "Elküldve.",
+      "actions": [
+        { "type": "setValue", "field": "Status", "value": "Áttekintés alatt" },
+        { "type": "updateItems", "listId": "…", "matchField": "OrderRef", "sourceField": "ID", "values": [ { "field": "State", "value": "{Status}" } ] },
+        { "type": "createItem", "listId": "…", "values": [ { "field": "Title", "value": "Áttekintés: {Title}" }, { "field": "Requester", "value": "[me]" } ] }
+      ] } ] }
+  ```
+
+- **Értéksablon** (`ListCommands.resolveTemplate`): konstans, `[today]` / `[me]` (a cél mező típusa szerint, `LayoutResolver.resolveFieldValue`), vagy a kijelölt elem mezője `{Mező}` alakban. Ha a sablon pontosan egy `{Mező}`, a form-string változatlanul kerül át (személy, keresőmező, dátum is); szövegbe ágyazva szövegként helyettesítődik. A szerkesztőben értékenként választható a forrás (`ValueInput`): megadott érték (szabad sablon), vagy a kijelölt elem mezője listából; az utóbbi ugyanazt a `{Mező}` sablont menti. A kijelölt elem értékeit az `ItemService.loadEditableValues` adja (ugyanaz a dúsítás, mint az űrlapon), az `ID` is elérhető.
+- **Lépések** (`ListCommandService.run`, sorban, `await`-tel; hibánál megáll, a már elvégzett lépések megmaradnak):
+  - `setValue`: a kijelölt elem egy mezője (`validateUpdateListItem`); a további lépések már az új értéket látják.
+  - `updateItems`: a cél lista minden olyan eleme, amelynek `matchField` mezője egyezik a kijelölt elem `sourceField` értékével (CAML, `RelatedList.buildRelatedViewXml`; a párosítható típusok ugyanazok, mint a kapcsolódó elemeknél; legfeljebb `MAX_ROW_LIMIT` elem).
+  - `createItem`: új elem a cél lista gyökerébe, az alapértelmezett tartalomtípussal (`addValidateUpdateItemUsingPath`).
+  - A cél lista sémája az alapértelmezett tartalomtípus szerint töltődik; a nem létező vagy félkész értékadás kimarad.
+- **Menüpont-helyek:** a manifest 10 parancsot ad (`COMMAND_1` … `COMMAND_10`, `LIST_COMMAND_SLOTS`); a `FormJetCommandSet` a konfiguráció n-edik menüpontját az n-edik helyre teszi (felirat, láthatóság), a többi hely rejtett. Futás közben új parancs nem vehető fel.
+- **Láthatóság:** csak pontosan egy kijelölt elemnél. A `visibleWhen` a kijelölt elem mentett értékeit, a csoporttagságot (`[Group:…]`, előre lekérdezve) és az `[IsAuthor]`-t látja (`ListCommands.isCommandVisible`); feltételes menüpontnál az elem értékei a kijelöléskor töltődnek be, addig a menüpont rejtett.
+- **Futtatás:** `CommandDialog` (megerősítés → várakozás → visszajelzés a darabszámokkal, vagy hibaüzenet). Bezárás után a lap újratöltődik (a lista nézet frissítésére nincs nyilvános SPFx-felület).
+- **Bekötés a listára:** listaszintű egyéni művelet (`Location: ClientSideExtension.ListViewCommandSet.ContextMenu`, `ClientSideComponentId` = `ListCommandService.COMMAND_SET_COMPONENT_ID`, egyeznie kell a manifest `id`-jával). A beállító webpart menüpont-szerkesztője mentéskor köti be (van menüpont) vagy törli (nincs menüpont); csak a saját egyéni műveletét kezeli (10. kulcsdöntés).
+- **Nem jogosultsági határ:** a menüpont elrejtése kényelmi funkció; a lépések a felhasználó nevében futnak, a listák jogosultsága dönt.
+- **Helyi kipróbálás:** a `serve.json`-ba egy konfiguráció a lista nézetére, például:
+
+  ```json
+  "commands": {
+    "pageUrl": "https://<bérlő>.sharepoint.com/sites/<webhely>/Lists/<lista>/AllItems.aspx",
+    "customActions": {
+      "5c747283-23d4-484c-9ac2-421347d0a57d": { "location": "ClientSideExtension.ListViewCommandSet.ContextMenu", "properties": {} }
+    }
+  }
+  ```
+
+  majd `npm start -- --serve-config commands`. A menüpontokat ehhez is a beállító webpartban (vagy kézzel a `FormConfigurations` listában) kell megadni.
 
 ### PowerShell szkript
 

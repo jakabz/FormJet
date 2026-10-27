@@ -1,0 +1,79 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/spfx/command-set-extension-manifest.schema.json",
+
+  "id": "5c747283-23d4-484c-9ac2-421347d0a57d",
+  "alias": "FormJetCommandSet",
+  "componentType": "Extension",
+  "extensionType": "ListViewCommandSet",
+
+  // The "*" signifies that the version should be taken from the package.json
+  "version": "*",
+  "manifestVersion": 2,
+
+  "requiresCustomScript": false,
+
+  // A menüpontok helyei (COMMAND_1 … COMMAND_10). A feliratukat és a láthatóságukat futás közben a lista
+  // konfigurációja adja (FormConfigurations lista, „listcommands” kulcs); a konfiguráció nélküli hely rejtett.
+  "items": {
+    "COMMAND_1": {
+      "title": {
+        "default": "FormJet 1"
+      },
+      "type": "command"
+    },
+    "COMMAND_2": {
+      "title": {
+        "default": "FormJet 2"
+      },
+      "type": "command"
+    },
+    "COMMAND_3": {
+      "title": {
+        "default": "FormJet 3"
+      },
+      "type": "command"
+    },
+    "COMMAND_4": {
+      "title": {
+        "default": "FormJet 4"
+      },
+      "type": "command"
+    },
+    "COMMAND_5": {
+      "title": {
+        "default": "FormJet 5"
+      },
+      "type": "command"
+    },
+    "COMMAND_6": {
+      "title": {
+        "default": "FormJet 6"
+      },
+      "type": "command"
+    },
+    "COMMAND_7": {
+      "title": {
+        "default": "FormJet 7"
+      },
+      "type": "command"
+    },
+    "COMMAND_8": {
+      "title": {
+        "default": "FormJet 8"
+      },
+      "type": "command"
+    },
+    "COMMAND_9": {
+      "title": {
+        "default": "FormJet 9"
+      },
+      "type": "command"
+    },
+    "COMMAND_10": {
+      "title": {
+        "default": "FormJet 10"
+      },
+      "type": "command"
+    }
+  }
+}

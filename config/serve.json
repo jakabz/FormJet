@@ -4,33 +4,33 @@
   "https": true,
   "serveConfigurations": {
     "default": {
-      "pageUrl": "https://46pcjx.sharepoint.com/sites/FormJet-Teszt/_layouts/15/SPListForm.aspx",
+      "pageUrl": "https://grpleg.sharepoint.com/sites/logisticworkflow-hu-szentes-dev/_layouts/15/SPListForm.aspx",
       "formCustomizer": {
         "componentId": "89262798-3b9c-4299-9d5b-754a7e8ac6d8",
         "PageType": 8,
-        "RootFolder": "/sites/FormJet-Teszt/Lists/TesztList"
+        "RootFolder": "/sites/logisticworkflow-hu-szentes-dev/Lists/Products"
       }
     },
     "edit": {
-      "pageUrl": "https://46pcjx.sharepoint.com/sites/FormJet-Teszt/_layouts/15/SPListForm.aspx",
+      "pageUrl": "https://grpleg.sharepoint.com/sites/logisticworkflow-hu-szentes-dev/_layouts/15/SPListForm.aspx",
       "formCustomizer": {
         "componentId": "89262798-3b9c-4299-9d5b-754a7e8ac6d8",
         "PageType": 6,
-        "RootFolder": "/sites/FormJet-Teszt/Lists/TesztList",
-        "ID": 1
+        "RootFolder": "/sites/logisticworkflow-hu-szentes-dev/Lists/Products",
+        "ID": 2392
       }
     },
     "display": {
-      "pageUrl": "https://46pcjx.sharepoint.com/sites/FormJet-Teszt/_layouts/15/SPListForm.aspx",
+      "pageUrl": "https://grpleg.sharepoint.com/sites/logisticworkflow-hu-szentes-dev/_layouts/15/SPListForm.aspx",
       "formCustomizer": {
         "componentId": "89262798-3b9c-4299-9d5b-754a7e8ac6d8",
         "PageType": 4,
-        "RootFolder": "/sites/FormJet-Teszt/Lists/TesztList",
-        "ID": 1
+        "RootFolder": "/sites/logisticworkflow-hu-szentes-dev/Lists/Products",
+        "ID": 2392
       }
     },
     "setup": {
-      "pageUrl": "https://46pcjx.sharepoint.com/sites/FormJet-Teszt/_layouts/15/workbench.aspx"
+      "pageUrl": "https://grpleg.sharepoint.com/sites/logisticworkflow-hu-szentes-dev/_layouts/15/workbench.aspx"
     }
   }
 }

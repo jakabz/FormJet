@@ -1,0 +1,730 @@
+{
+  "schemaVersion": 4,
+  "listId": "1ca2c65b-fb6c-4fc4-ac7d-d3105e3008e2",
+  "contentTypeId": "0x010010CDB2DA2DA9EF41AF12F2FACB282754",
+  "sections": [
+    {
+      "id": "default",
+      "columns": 2,
+      "fields": [
+        {
+          "field": "Title",
+          "colSpan": 2
+        },
+        {
+          "field": "Categories",
+          "colSpan": 2
+        },
+        {
+          "field": "Status",
+          "colSpan": 2
+        },
+        {
+          "field": "ReviewerList",
+          "colSpan": 2
+        },
+        {
+          "field": "ReviewType",
+          "colSpan": 2
+        },
+        {
+          "field": "ReviewWindow"
+        },
+        {
+          "field": "ReviewTime"
+        },
+        {
+          "field": "NotifyAfter",
+          "colSpan": 2
+        }
+      ],
+      "title": "Áttekintési beállítások",
+      "collapsible": true,
+      "style": {
+        "base": {
+          "borderColor": "#91bcdc",
+          "borderWidth": 1,
+          "borderRadius": 10,
+          "headerColor": "#91bcdc"
+        }
+      }
+    },
+    {
+      "id": "section-2",
+      "columns": 2,
+      "fields": [
+        {
+          "field": "Tool_Nr"
+        },
+        {
+          "field": "Draw_Nr"
+        },
+        {
+          "field": "Naming"
+        },
+        {
+          "field": "Customer_Nr"
+        },
+        {
+          "field": "Type1"
+        },
+        {
+          "field": "Other_Nr"
+        },
+        {
+          "field": "TJ_Nr"
+        },
+        {
+          "field": "Draw_publication_Nr"
+        },
+        {
+          "field": "Project"
+        },
+        {
+          "field": "Modification_Nr"
+        },
+        {
+          "field": "Product_family"
+        },
+        {
+          "field": "Draw_publication_validity"
+        },
+        {
+          "field": "Machine_Type"
+        },
+        {
+          "field": "ExpensePlace"
+        },
+        {
+          "field": "Homogeneous_Nr",
+          "colSpan": 2
+        },
+        {
+          "field": "Material_Nr"
+        },
+        {
+          "field": "Stamp_Nr"
+        },
+        {
+          "field": "Material_Quality"
+        },
+        {
+          "field": "Narrow"
+        },
+        {
+          "field": "Material_Size"
+        },
+        {
+          "field": "Step"
+        },
+        {
+          "field": "Technological_description",
+          "colSpan": 2
+        },
+        {
+          "field": "TaskBooklet",
+          "colSpan": 2
+        }
+      ],
+      "title": "Fő adatok",
+      "collapsible": true,
+      "style": {
+        "base": {
+          "borderColor": "#91bcdc",
+          "borderWidth": 1,
+          "borderRadius": 10
+        }
+      }
+    },
+    {
+      "id": "section-3",
+      "columns": 2,
+      "fields": [
+        {
+          "field": "Change_request_ref"
+        },
+        {
+          "field": "Change_description"
+        },
+        {
+          "field": "Stock",
+          "colSpan": 2
+        }
+      ],
+      "title": "Módosítás esetén",
+      "collapsible": true,
+      "style": {
+        "base": {
+          "borderColor": "#647fb4",
+          "borderWidth": 1,
+          "borderRadius": 10
+        }
+      }
+    },
+    {
+      "id": "section-4",
+      "columns": 2,
+      "fields": [
+        {
+          "field": "Test_Deadline"
+        },
+        {
+          "field": "Making_Overtime"
+        },
+        {
+          "field": "NullSeria_Deadline"
+        },
+        {
+          "field": "PlanExpense"
+        },
+        {
+          "field": "Seria_StartDate"
+        },
+        {
+          "field": "FactExpense"
+        }
+      ],
+      "title": "Határidő és költség adatok",
+      "collapsible": true,
+      "style": {
+        "base": {
+          "borderColor": "#647fb4",
+          "borderWidth": 1,
+          "borderRadius": 10
+        }
+      }
+    },
+    {
+      "id": "section-5",
+      "columns": 2,
+      "fields": [
+        {
+          "field": "Editing_StartDate"
+        },
+        {
+          "field": "Editing_Over"
+        },
+        {
+          "field": "Editor0"
+        },
+        {
+          "field": "Norm_Over"
+        }
+      ],
+      "title": "Szerszámszerkesztés",
+      "collapsible": true,
+      "style": {
+        "base": {
+          "borderColor": "#647fb4",
+          "borderWidth": 1,
+          "borderRadius": 10
+        }
+      }
+    },
+    {
+      "id": "section-6",
+      "columns": 2,
+      "fields": [
+        {
+          "field": "Work_Nr"
+        },
+        {
+          "field": "JOB_Order_Acc"
+        },
+        {
+          "field": "Maker_Name"
+        }
+      ],
+      "title": "Szerszámgyártás",
+      "style": {
+        "base": {
+          "borderColor": "#647fb4",
+          "borderWidth": 1,
+          "borderRadius": 10
+        }
+      },
+      "collapsible": true
+    },
+    {
+      "id": "section-7",
+      "columns": 3,
+      "fields": [
+        {
+          "field": "Test1_reported"
+        },
+        {
+          "field": "Test1_Date_Request"
+        },
+        {
+          "field": "Test1_Date"
+        },
+        {
+          "field": "Test1_Documents",
+          "colSpan": 3
+        },
+        {
+          "field": "Test2_reported"
+        },
+        {
+          "field": "Test2_Date_Request"
+        },
+        {
+          "field": "Test2_Date"
+        },
+        {
+          "field": "Test2_Documents",
+          "colSpan": 3
+        },
+        {
+          "field": "Test3_reported"
+        },
+        {
+          "field": "Test3_Date_Request"
+        },
+        {
+          "field": "Test3_Date"
+        },
+        {
+          "field": "Test3_Documents",
+          "colSpan": 3
+        },
+        {
+          "field": "Test4_reported"
+        },
+        {
+          "field": "Test4_Date_Request"
+        },
+        {
+          "field": "Test4_Date"
+        },
+        {
+          "field": "Test4_Documents",
+          "colSpan": 3
+        },
+        {
+          "field": "Test5_reported"
+        },
+        {
+          "field": "Test5_Date_Request"
+        },
+        {
+          "field": "Test5_Date"
+        },
+        {
+          "field": "Test5_Documents",
+          "colSpan": 3
+        }
+      ],
+      "title": "Szerszámpróba",
+      "style": {
+        "base": {
+          "borderColor": "#647fb4",
+          "borderWidth": 1,
+          "borderRadius": 10
+        }
+      },
+      "collapsible": true
+    },
+    {
+      "id": "section-8",
+      "columns": 2,
+      "fields": [
+        {
+          "field": "Development_Date"
+        },
+        {
+          "field": "Usuble1"
+        },
+        {
+          "field": "MBIR_Date"
+        },
+        {
+          "field": "Usuble2"
+        },
+        {
+          "field": "Factory_Date"
+        },
+        {
+          "field": "Usuble3"
+        }
+      ],
+      "title": "Szerszámpróba jóváhagyás",
+      "style": {
+        "base": {
+          "borderWidth": 1,
+          "borderRadius": 10,
+          "borderColor": "#647fb4"
+        }
+      },
+      "collapsible": true
+    },
+    {
+      "id": "section-9",
+      "columns": 1,
+      "fields": [
+        {
+          "field": "From"
+        }
+      ],
+      "title": "Kezdeményező és áttekintési napló",
+      "related": {
+        "listId": "503a6183-c4fd-4817-a583-14d6c9ce8e63",
+        "matchField": "ItemID",
+        "sourceField": "ID",
+        "columns": [
+          "Title",
+          "Status",
+          "WorkflowName",
+          "TriggeredBy"
+        ]
+      },
+      "style": {
+        "base": {
+          "borderColor": "#647fb4",
+          "borderWidth": 1,
+          "borderRadius": 10
+        }
+      },
+      "collapsible": true
+    },
+    {
+      "id": "section-10",
+      "columns": 1,
+      "fields": [
+        {
+          "field": "Attachments"
+        }
+      ],
+      "title": "Mellékletek",
+      "style": {
+        "base": {
+          "borderColor": "#647fb4",
+          "borderWidth": 1,
+          "borderRadius": 10
+        }
+      },
+      "collapsible": true
+    }
+  ],
+  "fields": {
+    "Title": {
+      "label": "Rend sz., szersz. az.",
+      "requiredIn": [
+        "new",
+        "edit"
+      ]
+    },
+    "ReviewerList": {
+      "label": "Áttekintők"
+    },
+    "ReviewType": {
+      "label": "Áttekintés típusa"
+    },
+    "ReviewWindow": {
+      "label": "Határidő beállítása"
+    },
+    "ReviewTime": {
+      "label": "Határidő (nap)",
+      "description": "Határidőhöz rendelt áttekintésnél kötelező, legalább 1 nap.",
+      "requiredWhen": {
+        "field": "ReviewWindow",
+        "op": "eq",
+        "value": "Az áttekintés határidőhöz rendelt"
+      }
+    },
+    "NotifyAfter": {
+      "label": "Kezdeményező értesítése"
+    },
+    "Tool_Nr": {
+      "label": "Szerszám azonosító"
+    },
+    "Draw_Nr": {
+      "label": "Rajz szám"
+    },
+    "Naming": {
+      "label": "Megnevezés"
+    },
+    "Customer_Nr": {
+      "label": "Megrendelő száma"
+    },
+    "Type1": {
+      "label": "Jelleg"
+    },
+    "Other_Nr": {
+      "label": "Egyéb azonosító"
+    },
+    "TJ_Nr": {
+      "label": "Fejlesztési/TJ munkaszám "
+    },
+    "Draw_publication_Nr": {
+      "label": "Rajz kiadási száma"
+    },
+    "Project": {
+      "label": "Projekt"
+    },
+    "Modification_Nr": {
+      "label": "Módosítás száma"
+    },
+    "Product_family": {
+      "label": "Termékcsalád"
+    },
+    "Draw_publication_validity": {
+      "label": "Rajz kiadási érvényessége"
+    },
+    "Machine_Type": {
+      "label": "Gép típusa"
+    },
+    "ExpensePlace": {
+      "label": "Költséghely"
+    },
+    "Homogeneous_Nr": {
+      "label": "Homogén szám"
+    },
+    "Material_Nr": {
+      "label": "Anyagszám"
+    },
+    "Stamp_Nr": {
+      "label": "Bélyegszám (db)"
+    },
+    "Material_Quality": {
+      "label": "Anyag minőség"
+    },
+    "Narrow": {
+      "label": "Zsugor (%)"
+    },
+    "Material_Size": {
+      "label": "Anyag méret"
+    },
+    "Step": {
+      "label": "Lépés (mm)"
+    },
+    "Technological_description": {
+      "label": "Műszaki leírás"
+    },
+    "TaskBooklet": {
+      "label": "Feladat füzet"
+    },
+    "Change_request_ref": {
+      "label": "Módosítás indításának  hivatkozása"
+    },
+    "Change_description": {
+      "label": "Változás leírása"
+    },
+    "Stock": {
+      "label": "Rendelkezés raktárkészletről"
+    },
+    "Test_Deadline": {
+      "label": "Szerszámpróba befejezés határideje"
+    },
+    "Making_Overtime": {
+      "label": "Szerszámgyártás átfutási ideje"
+    },
+    "NullSeria_Deadline": {
+      "label": "Null sorozat gyártás kért határideje"
+    },
+    "PlanExpense": {
+      "label": "Szerszámozás költsége (Terv)"
+    },
+    "Seria_StartDate": {
+      "label": "Sorozatgyártás kezdete"
+    },
+    "FactExpense": {
+      "label": "Szerszámozás költsége (Tény)"
+    },
+    "Editing_StartDate": {
+      "label": "​Szerszámszerkesztésre kiadva"
+    },
+    "Editing_Over": {
+      "label": "Szerszámterv kész"
+    },
+    "Editor0": {
+      "label": "Szerszám szerkesztő"
+    },
+    "Norm_Over": {
+      "label": "Norma kész"
+    },
+    "Work_Nr": {
+      "label": "Gyártási munkaszám"
+    },
+    "JOB_Order_Acc": {
+      "label": "JOB order azonosító"
+    },
+    "Maker_Name": {
+      "label": "Szerszámkészítő neve"
+    },
+    "Test1_reported": {
+      "label": "1. Próbára jelentve"
+    },
+    "Test2_reported": {
+      "label": "2. Próbára jelentve"
+    },
+    "Test3_reported": {
+      "label": "3. Próbára jelentve"
+    },
+    "Test4_reported": {
+      "label": "4. Próbára jelentve"
+    },
+    "Test5_reported": {
+      "label": "5. Próbára jelentve"
+    },
+    "Test1_Date_Request": {
+      "label": "1. Próba kért időpontja"
+    },
+    "Test2_Date_Request": {
+      "label": "2. Próba kért időpontja"
+    },
+    "Test3_Date_Request": {
+      "label": "3. Próba kért időpontja"
+    },
+    "Test4_Date_Request": {
+      "label": "4. Próba kért időpontja"
+    },
+    "Test5_Date_Request": {
+      "label": "5. Próba kért időpontja"
+    },
+    "Test1_Date": {
+      "label": "1. Próba időpontja"
+    },
+    "Test2_Date": {
+      "label": "2. Próba időpontja"
+    },
+    "Test3_Date": {
+      "label": "3. Próba időpontja"
+    },
+    "Test4_Date": {
+      "label": "4. Próba időpontja"
+    },
+    "Test5_Date": {
+      "label": "5. Próba időpontja"
+    },
+    "Test1_Documents": {
+      "label": "1. Próbalap, mérési lap"
+    },
+    "Test2_Documents": {
+      "label": "2. Próbalap, mérési lap"
+    },
+    "Test3_Documents": {
+      "label": "3. Próbalap, mérési lap"
+    },
+    "Test4_Documents": {
+      "label": "4. Próbalap, mérési lap"
+    },
+    "Test5_Documents": {
+      "label": "5. Próbalap, mérési lap"
+    },
+    "Development_Date": {
+      "label": "Fejlesztés"
+    },
+    "Usuble1": {
+      "label": "Megfelelőség"
+    },
+    "MBIR_Date": {
+      "label": "MBIR"
+    },
+    "Usuble2": {
+      "label": "Megfelelőség"
+    },
+    "Factory_Date": {
+      "label": "Üzem"
+    },
+    "Usuble3": {
+      "label": "Megfelelőség"
+    },
+    "From": {
+      "label": "Kezdeményezte"
+    },
+    "ReviewerLog": {
+      "label": "Áttekintési napló"
+    },
+    "button:1": {
+      "visibleIn": [
+        "new",
+        "edit"
+      ]
+    },
+    "button:2": {
+      "visibleIn": [
+        "new",
+        "edit"
+      ]
+    },
+    "button:3": {
+      "conditional": {
+        "label": [
+          {
+            "when": {
+              "field": "[IsDisplayMode]",
+              "op": "eq",
+              "value": true
+            },
+            "value": "Bezárás"
+          }
+        ]
+      }
+    },
+    "Status": {
+      "readOnlyIn": [
+        "new",
+        "edit",
+        "display"
+      ],
+      "defaultValue": "Új"
+    }
+  },
+  "style": {
+    "base": {
+      "backgroundGradient": {
+        "type": "linear",
+        "colors": [
+          "#f6fdfe",
+          "#c7e0f4"
+        ],
+        "angle": 135
+      },
+      "borderColor": "#647fb4",
+      "borderWidth": 1,
+      "borderRadius": 10,
+      "accentColor": "#91bcdc",
+      "maxWidth": 960,
+      "sectionHeader": "bar"
+    }
+  },
+  "saveMode": "extended",
+  "texts": {
+    "button:1": {
+      "kind": "button",
+      "name": "Mentés",
+      "primary": true,
+      "actions": [
+        {
+          "type": "save",
+          "keepOpen": true
+        }
+      ]
+    },
+    "button:2": {
+      "kind": "button",
+      "name": "Mentés és bezárás",
+      "primary": true,
+      "actions": [
+        {
+          "type": "save"
+        }
+      ]
+    },
+    "button:3": {
+      "kind": "button",
+      "name": "Mégse",
+      "actions": [
+        {
+          "type": "close"
+        }
+      ]
+    }
+  },
+  "footer": [
+    "button:2",
+    "button:1",
+    "button:3"
+  ]
+}
