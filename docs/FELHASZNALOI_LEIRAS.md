@@ -33,6 +33,8 @@ Az űrlap három helyzetben jelenik meg:
 | Meglévő elem szerkesztése | Az elem mentett értékei, szerkeszthető mezőkkel. |
 | Elem megtekintése | Az elem értékei, szerkesztés nélkül. |
 
+Ha megtekintéskor jogod van az elem szerkesztésére, az űrlap tetején a cím mellett megjelenik a **Szerkesztés** gomb. Ezzel az űrlap helyben szerkeszthetővé válik, ugyanúgy, mintha szerkesztésre nyitottad volna meg; a mentés vagy a Mégse után az űrlap bezárul.
+
 Ugyanaz a mező a három helyzetben másképp viselkedhet: lehet, hogy új elemnél nem látszik, szerkesztéskor csak olvasható, vagy csak bizonyos értékek mellett jelenik meg. Ezt az adminisztrátor állítja be, nem hiba.
 
 Az űrlap csoportokra (szekciókra) tagolódik. A lefelé mutató nyíllal jelölt szekciók a címükre kattintva becsukhatók és kinyithatók.

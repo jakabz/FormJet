@@ -16,3 +16,13 @@ export async function isAdmin(): Promise<boolean> {
     return false;
   }
 }
+
+// Szerkesztheti-e a felhasználó az elemet (az elem saját jogosultsága szerint is).
+// Csak a Szerkesztés gomb megjelenítéséről dönt; a mentést a SharePoint ellenőrzi.
+export async function canEditItem(listId: string, itemId: number): Promise<boolean> {
+  try {
+    return await getSP().web.lists.getById(listId).items.getById(itemId).currentUserHasPermissions(PermissionKind.EditListItems);
+  } catch {
+    return false;
+  }
+}

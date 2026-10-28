@@ -286,6 +286,7 @@ define([], function() {
     "SaveModeHint": "Bővítettnél a Mentés nyitva hagyja az űrlapot, a Mentés és bezárás ment és bezár. Új elemnél az első mentés után az űrlap a létrehozott elem szerkesztésével folytatódik.",
     "SaveAndClose": "Mentés és bezárás",
     "SavedNotice": "A módosítások mentve.",
+    "EditItem": "Szerkesztés",
     "TabProperties": "Tulajdonságok",
     "DesignForm": "Űrlap",
     "DesignFormSettings": "Űrlap beállításai",

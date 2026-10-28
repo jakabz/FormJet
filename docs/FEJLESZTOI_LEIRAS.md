@@ -122,7 +122,8 @@ A generált `config/serve.json` Form Customizer konfigurációját állítsd a t
 4. New módban a kezdőértékek: a konfig `defaultValue`-ja, ennek hiányában egyszerű típusoknál a séma `DefaultValue`-ja.
    Dátum mezőnél a `[today]` a mai napot jelenti (dátum + idő mezőnél a mostani időpontot, az időválasztó 5 perces lépésközére kerekítve), a SharePoint által ISO alakban tárolt rögzített dátum pedig a web kultúrája szerinti form-stringgé alakul (`resolveDateDefault`); a számított alapérték (pl. `=Today+7`) nincs kezelve.
    Személy mezőnél (`User`, `UserMulti`) a konfig `defaultValue`-ját a `UserValue.resolveUserDefault` alakítja form-stringgé: kész JSON tömb, vagy pontosvesszővel elválasztott lista, amelynek elemei `[me]` (a bejelentkezett felhasználó, a `pageContext.user`-ből, `i:0#.f|membership|<loginName>` kulccsal), e-mail-cím, bejelentkezési név vagy csoportnév. Az e-mail-cím és a név változatlanul kerül a `Key`-be, a SharePoint mentéskor oldja fel. Egyértékű mezőnél csak az első elem számít.
-5. Minden értékváltozáskor a `resolveForm` újraszámolja a feltételeket. Ez olcsó művelet; ne tegyél bele aszinkron hívást.
+5. Display módban a `PermissionService.canEditItem` (az elemen `EditListItems`) dönti el, látszik-e a fejlécben a **Szerkesztés** gomb. A gomb a `switchedToEdit` állapottal helyben Edit módra vált: a `mode` ettől `edit`, a `load` újrafut, és a form innentől pontosan úgy működik, mintha Edit módban nyílt volna meg (mentés után `formSaved()`, Mégsére `formClosed()`). Az URL nem változik. A gomb csak kényelmi funkció, nem jogosultsági határ: a mentést a SharePoint ellenőrzi.
+6. Minden értékváltozáskor a `resolveForm` újraszámolja a feltételeket. Ez olcsó művelet; ne tegyél bele aszinkron hívást.
 
 ### Mentés (`FormHost.save`)
 

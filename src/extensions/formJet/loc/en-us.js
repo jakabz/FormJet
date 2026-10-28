@@ -286,6 +286,7 @@ define([], function() {
     "SaveModeHint": "With Extended, Save keeps the form open, Save and close saves and closes. For a new item, after the first save the form continues with editing the created item.",
     "SaveAndClose": "Save and close",
     "SavedNotice": "Changes saved.",
+    "EditItem": "Edit",
     "TabProperties": "Properties",
     "DesignForm": "Form",
     "DesignFormSettings": "Form settings",

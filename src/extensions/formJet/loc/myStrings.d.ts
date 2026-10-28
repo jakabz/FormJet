@@ -290,6 +290,7 @@ declare interface IFormJetFormCustomizerStrings {
   SaveModeHint: string;
   SaveAndClose: string;
   SavedNotice: string;
+  EditItem: string;
   TabProperties: string;
   DesignForm: string;
   DesignFormSettings: string;

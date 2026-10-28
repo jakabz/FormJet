@@ -202,7 +202,10 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
   // Bővített mentésnél új elem első mentése után az űrlap a létrehozott elem szerkesztésével folytatódik,
   // hogy a következő mentés ne hozzon létre másolatot.
   const [savedItemId, setSavedItemId] = React.useState<number | undefined>();
-  const mode: FormMode = savedItemId !== undefined ? 'edit' : props.mode;
+  // Megtekintéskor a Szerkesztés gomb helyben szerkesztésre váltja az űrlapot (a jogosultságot előre ellenőrizzük).
+  const [switchedToEdit, setSwitchedToEdit] = React.useState<boolean>(false);
+  const [canEdit, setCanEdit] = React.useState<boolean>(false);
+  const mode: FormMode = savedItemId !== undefined || switchedToEdit ? 'edit' : props.mode;
   const itemId: number | undefined = savedItemId ?? props.itemId;
   // Volt-e már sikeres mentés ezen az űrlapon (bővített mentés): ilyenkor a bezárás is mentettként jelez vissza.
   const [savedOnce, setSavedOnce] = React.useState<boolean>(false);
@@ -405,6 +408,14 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
       .then(setIsAdmin)
       .catch(() => undefined);
   }, [load]);
+
+  React.useEffect(() => {
+    if (props.mode === 'display' && props.itemId !== undefined) {
+      PermissionService.canEditItem(listId, props.itemId)
+        .then(setCanEdit)
+        .catch(() => undefined);
+    }
+  }, [props.mode, listId, props.itemId]);
 
   const activeMode: FormMode = draft ? previewMode : mode;
   const activeConfig: IFormConfig | undefined = draft ?? loaded?.config;
@@ -909,6 +920,9 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
     <div className={classes.root} style={designing ? undefined : { maxWidth: resolved.style.maxWidth ?? DEFAULT_FORM_WIDTH }}>
       <div className={classes.header}>
         <h1 className={classes.title} style={{ color: resolved.style.accentColor }}>{resolved.title || props.listTitle}</h1>
+        {mode === 'display' && canEdit && !designing && (
+          <DefaultButton iconProps={{ iconName: 'Edit' }} text={strings.EditItem} onClick={() => setSwitchedToEdit(true)} />
+        )}
         {isAdmin && (
           <Toggle
             inlineLabel
