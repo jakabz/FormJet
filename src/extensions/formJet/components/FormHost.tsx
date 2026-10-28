@@ -186,6 +186,8 @@ interface ILoaded {
   modified?: string;
   /** A bejelentkezett felhasználó hozta-e létre a megnyitott elemet. */
   isAuthor: boolean;
+  /** Új elemnél a megnyitáskori kezdőértékek; ezek rejtett vagy csak olvasható mezőnél is mentődnek. */
+  initialValues: FormValues;
 }
 
 interface IMembershipState extends GroupService.IMembership {
@@ -371,9 +373,10 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
       ).catch(() => ({ memberOf: [], incomplete: true }));
       setMembership({ checked: groupIds, memberOf: groupResult.memberOf, incomplete: groupResult.incomplete });
 
-      setValues(
-        item ? original : getInitialValues(schema, config, props.cultureName, undefined, currentUser, groupResult.memberOf)
-      );
+      const initialValues: FormValues = item
+        ? {}
+        : getInitialValues(schema, config, props.cultureName, undefined, currentUser, groupResult.memberOf);
+      setValues(item ? original : initialValues);
       setLoaded({
         schema,
         contentTypeId: resolvedContentTypeId,
@@ -384,7 +387,8 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
         displayValues: item ? item.displayValues : {},
         modified: item?.modified,
         // Új elemnél nincs még létrehozó; ott a motor a kitöltőt tekinti annak.
-        isAuthor: !!item && item.authorId !== undefined && item.authorId === currentUser.id
+        isAuthor: !!item && item.authorId !== undefined && item.authorId === currentUser.id,
+        initialValues
       });
     } catch (e) {
       setLoadError(errorText(e, TEXT.loadFailed));
@@ -614,6 +618,17 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
         changed[name] = current;
       }
     });
+    //    Második egyeztetett kivétel: új elemnél a kezdőérték (a feltételes is) akkor is mentődik, ha a mező rejtett vagy
+    //    csak olvasható – új elemnél nincs szerveroldali érték, amit felülírna. Csak a SharePoint szerint írható mezőnél.
+    if (mode === 'new') {
+      loaded.schema.forEach((field) => {
+        const name: string = field.InternalName;
+        const initial: string | undefined = loaded.initialValues[name];
+        if (changed[name] === undefined && initial && (currentValues[name] ?? '') === initial && isButtonSettableField(field)) {
+          changed[name] = initial;
+        }
+      });
+    }
     const attachmentsEditable: boolean = editableFields.some((field) => field.schema.TypeAsString === ATTACHMENTS_FIELD);
     const attachmentsChanged: boolean =
       attachmentsEditable && (attachments.added.length > 0 || attachments.removed.length > 0);

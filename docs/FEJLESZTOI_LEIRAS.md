@@ -130,7 +130,7 @@ A generált `config/serve.json` Form Customizer konfigurációját állítsd a t
 **Mentés bezárás nélkül** (`saveMode: extended`): a `save(overwrite, valuesOverride, close)` `close = false` esetén sikeres mentés után a `finishSave` nem hívja a `formSaved()`-ot, hanem az elemet újratölti (`load(true)`: a form a helyén marad, a `Modified`, az értékek és a mellékletek frissülnek, így az ütközésvizsgálat is a friss állapothoz mér). Új elemnél az első mentés után a `savedItemId` állapot a létrehozott elemre vált, a `mode` ettől `edit` lesz, így a további mentések nem hoznak létre másolatot. Az ütközés utáni felülírás az eredeti mentés bezárási szándékát követi (`closeAfterSave`). Ha a formon már volt mentés, a Mégse `formSaved()`-ként zár. A gombok `save` lépése mindig bezár.
 
 1. Kliens oldali ellenőrzés: a látható, kötelező mezők nem lehetnek üresek.
-2. A `changed` objektumba csak a **látható, szerkeszthető és módosult** mezők kerülnek.
+2. A `changed` objektumba csak a **látható, szerkeszthető és módosult** mezők kerülnek. Két kivétel: a gomb „mező értékének beállítása” lépésével beállított mező (`buttonSetFields`), és New módban a megnyitáskori kezdőérték (`ILoaded.initialValues`, a feltételes kezdőértékkel együtt), amely rejtett vagy csak olvasható mezőnél is mentődik, ha az érték nem változott és a mező a SharePoint szerint írható (`isButtonSettableField`). New módban nincs szerveroldali érték, amit felülírna.
 3. Edit módban ütközésvizsgálat: ha a `Modified` megváltozott, a felhasználó felülírhat vagy újratölthet.
 4. `ItemService.save`: Edit módban `validateUpdateListItem`, New módban `addValidateUpdateItemUsingPath` a tartalomtípussal.
 5. Mezőnkénti hibák a mezők alá kerülnek; a nem látható mezők hibái a felső üzenetsávba.

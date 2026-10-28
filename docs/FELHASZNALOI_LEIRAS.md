@@ -320,7 +320,7 @@ Jelöld ki a mezőt (kattints rá az előnézetben, a fogaskerekére, vagy a fa 
 | Címke | A mező felirata. Üresen hagyva a SharePoint oszlop neve látszik. |
 | Leírás | A mező alatt megjelenő segítő szöveg. |
 | Helykitöltő szöveg | Az üres mezőben halványan megjelenő szöveg. |
-| Kezdőérték új elemnél | Új elemnél ezzel az értékkel indul a mező. Felülírja a SharePointban beállított alapértéket. |
+| Kezdőérték új elemnél | Új elemnél ezzel az értékkel indul a mező. Felülírja a SharePointban beállított alapértéket. Akkor is mentődik, ha a mező új elemnél rejtett vagy csak olvasható (például a Kérelmező `[me]` értékkel, csak olvashatóan). |
 | Látható ezekben a módokban | Melyik helyzetben jelenjen meg a mező. |
 | Csak olvasható ezekben a módokban | Melyik helyzetben ne lehessen szerkeszteni. |
 | Kötelező ezekben a módokban | Melyik helyzetben legyen kötelező. |
