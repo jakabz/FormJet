@@ -5,15 +5,18 @@
 import * as React from 'react';
 import { ActionButton, DefaultButton, IconButton, PrimaryButton } from '@fluentui/react/lib/Button';
 import { Dropdown, IDropdownOption } from '@fluentui/react/lib/Dropdown';
+import { Icon } from '@fluentui/react/lib/Icon';
 import { Label } from '@fluentui/react/lib/Label';
 import { MessageBar, MessageBarType } from '@fluentui/react/lib/MessageBar';
 import { Spinner, SpinnerSize } from '@fluentui/react/lib/Spinner';
 import { TextField } from '@fluentui/react/lib/TextField';
 import { mergeStyleSets } from '@fluentui/react/lib/Styling';
+// Csak a beállító webpart csomagjába kerül (az ikonválasztó a PnP vezérlőkészletből, egyeztetett kivétel).
+import { IconPicker } from '@pnp/spfx-controls-react/lib/IconPicker';
 
 import * as strings from 'FormJetFormCustomizerStrings';
 
-import { isButtonSettableField } from '../engine/ButtonAction';
+import { isButtonSettableField, isIconName } from '../engine/ButtonAction';
 import { AUTHOR_VARIABLE, groupVariable } from '../engine/ConditionContext';
 import { format } from '../engine/EngineStrings';
 import { newCommandId } from '../engine/ListCommands';
@@ -38,6 +41,8 @@ import { ConditionEditor } from './ConditionEditor';
 const classes = mergeStyleSets({
   root: { display: 'flex', flexDirection: 'column', gap: 12 },
   hint: { fontSize: 12, color: '#605e5c' },
+  iconRow: { display: 'flex', alignItems: 'center', gap: 8 },
+  iconPreview: { fontSize: 20, width: 24, textAlign: 'center', color: '#323130' },
   step: { display: 'flex', flexDirection: 'column', gap: 8, padding: 10, border: '1px solid #c8c6c4', borderRadius: 2 },
   stepHeader: { display: 'flex', alignItems: 'center', gap: 4 },
   stepTitle: { flex: 1, fontWeight: 600 },
@@ -476,6 +481,21 @@ export const ListCommandsEditor: React.FC<IListCommandsEditorProps> = ({ listId,
           }
         >
           <TextField label={strings.CommandTitle} value={command.title} onChange={(_, v) => updateCommand(index, { title: v ?? '' })} />
+          <div>
+            <Label>{strings.CommandIcon}</Label>
+            <div className={classes.iconRow}>
+              {command.icon ? <Icon iconName={command.icon} className={classes.iconPreview} /> : <span className={classes.hint}>{strings.CommandIconNone}</span>}
+              <IconPicker
+                buttonLabel={strings.CommandIconSelect}
+                currentIcon={command.icon}
+                renderOption="dialog"
+                onSave={(icon) => updateCommand(index, { icon: isIconName(icon) ? icon : undefined })}
+              />
+              {command.icon && (
+                <IconButton iconProps={{ iconName: 'Cancel' }} title={strings.CommandIconRemove} onClick={() => updateCommand(index, { icon: undefined })} />
+              )}
+            </div>
+          </div>
           <ConditionEditor
             key={`${command.id}:visible`}
             schema={conditionFields}

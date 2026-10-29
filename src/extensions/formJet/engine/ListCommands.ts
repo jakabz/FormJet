@@ -13,6 +13,7 @@ import {
   LIST_COMMANDS_SCHEMA_VERSION,
   ListCommandAction
 } from '../models/IListCommands';
+import { isIconName } from './ButtonAction';
 import { AUTHOR_VARIABLE, groupVariable, parseGroupVariable } from './ConditionContext';
 import { evaluate, validateCondition } from './ConditionEngine';
 import { engineStrings, format } from './EngineStrings';
@@ -186,6 +187,9 @@ function parseCommand(input: unknown, index: number): IListCommand {
       throw new Error(error);
     }
     command.visibleWhen = input.visibleWhen as Condition;
+  }
+  if (isIconName(input.icon)) {
+    command.icon = input.icon;
   }
   if (typeof input.confirm === 'string' && input.confirm !== '') {
     command.confirm = input.confirm;

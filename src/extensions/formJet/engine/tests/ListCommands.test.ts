@@ -49,6 +49,13 @@ describe('ListCommands – a lista helyi menüjének menüpontjai', () => {
     expect(command.actions.map(isActionComplete)).toEqual([true, true, true, false]);
   });
 
+  it('parseListCommands: az ikon csak érvényes Fluent ikonnév lehet, egyébként elmarad', () => {
+    const result = parseListCommands(
+      raw({ commands: [{ title: 'a', icon: 'CheckMark' }, { title: 'b', icon: 'url(x)' }, { title: 'c', icon: '' }, { title: 'd' }] })
+    );
+    expect(result.config?.commands.map((command) => command.icon)).toEqual(['CheckMark', undefined, undefined, undefined]);
+  });
+
   it('parseListCommands: hibás szerkezet, ismeretlen lépés, hibás lista vagy mezőnév hibát ad; legfeljebb 10 menüpont', () => {
     expect(parseListCommands('{nope').error).toBeDefined();
     expect(parseListCommands(raw({ schemaVersion: 2 })).error).toBeDefined();

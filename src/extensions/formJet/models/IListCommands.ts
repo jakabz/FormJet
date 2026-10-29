@@ -41,6 +41,8 @@ export interface IListCommand {
   id: string;
   /** A menüpont felirata. */
   title: string;
+  /** A menüpont ikonja (Fluent UI ikonnév, csak betű és szám); hiányában ikon nélküli. */
+  icon?: string;
   /**
    * Mikor látszik a menüpont a kijelölt elemnél. A feltétel a kijelölt elem mentett értékeire, a csoporttagságra
    * (`[Group:<azonosító>]`) és az `[IsAuthor]`-ra épülhet. Hiányában mindig látszik.

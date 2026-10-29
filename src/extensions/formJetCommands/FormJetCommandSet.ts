@@ -1,6 +1,6 @@
 // FormJet menüpontok a lista helyi menüjében (ListView Command Set).
 // A menüpontokat listánként a FormConfigurations lista „listcommands” bejegyzése adja (a beállító webpartban szerkeszthető);
-// a manifest 10 helyet (COMMAND_1 … COMMAND_10) ad, ezek kapnak futás közben feliratot és láthatóságot.
+// a manifest 10 helyet (COMMAND_1 … COMMAND_10) ad, ezek kapnak futás közben feliratot, ikont és láthatóságot.
 // Egy kijelölt elemnél látszanak, a feltételük szerint. Futtatás: megerősítés → lépések sorban → visszajelzés → lista frissítése.
 
 import * as React from 'react';
@@ -24,6 +24,7 @@ import { IListCommand, IListCommandsConfig, LIST_COMMAND_SLOTS } from '../formJe
 import * as GroupService from '../formJet/services/GroupService';
 import * as ListCommandService from '../formJet/services/ListCommandService';
 import { getSP } from '../formJet/services/sp';
+import { getCommandIconUrl } from './CommandIcon';
 
 // A Command Set nem használ ClientSideComponentProperties értéket.
 export interface IFormJetCommandSetProperties {}
@@ -42,6 +43,8 @@ export default class FormJetCommandSet extends BaseListViewCommandSet<IFormJetCo
   private _memberGroupIds: number[] = [];
   /** A kijelölt elemek értékei a feltételekhez, azonosító szerint (betöltés alatt `loading`). */
   private _items: Record<number, IItemState | 'loading' | 'failed'> = {};
+  /** Az elkészült ikonképek ikonnév szerint (`undefined`: nem készíthető el); ami nincs benne, az még töltődik. */
+  private _icons: Map<string, string | undefined> = new Map();
 
   public async onInit(): Promise<void> {
     getSP(this.context);
@@ -145,6 +148,7 @@ export default class FormJetCommandSet extends BaseListViewCommandSet<IFormJetCo
         continue;
       }
       slot.title = command.title;
+      slot.iconImageUrl = this._iconUrl(command.icon);
       if (!command.visibleWhen) {
         slot.visible = true;
         continue;
@@ -162,6 +166,24 @@ export default class FormJetCommandSet extends BaseListViewCommandSet<IFormJetCo
     if (needsItem && itemId !== undefined) {
       this._loadItem(itemId);
     }
+  }
+
+  /** Az ikon képe; az első kéréskor elindítja az elkészítését, és utána frissíti a menüpontokat. */
+  private _iconUrl(icon: string | undefined): string | undefined {
+    if (!icon) {
+      return undefined;
+    }
+    if (!this._icons.has(icon)) {
+      getCommandIconUrl(icon)
+        .then((url) => {
+          if (!this._icons.has(icon)) {
+            this._icons.set(icon, url);
+            this._update();
+          }
+        })
+        .catch(() => undefined);
+    }
+    return this._icons.get(icon);
   }
 
   private _loadItem(itemId: number): void {

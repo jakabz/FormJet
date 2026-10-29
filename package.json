@@ -24,6 +24,7 @@
     "@microsoft/sp-office-ui-fabric-core": "1.23.2",
     "@microsoft/sp-webpart-base": "1.23.2",
     "@pnp/sp": "^4.21.0",
+    "@pnp/spfx-controls-react": "3.25.0",
     "@tiptap/core": "3.31.4",
     "@tiptap/extension-image": "3.31.4",
     "@tiptap/extension-table": "3.31.4",

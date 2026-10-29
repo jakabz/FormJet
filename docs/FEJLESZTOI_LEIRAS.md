@@ -720,7 +720,7 @@ A csomag harmadik összetevője egy ListView Command Set (`src/extensions/formJe
 
   ```json
   { "schemaVersion": 1, "listId": "…", "commands": [ {
-      "id": "cmd:1", "title": "Áttekintésre küldés",
+      "id": "cmd:1", "title": "Áttekintésre küldés", "icon": "Send",
       "visibleWhen": { "field": "Status", "op": "eq", "value": "Új" },
       "confirm": "Biztosan áttekintésre küldöd?", "successMessage": "Elküldve.",
       "actions": [
@@ -736,7 +736,8 @@ A csomag harmadik összetevője egy ListView Command Set (`src/extensions/formJe
   - `updateItems`: a cél lista minden olyan eleme, amelynek `matchField` mezője egyezik a kijelölt elem `sourceField` értékével (CAML, `RelatedList.buildRelatedViewXml`; a párosítható típusok ugyanazok, mint a kapcsolódó elemeknél; legfeljebb `MAX_ROW_LIMIT` elem).
   - `createItem`: új elem a cél lista gyökerébe, az alapértelmezett tartalomtípussal (`addValidateUpdateItemUsingPath`).
   - A cél lista sémája az alapértelmezett tartalomtípus szerint töltődik; a nem létező vagy félkész értékadás kimarad.
-- **Menüpont-helyek:** a manifest 10 parancsot ad (`COMMAND_1` … `COMMAND_10`, `LIST_COMMAND_SLOTS`); a `FormJetCommandSet` a konfiguráció n-edik menüpontját az n-edik helyre teszi (felirat, láthatóság), a többi hely rejtett. Futás közben új parancs nem vehető fel.
+- **Menüpont-helyek:** a manifest 10 parancsot ad (`COMMAND_1` … `COMMAND_10`, `LIST_COMMAND_SLOTS`); a `FormJetCommandSet` a konfiguráció n-edik menüpontját az n-edik helyre teszi (felirat, ikon, láthatóság), a többi hely rejtett. Futás közben új parancs nem vehető fel.
+- **Ikon** (`icon`, opcionális, sémaverzió-emelés nélkül): Fluent UI ikonnév (`ButtonAction.isIconName`, csak betű és szám; érvénytelen név elmarad). A szerkesztőben a PnP `IconPicker` választja ki (`@pnp/spfx-controls-react/lib/IconPicker`, csak a beállító webpart csomagjában; a szövegei a `ControlStrings` lokalizációs erőforrásból jönnek, `config/config.json`). A Command Set csak képcímet fogad (`Command.iconImageUrl`), ezért a `formJetCommands/CommandIcon.ts` a lapon regisztrált ikonbetűkészlet karakterét vászonra rajzolja (32 × 32 px, PNG data URL, ikonnevenként egyszer); amíg elkészül, vagy ha az ikon nem ismert, a menüpont ikon nélkül látszik.
 - **Láthatóság:** csak pontosan egy kijelölt elemnél. A `visibleWhen` a kijelölt elem mentett értékeit, a csoporttagságot (`[Group:…]`, előre lekérdezve) és az `[IsAuthor]`-t látja (`ListCommands.isCommandVisible`); feltételes menüpontnál az elem értékei a kijelöléskor töltődnek be, addig a menüpont rejtett.
 - **Futtatás:** `CommandDialog` (megerősítés → várakozás → visszajelzés a darabszámokkal, vagy hibaüzenet). Bezárás után a lap újratöltődik (a lista nézet frissítésére nincs nyilvános SPFx-felület).
 - **Bekötés a listára:** listaszintű egyéni művelet (`Location: ClientSideExtension.ListViewCommandSet.ContextMenu`, `ClientSideComponentId` = `ListCommandService.COMMAND_SET_COMPONENT_ID`, egyeznie kell a manifest `id`-jával). A beállító webpart menüpont-szerkesztője mentéskor köti be (van menüpont) vagy törli (nincs menüpont); csak a saját egyéni műveletét kezeli (10. kulcsdöntés).

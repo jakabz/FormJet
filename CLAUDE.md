@@ -43,7 +43,8 @@ Az SPFx verziótól függ, hogy gulp (≤ 1.21) vagy Heft (1.22+) a build eszkö
 src/webparts/formJetSetup/   Beállító webpart (külön bundle): a FormJet be- és kikapcsolása a webhely listáin, a listák menüpontjai
   FormJetSetupWebPart.ts     belépési pont → components/SetupPanel
 src/extensions/formJetCommands/  Lista helyi menü (ListView Command Set, külön bundle): FormJet menüpontok a kijelölt elemen
-  FormJetCommandSet.ts       belépési pont: 10 menüpont-hely (manifest), felirat és láthatóság a lista konfigurációjából, futtatás
+  FormJetCommandSet.ts       belépési pont: 10 menüpont-hely (manifest), felirat, ikon és láthatóság a lista konfigurációjából, futtatás
+  CommandIcon.ts             a menüpont Fluent ikonja képként (vászonra rajzolva, PNG data URL), mert a Command Set csak képcímet fogad
 src/extensions/formJet/
   FormJetFormCustomizer.ts   SPFx belépési pont: mód, lista, elem → FormHost; formSaved()/formClosed()
   models/                    IFormConfig (konfigurációs séma), IFieldSchema (mezőséma, FormValues, FieldErrors)
@@ -179,7 +180,7 @@ A típusok forrása: `models/IFormConfig.ts`. Példa: `samples/config-example.js
 - React függvénykomponensek és hookok, osztálykomponenst ne írj. Fluent UI v8 (`@fluentui/react`), ne keverd v9-cel.
 - PnPjs v4: a lekérdezés hívható (`list.items.getById(id).select(...)()`), az `items.add` közvetlenül az adatot adja vissza.
 - Dátumválasztó: Fluent UI v8 `DatePicker` és `TimePicker` (`components/DateTimeField.tsx`); ne vezess be külön dátumkönyvtárat. A naptár nevei a felület nyelvét követik (`engine/DateFormat.ts`, `Intl`), új nyelvhez nem kell külön import.
-- Személyválasztó: Fluent UI v8 `NormalPeoplePicker` + `PeopleService` (`components/PeopleField.tsx`). A `@pnp/spfx-controls-react` csomagot ne vezesd be egyeztetés nélkül: nagy, és saját Fluent verziót hoz.
+- Személyválasztó: Fluent UI v8 `NormalPeoplePicker` + `PeopleService` (`components/PeopleField.tsx`). A `@pnp/spfx-controls-react` csomagot ne vezesd be egyeztetés nélkül: nagy, és saját Fluent verziót hoz. Egyeztetett kivétel: az `IconPicker` (`@pnp/spfx-controls-react/lib/IconPicker`, mélyimport) a menüpont-szerkesztőben (`ListCommandsEditor`), amely csak a beállító webpart csomagjába kerül; a form customizer és a Command Set csomagjába nem kerülhet.
 - Húzd-és-ejtsd: `@dnd-kit/core` + `@dnd-kit/sortable`, csak a `DesignCanvas.tsx`-ben, amelyet a `FormHost` `React.lazy`-vel tölt be (a dnd-kit ne kerüljön a fő csomagba). A `DesignerPanel` sem importálhatja: a behúzható mezőlistát a `DesignCanvas` adja át neki kész elemként (`unplacedPalette`). Az áthelyezés logikája tiszta függvényekben van (`engine/LayoutMoves.ts`), tesztekkel.
 - Rich text szerkesztő: TipTap v3 (`components/RichTextField.tsx`), csak a rich text Note mezőknél; a sima szöveges Note `TextField` marad. A `FieldRenderer` `React.lazy`-vel tölti be, a TipTap ne kerüljön a fő csomagba. A HTML-t mindig a TipTap sémája értelmezze, `dangerouslySetInnerHTML`-t ne használj. A `@tiptap/*` csomagok verziója legyen azonos.
 - React 17 (`ReactDOM.render`). React 18-ra váltás csak az SPFx verzióval együtt.

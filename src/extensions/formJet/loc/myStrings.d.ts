@@ -266,6 +266,10 @@ declare interface IFormJetFormCustomizerStrings {
   CommandMoveDown: string;
   CommandDelete: string;
   CommandTitle: string;
+  CommandIcon: string;
+  CommandIconSelect: string;
+  CommandIconRemove: string;
+  CommandIconNone: string;
   CommandConfirm: string;
   CommandSuccess: string;
   CommandSteps: string;

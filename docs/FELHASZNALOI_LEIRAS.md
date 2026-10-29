@@ -203,6 +203,7 @@ A lista elemeinek helyi menüjébe (az elem melletti … menü, illetve jobb kat
 1. A **Listák** táblázatban a lista sorában kattints a **Menüpontok…** gombra. Oldalt megnyílik a lista menüpontjainak szerkesztője.
 2. A **Menüpont hozzáadása** gombbal vegyél fel menüpontot (listánként legfeljebb 10), és add meg:
    - **Felirat:** ez látszik a menüben.
+   - **Ikon:** az **Ikon kiválasztása** gombbal kereshetsz és választhatsz ikont, amely a menüben a felirat előtt jelenik meg. Az **×** gombbal eltávolítható; ikon nélkül a menüpont csak a feliratot mutatja.
    - **Látható, ha:** feltétel a kijelölt elem értékeire (például Status = Új), a csoporttagságra vagy arra, hogy a felhasználó az elem létrehozója-e. Üresen mindig látszik.
    - **Megerősítő kérdés** és **Üzenet sikeres futás után:** üresen általános szöveg jelenik meg.
    - **Lépések:** sorban, egymás után futnak le (lásd lent).
