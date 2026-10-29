@@ -12,7 +12,6 @@ import { isButtonElement } from '../engine/TextElement';
 import { FieldErrors, FormValues } from '../models/IFieldSchema';
 import { Density, IBoxStyle, IFieldStyle, IFormStyle, ISectionStyle } from '../models/IFormConfig';
 import { FieldRenderer } from './FieldRenderer';
-import { RelatedItems } from './RelatedItems';
 
 const NARROW_SCREEN: string = '@media (max-width: 640px)';
 
@@ -39,7 +38,6 @@ const classes = mergeStyleSets({
   },
   sectionHeaderButton: { cursor: 'pointer' },
   sectionDescription: { fontSize: 12, color: '#605e5c', margin: '-6px 0 12px' },
-  related: { marginTop: 8 },
   hidden: { opacity: 0.45 },
   hiddenTag: { fontSize: 11, fontWeight: 400, color: '#605e5c' },
   clickable: { cursor: 'pointer', borderRadius: 2, outlineOffset: 4, selectors: { ':hover': { outline: '1px dashed #c8c6c4' } } },
@@ -240,11 +238,6 @@ export const FormRenderer: React.FC<IFormRendererProps> = (props) => {
           {header}
           {!collapsed && section.description && <div className={classes.sectionDescription}>{section.description}</div>}
           {grid}
-          {!collapsed && section.related && (
-            <div className={classes.related}>
-              <RelatedItems config={section.related} designing={showHidden} />
-            </div>
-          )}
         </>
       )
     };

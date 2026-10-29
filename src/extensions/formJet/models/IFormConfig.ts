@@ -1,6 +1,8 @@
 // A FormConfigurations listában tárolt konfiguráció sémája.
 // Séma módosításakor: schemaVersion emelés + migráció a parseConfig-ban (engine/LayoutResolver.ts).
 
+import type { IFieldAssignment } from './IListCommands';
+
 export type FormMode = 'new' | 'edit' | 'display';
 
 export const FORM_MODES: FormMode[] = ['new', 'edit', 'display'];
@@ -8,7 +10,9 @@ export const FORM_MODES: FormMode[] = ['new', 'edit', 'display'];
 // 1 → 2: szövegelemek (`texts`). A szerkezet csak bővült, az 1-es konfiguráció változtatás nélkül érvényes.
 // 2 → 3: változók (`variables`). Szintén csak bővülés, a 2-es konfiguráció átalakítás nélkül érvényes.
 // 3 → 4: testreszabható alsó gombsor (`footer`). Csak bővülés; hiányában a `saveMode` szerinti beépített gombok látszanak.
-export const CONFIG_SCHEMA_VERSION: 4 = 4;
+// 4 → 5: a kapcsolódó elemek önálló, a szakaszokban elhelyezhető elemek lettek (`texts`, `kind: related`), feladatkezeléssel.
+//        A szakasz régi `related` beállítását a parseConfig alakítja át (`RelatedList.migrateSectionRelated`).
+export const CONFIG_SCHEMA_VERSION: 5 = 5;
 
 export type ConditionOperator = 'eq' | 'ne' | 'gt' | 'lt' | 'contains' | 'in' | 'empty' | 'notEmpty';
 
@@ -113,7 +117,8 @@ export interface IModeStyles<T> {
 
 /**
  * Kapcsolódó elemek: egy másik (azonos webhelyen lévő) lista azon elemei, amelyek `matchField` mezője
- * megegyezik a szülő elem `sourceField` értékével. Csak olvasható felsorolás.
+ * megegyezik a szülő elem `sourceField` értékével. A felsorolás csak olvasható; feladatkezelésnél (`task`) a
+ * hozzárendelt feladat felugró ablakban elvégezhető.
  */
 export interface IRelatedListConfig {
   /** A kapcsolódó lista GUID-ja. Üres, amíg a tervezőben nincs kiválasztva. */
@@ -132,6 +137,56 @@ export interface IRelatedListConfig {
   rowLimit?: number;
   /** „Új elem” gomb, amely a kapcsolódó lista új elem formját nyitja meg. */
   showNewButton?: boolean;
+  /** Feladatkezelés: a hozzárendelt elemek (feladatok) felugró ablakban elvégezhetők. */
+  task?: IRelatedTaskConfig;
+}
+
+/**
+ * A kapcsolódó elemek feladatként kezelése. Látni mindenki látja a felsorolást; megnyitni csak az tudja, akihez (vagy
+ * akinek a SharePoint csoportjához) a feladatot rendelték. Ez kényelmi szűrés, nem jogosultsági határ.
+ */
+export interface IRelatedTaskConfig {
+  /** A kapcsolódó lista személy mezője (User / UserMulti), amely a hozzárendelést tárolja. Üres, amíg nincs kiválasztva. */
+  assignedField: string;
+  /** A feladat mezőire (InternalName) vonatkozó feltétel: ha nem teljesül, a feladat nem nyitható meg (például elvégezve). */
+  openWhen?: Condition;
+  /** A felugró ablak címe: a feladat ezen mezőjének értéke. Hiányában a `Title`. */
+  titleField?: string;
+  /** A felugró ablakban a cím alatt megjelenő leírás mezője. */
+  descriptionField?: string;
+  /** Többsoros szöveg mező: a megjegyzés ebbe kerül (felülírja). Hiányában nincs megjegyzés. */
+  commentField?: string;
+  /** További mezők a felugró ablakban, sorrendben. */
+  fields?: ITaskFieldConfig[];
+  /** A gombok szabályai: az első teljesülő szabály gombjai jelennek meg. */
+  buttonRules?: ITaskButtonRule[];
+}
+
+export interface ITaskFieldConfig {
+  /** A feladat mezőjének InternalName-je. */
+  field: string;
+  /** Kitölthető a felugró ablakban (különben csak megjelenik). */
+  editable?: boolean;
+}
+
+/**
+ * A felugró ablak gombjai egy feltételhez. A feltétel az eredeti elem mentett mezőit (InternalName), a környezeti
+ * változókat és a feladat mezőit (`[Task:<InternalName>]`) látja. Feltétel nélkül a szabály mindig teljesül.
+ */
+export interface ITaskButtonRule {
+  when?: Condition;
+  buttons: ITaskButton[];
+}
+
+export interface ITaskButton {
+  label: string;
+  primary?: boolean;
+  /** A megjegyzés kitöltése kötelező ennél a gombnál. */
+  commentRequired?: boolean;
+  /** A feladat mezőinek beállítása (a kezdőérték formátumában; `{Mező}` az eredeti elem mentett értéke). */
+  taskValues?: IFieldAssignment[];
+  /** Az eredeti (az űrlapon megnyitott) elem mezőinek beállítása; csak ezek mentődnek, az űrlap más módosítása nem. */
+  itemValues?: IFieldAssignment[];
 }
 
 export interface IFieldPlacement {
@@ -159,8 +214,6 @@ export interface ISectionConfig {
   /** Ha teljesül, a szakasz minden mezője csak olvasható (a gombjai letiltottak); a mezők saját beállítása mellett. */
   readOnlyWhen?: Condition;
   style?: IModeStyles<ISectionStyle>;
-  /** A mezők alatt egy másik lista kapcsolódó elemei jelennek meg. New módban nem látszik. */
-  related?: IRelatedListConfig;
   fields: IFieldPlacement[];
 }
 
@@ -209,7 +262,8 @@ export interface IFieldConfig {
 }
 
 /**
- * Szövegelem: a formon megjelenő, formázás nélküli szöveg, amely mögött nincs SharePoint mező.
+ * Mező nélküli elem: felirat (a formon megjelenő, formázás nélküli szöveg), gomb vagy kapcsolódó elemek felsorolása,
+ * amely mögött nincs SharePoint mező.
  * A szekciókban mezőként helyezhető el (egyszer); a láthatósága és a stílusa a `fields` azonos kulcsú
  * bejegyzésében van.
  */
@@ -233,6 +287,8 @@ export interface ITextElement {
    * A mentés és a bezárás lezárja a sort: utánuk nem fut le több lépés.
    */
   actions?: ButtonAction[];
+  /** Kapcsolódó elemeknél: a lista, a párosítás, az oszlopok és a feladatkezelés. */
+  related?: IRelatedListConfig;
 }
 
 /** A gomb egy lépése: mező értékének beállítása, mentés vagy bezárás. */
@@ -252,11 +308,11 @@ export type ButtonActionType = ButtonAction['type'];
 
 export const BUTTON_ACTION_TYPES: ButtonActionType[] = ['setValue', 'save', 'close'];
 
-/** A mező nélküli elemek fajtái: felirat (sima szöveg) és gomb. */
-export type LayoutElementKind = 'text' | 'button';
+/** A mező nélküli elemek fajtái: felirat (sima szöveg), gomb és kapcsolódó elemek. */
+export type LayoutElementKind = 'text' | 'button' | 'related';
 
 export interface IFormConfig {
-  schemaVersion: 4;
+  schemaVersion: 5;
   listId: string;
   contentTypeId: string;
   title?: string;

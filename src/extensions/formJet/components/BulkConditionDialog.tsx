@@ -13,7 +13,7 @@ import * as strings from 'FormJetFormCustomizerStrings';
 
 import { applyConditionToFields, BulkConditionMode, BulkConditionProperty } from '../engine/BulkConditions';
 import { format } from '../engine/EngineStrings';
-import { isButtonElement, isTextElement } from '../engine/TextElement';
+import { isLayoutElement, isTextElement } from '../engine/TextElement';
 import { IFieldSchema } from '../models/IFieldSchema';
 import { Condition, IFormConfig } from '../models/IFormConfig';
 import { ConditionEditor } from './ConditionEditor';
@@ -31,7 +31,7 @@ const classes = mergeStyleSets({
 /** Érvényes-e a beállítás a mezőre: felirat nem lehet csak olvasható, és a mező nélküli elem nem lehet kötelező. */
 function supports(field: IFieldSchema, property: BulkConditionProperty): boolean {
   if (property === 'requiredWhen') {
-    return !isTextElement(field) && !isButtonElement(field);
+    return !isLayoutElement(field);
   }
   if (property === 'readOnlyWhen') {
     return !isTextElement(field);

@@ -68,6 +68,12 @@ export function collectGroupIds(config: IFormConfig): number[] {
     collectFromRules(section.conditional);
   });
   Object.keys(config.variables ?? {}).forEach((name) => collectFromCondition(config.variables?.[name].when, found));
+  // A kapcsolódó elemek feladatainak feltételei (megnyithatóság, a felugró ablak gombjai).
+  Object.keys(config.texts ?? {}).forEach((id) => {
+    const task = config.texts?.[id].related?.task;
+    collectFromCondition(task?.openWhen, found);
+    (task?.buttonRules ?? []).forEach((rule) => collectFromCondition(rule.when, found));
+  });
   Object.keys(config.fields).forEach((name) => {
     collectFromCondition(config.fields[name].visibleWhen, found);
     collectFromCondition(config.fields[name].readOnlyWhen, found);

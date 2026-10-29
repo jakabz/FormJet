@@ -32,6 +32,7 @@ import {
   createDefaultFooter,
   isButtonElement,
   isLayoutElement,
+  isRelatedElement,
   isTextElement,
   removeFooter,
   removeTextElement
@@ -60,7 +61,7 @@ import { BulkConditionDialog } from './BulkConditionDialog';
 import { ButtonActionsEditor } from './ButtonActionsEditor';
 import { ConditionalValueField } from './ConditionalValueEditor';
 import { ConditionEditor } from './ConditionEditor';
-import { RelatedListEditor } from './RelatedListEditor';
+import { RelatedElementEditor } from './RelatedElementEditor';
 import { StylePanel, StyleTarget } from './StylePanel';
 import { VariablesPanel } from './VariablesPanel';
 
@@ -559,11 +560,6 @@ export const DesignerPanel: React.FC<IDesignerPanelProps> = (props) => {
         onChange={(readOnlyWhen) => updateSection(index, { readOnlyWhen })}
       />
       <div className={classes.hint}>{strings.SectionDisabledHint}</div>
-      <RelatedListEditor
-        value={section.related}
-        schema={realFields}
-        onChange={(related) => updateSection(index, { related })}
-      />
 
       <Label>{strings.Fields}</Label>
       {section.fields.length === 0 && <div className={classes.hint}>{strings.SectionEmpty}</div>}
@@ -634,6 +630,15 @@ export const DesignerPanel: React.FC<IDesignerPanelProps> = (props) => {
         onClick={() => {
           setNewTextName('');
           setElementDialog({ sectionId: section.id, kind: 'button' });
+        }}
+      />
+      <DefaultButton
+        className={classes.addElement}
+        iconProps={{ iconName: 'TaskManager' }}
+        text={strings.RelatedElementAdd}
+        onClick={() => {
+          setNewTextName('');
+          setElementDialog({ sectionId: section.id, kind: 'related' });
         }}
       />
     </div>
@@ -801,6 +806,65 @@ export const DesignerPanel: React.FC<IDesignerPanelProps> = (props) => {
             />
           </>
         )}
+        {selectedField && fieldSchema && isRelatedElement(fieldSchema) && (
+          <>
+            <div className={classes.hint}>{strings.RelatedElementHint}</div>
+            <TextField
+              label={strings.RelatedElementName}
+              value={draft.texts?.[selectedField]?.name ?? ''}
+              onChange={(_, v) => updateText(selectedField, { name: v ?? '' })}
+            />
+            <RelatedElementEditor
+              key={selectedField}
+              value={draft.texts?.[selectedField]?.related ?? { listId: '', matchField: '', sourceField: 'ID', columns: [] }}
+              schema={realFields}
+              conditionFields={conditionFields}
+              itemFields={actionFields}
+              onChange={(related) => updateText(selectedField, { related })}
+              general={
+                <>
+                  <ModeCheckboxes
+                    label={strings.VisibleInModes}
+                    value={config.visibleIn}
+                    missingMeansAll
+                    onChange={(visibleIn) => updateField(selectedField, { visibleIn })}
+                  />
+                  <ConditionEditor
+                    key={`${selectedField}:VisibleWhen`}
+                    schema={conditionFields}
+                    label={strings.VisibleWhen}
+                    value={config.visibleWhen}
+                    onChange={(visibleWhen) => updateField(selectedField, { visibleWhen })}
+                  />
+                  {/* Letiltva a felsorolás látszik, de a feladatok nem nyithatók meg. */}
+                  <ModeCheckboxes
+                    label={strings.DisabledInModes}
+                    value={config.readOnlyIn}
+                    missingMeansAll={false}
+                    onChange={(readOnlyIn) => updateField(selectedField, { readOnlyIn })}
+                  />
+                  <ConditionEditor
+                    key={`${selectedField}:ReadOnlyWhen`}
+                    schema={conditionFields}
+                    label={strings.DisabledWhen}
+                    value={config.readOnlyWhen}
+                    onChange={(readOnlyWhen) => updateField(selectedField, { readOnlyWhen })}
+                  />
+                  <div className={classes.hint}>{strings.RelatedDisabledHint}</div>
+                  <DefaultButton
+                    iconProps={{ iconName: 'Delete' }}
+                    text={strings.RelatedElementDelete}
+                    onClick={() => {
+                      props.onChange(removeTextElement(draft, selectedField));
+                      const parentId: string | undefined = findFieldSection(draft, selectedField);
+                      select(parentId ? { kind: 'section', id: parentId } : { kind: 'form' });
+                    }}
+                  />
+                </>
+              }
+            />
+          </>
+        )}
         {selectedField && fieldSchema && !isLayoutElement(fieldSchema) && (
           <>
             <div className={classes.hint}>
@@ -938,7 +1002,18 @@ export const DesignerPanel: React.FC<IDesignerPanelProps> = (props) => {
     props.onChange({ ...parsed.config, listId: draft.listId, contentTypeId: draft.contentTypeId });
   };
 
-  const dialogTitle: string = elementDialog?.kind === 'button' ? strings.ButtonElementAdd : strings.TextElementAdd;
+  const dialogTitle: string =
+    elementDialog?.kind === 'button'
+      ? strings.ButtonElementAdd
+      : elementDialog?.kind === 'related'
+        ? strings.RelatedElementAdd
+        : strings.TextElementAdd;
+  const dialogLabel: string =
+    elementDialog?.kind === 'button'
+      ? strings.ButtonElementNewName
+      : elementDialog?.kind === 'related'
+        ? strings.RelatedElementNewName
+        : strings.TextElementNewName;
 
   // Morzsamenü: Űrlap › szakasz › mező; egy szinttel feljebb lépni is innen lehet.
   const fieldSection: ISectionConfig | undefined =
@@ -1025,7 +1100,7 @@ export const DesignerPanel: React.FC<IDesignerPanelProps> = (props) => {
         onDismiss={() => setElementDialog(undefined)}
       >
         <TextField
-          label={elementDialog?.kind === 'button' ? strings.ButtonElementNewName : strings.TextElementNewName}
+          label={dialogLabel}
           value={newTextName}
           autoFocus
           onChange={(_, v) => setNewTextName(v ?? '')}

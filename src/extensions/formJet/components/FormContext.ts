@@ -2,8 +2,10 @@
 
 import * as React from 'react';
 
+import { ICurrentUser } from '../engine/UserValue';
 import { FormValues } from '../models/IFieldSchema';
 import { ButtonAction } from '../models/IFormConfig';
+import { IFieldAssignment } from '../models/IListCommands';
 import { IAttachmentFile } from '../services/AttachmentService';
 
 /** A mellékletek állapota a formon; a változások a form mentésekor hajtódnak végre. */
@@ -38,6 +40,18 @@ export interface IFormContext {
   runButtonActions: (actions: ButtonAction[]) => Promise<void>;
   /** Mentés folyamatban: a gombok ilyenkor tiltottak. */
   busy: boolean;
+  /** A bejelentkezett felhasználó (a feladatok `[me]` értékéhez). */
+  currentUser?: ICurrentUser;
+  /**
+   * A kapcsolódó feladatok gombszabályaihoz: az elem mentett értékei és a környezeti változók (a form módja,
+   * csoporttagság, létrehozó, változók).
+   */
+  itemConditionValues: FormValues;
+  /**
+   * A feladat gombjával beállított mezők mentése az elemen (csak ezek; az űrlap nem mentett módosításai nem). Utána az
+   * űrlap a mentett értékeket újratölti, a nem mentett módosítások megmaradnak.
+   */
+  applyItemValues: (values: IFieldAssignment[]) => Promise<void>;
 }
 
 export const FormContext: React.Context<IFormContext> = React.createContext<IFormContext>({
@@ -49,5 +63,7 @@ export const FormContext: React.Context<IFormContext> = React.createContext<IFor
   pendingImages: {},
   setPendingImage: () => undefined,
   runButtonActions: () => Promise.resolve(),
-  busy: false
+  busy: false,
+  itemConditionValues: {},
+  applyItemValues: () => Promise.resolve()
 });

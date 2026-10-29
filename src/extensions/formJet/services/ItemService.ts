@@ -296,7 +296,7 @@ export async function loadEditableValues(
   listId: string,
   itemId: number,
   schema: IFieldSchema[]
-): Promise<{ values: FormValues; authorId?: number; contentTypeId?: string }> {
+): Promise<{ values: FormValues; displayValues: FormValues; modified: string; authorId?: number; contentTypeId?: string }> {
   const item: IItemData = await load(listId, itemId);
   const names = (types: string[]): string[] =>
     schema.filter((field) => types.indexOf(field.TypeAsString) !== -1).map((field) => field.InternalName);
@@ -315,5 +315,11 @@ export async function loadEditableValues(
     taxonomyFields.length > 0 ? loadTaxonomyValues(listId, itemId, taxonomyFields) : Promise.resolve({}),
     names(['Thumbnail']).length > 0 ? loadImageValues(listId, itemId, names(['Thumbnail'])) : Promise.resolve({})
   ]);
-  return { values: Object.assign({}, item.values, ...parts), authorId: item.authorId, contentTypeId: item.contentTypeId };
+  return {
+    values: Object.assign({}, item.values, ...parts),
+    displayValues: item.displayValues,
+    modified: item.modified,
+    authorId: item.authorId,
+    contentTypeId: item.contentTypeId
+  };
 }

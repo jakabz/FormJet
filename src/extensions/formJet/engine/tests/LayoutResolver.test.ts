@@ -11,6 +11,7 @@ import {
   resolveForm,
   unplacedFields
 } from '../LayoutResolver';
+import { isLayoutElement } from '../TextElement';
 import { configJson, field, getField, loadSampleConfig, readSampleConfig, sampleSchema } from './helpers';
 
 const LIST_ID: string = '11111111-2222-3333-4444-555555555555';
@@ -56,10 +57,11 @@ describe('LayoutResolver – példa konfiguráció (samples/config-example.json)
     expect(getField(form, 'Approver').readOnly).toBe(true);
   });
 
-  it('Display módban minden csak olvasható, és semmi nem kötelező', () => {
+  it('Display módban minden mező csak olvasható, és semmi nem kötelező', () => {
     const form = resolveForm(schema, config, 'display', { Amount: '750000' });
     flattenFields(form).forEach((item) => {
-      expect(item.readOnly).toBe(true);
+      // A mező nélküli elemek (gomb, kapcsolódó elemek) megtekintéskor is működhetnek; kötelezők sosem.
+      expect(item.readOnly).toBe(!isLayoutElement(item.schema));
       expect(item.required).toBe(false);
     });
     expect(getField(form, 'Justification').visible).toBe(true);
@@ -88,13 +90,12 @@ describe('LayoutResolver – példa konfiguráció (samples/config-example.json)
     expect(newForm.mode).toBe('new');
   });
 
-  it('a kapcsolódó elemek szekció New módban rejtett, egyébként látszik', () => {
+  it('a kapcsolódó elemek önálló elemként a szakaszban; New módban is látszik (a helyét jelzi)', () => {
     const newForm = resolveForm(schema, config, 'new', {});
     const editForm = resolveForm(schema, config, 'edit', {});
-    expect(newForm.sections[2].visible).toBe(false);
-    expect(newForm.sections[2].related).toBeUndefined();
-    expect(editForm.sections[2].visible).toBe(true);
-    expect(editForm.sections[2].related?.matchField).toBe('RequestNumber');
+    expect(newForm.sections[2].visible).toBe(true);
+    expect(newForm.sections[2].fields.map((item) => item.name)).toEqual(['related:1']);
+    expect(editForm.sections[2].fields[0].related?.matchField).toBe('RequestNumber');
   });
 });
 
@@ -179,7 +180,7 @@ describe('LayoutResolver – parseConfig', () => {
   it('hibás JSON, nem objektum gyökér és ismeretlen sémaverzió hibát ad', () => {
     expect(parseConfig('{nope').error).toBeDefined();
     expect(parseConfig('[]').error).toBeDefined();
-    expect(parseConfig(configJson({ schemaVersion: 5 })).error).toBeDefined();
+    expect(parseConfig(configJson({ schemaVersion: 6 })).error).toBeDefined();
     expect(parseConfig(configJson({ sections: 'x' })).error).toBeDefined();
     expect(parseConfig(configJson({ fields: [] })).error).toBeDefined();
   });

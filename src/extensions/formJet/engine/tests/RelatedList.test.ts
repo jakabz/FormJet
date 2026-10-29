@@ -1,7 +1,19 @@
-import { IFormConfig, IRelatedListConfig } from '../../models/IFormConfig';
+import { IFormConfig, IRelatedListConfig, IRelatedTaskConfig } from '../../models/IFormConfig';
+import { collectGroupIds } from '../ConditionContext';
 import { parseConfig, resolveForm } from '../LayoutResolver';
-import { buildRelatedViewXml, getRowLimit, isRelatedComplete, normalizeMatchValue } from '../RelatedList';
-import { configJson, sampleSchema } from './helpers';
+import {
+  buildAssignedViewXml,
+  buildRelatedViewXml,
+  getRowLimit,
+  isRelatedComplete,
+  isTaskEnabled,
+  isTaskOpenable,
+  normalizeMatchValue,
+  pickTaskButtons,
+  taskConditionValues
+} from '../RelatedList';
+import { addTextElement, isRelatedElement } from '../TextElement';
+import { configJson, getField, sampleSchema } from './helpers';
 
 const LIST_ID: string = '11111111-1111-1111-1111-111111111111';
 const related: IRelatedListConfig = {
@@ -27,6 +39,8 @@ describe('RelatedList', () => {
       expect(xml).toContain("<FieldRef Name='ID'/><FieldRef Name='Title'/>");
       // Eggyel több sort kérünk, hogy kiderüljön, van-e még.
       expect(xml).toContain('<RowLimit>21</RowLimit>');
+      // A mappákban lévő elemek is (a mappák nélkül).
+      expect(xml.indexOf("<View Scope='Recursive'><Query>")).toBe(0);
     });
 
     it('szám: a form-string számmá alakul; alapértelmezett rendezés és sorkorlát', () => {
@@ -70,9 +84,9 @@ describe('RelatedList', () => {
     expect(getRowLimit({ ...related, rowLimit: undefined })).toBe(30);
   });
 
-  describe('ellenőrzés a parseConfig-ban', () => {
+  describe('ellenőrzés és átalakítás a parseConfig-ban', () => {
     it('hibás beállítás elutasítva, a hiba útvonallal jön', () => {
-      expect(parseRelatedSection({ listId: 'Szamlak', matchField: 'A', columns: ['B'] }).error).toContain('sections[0].related.listId');
+      expect(parseRelatedSection({ listId: 'Szamlak', matchField: 'A', columns: ['B'] }).error).toContain('related:1.related.listId');
       expect(parseRelatedSection({ listId: '', matchField: "A'/><Or>", columns: [] }).error).toContain('matchField');
       expect(parseRelatedSection({ listId: '', matchField: 'A', columns: ['B C'] }).error).toContain('columns[0]');
       expect(parseRelatedSection({ listId: '', matchField: 'A', columns: ['B'], rowLimit: 5000 }).error).toContain('rowLimit');
@@ -89,7 +103,7 @@ describe('RelatedList', () => {
         showNewButton: true,
         extra: 1
       }).config as IFormConfig;
-      expect(config.sections[0].related).toEqual({
+      expect(config.texts?.['related:1'].related).toEqual({
         listId: 'aaaaaaaa-1111-1111-1111-111111111111',
         matchField: 'A',
         sourceField: 'Title',
@@ -98,17 +112,172 @@ describe('RelatedList', () => {
       });
     });
 
-    it('félkész beállítás menthető; mezők nélkül a szekció rejtett, mezőkkel látszik', () => {
+    it('régi konfiguráció: a szakasz beállítása önálló elem lesz a szakasz végén, teljes szélességben', () => {
+      const result = parseConfig(
+        configJson({
+          schemaVersion: 4,
+          sections: [
+            { id: 'a', title: 'Számlák', columns: 2, fields: [{ field: 'Title' }], related },
+            { id: 'b', columns: 1, fields: [], related: { listId: '', matchField: '', columns: [] } }
+          ],
+          // A már foglalt azonosítót nem írja felül.
+          texts: { 'related:1': { kind: 'related', name: 'Meglévő' } }
+        })
+      );
+      const config = result.config as IFormConfig;
+      expect(config.schemaVersion).toBe(5);
+      expect(config.sections[0].fields).toEqual([{ field: 'Title' }, { field: 'related:2', colSpan: 2 }]);
+      expect(config.sections[1].fields).toEqual([{ field: 'related:3' }]);
+      expect(config.texts?.['related:2']).toEqual({ kind: 'related', name: 'Számlák', related });
+      expect(config.texts?.['related:3'].name).toBe('b');
+      expect(config.texts?.['related:1'].name).toBe('Meglévő');
+      expect((config.sections[0] as unknown as Record<string, unknown>).related).toBeUndefined();
+    });
+
+    it('az 5-ös konfigurációban a szakasz related beállítása nem alakul át (ismeretlen kulcsként kimarad)', () => {
+      const config = parseConfig(
+        configJson({ schemaVersion: 5, sections: [{ id: 's', columns: 1, fields: [], related }] })
+      ).config as IFormConfig;
+      expect(config.texts).toBeUndefined();
+      expect(config.sections[0].fields).toEqual([]);
+    });
+
+    it('félkész beállítás menthető; az elem a szakaszban mezőként szerepel, New módban is', () => {
       const schema = sampleSchema();
-      const onlyRelated = parseRelatedSection({ listId: '', matchField: '', columns: [] }).config as IFormConfig;
-      expect(onlyRelated.sections[0].related?.sourceField).toBe('ID');
-      expect(resolveForm(schema, onlyRelated, 'edit', {}).sections[0].visible).toBe(false);
-      const withFields = parseRelatedSection({ listId: '', matchField: '', columns: [] }, [{ field: 'Title' }]).config as IFormConfig;
-      expect(resolveForm(schema, withFields, 'edit', {}).sections[0].visible).toBe(true);
+      const config = parseRelatedSection({ listId: '', matchField: '', columns: [] }).config as IFormConfig;
+      expect(config.texts?.['related:1'].related?.sourceField).toBe('ID');
+      const edit = resolveForm(schema, config, 'edit', {});
+      expect(edit.sections[0].visible).toBe(true);
+      expect(isRelatedElement(getField(edit, 'related:1').schema)).toBe(true);
+      // Új elemnél is látszik (a helye jelzi, hogy ott jelennek meg majd a kapcsolódó elemek).
+      expect(getField(resolveForm(schema, config, 'new', {}), 'related:1').visible).toBe(true);
     });
 
     it('kapcsolódó elemek nélküli szekció változatlan', () => {
-      expect((parseRelatedSection(undefined, [{ field: 'Title' }]).config as IFormConfig).sections[0].related).toBeUndefined();
+      expect((parseRelatedSection(undefined, [{ field: 'Title' }]).config as IFormConfig).texts).toBeUndefined();
     });
+
+    it('a kapcsolódó elem azonosítója és fajtája összetartozik', () => {
+      const raw = (texts: unknown): string => configJson({ schemaVersion: 5, texts });
+      expect(parseConfig(raw({ 'related:1': { name: 'x', related } })).error).toContain('related:1');
+      expect(parseConfig(raw({ 'text:1': { kind: 'related', name: 'x', related } })).error).toContain('text:1');
+      expect(parseConfig(raw({ 'related:1': { kind: 'related', name: 'x' } })).config?.texts?.['related:1'].related?.listId).toBe('');
+    });
+  });
+
+  describe('feladatkezelés', () => {
+    const task: IRelatedTaskConfig = {
+      assignedField: 'AssignedTo',
+      openWhen: { field: 'Status', op: 'ne', value: 'Elvégezve' },
+      commentField: 'Comment',
+      fields: [{ field: 'DueDate' }, { field: 'Result', editable: true }],
+      buttonRules: [
+        {
+          when: { field: 'ApprovalStatus', op: 'eq', value: 'A' },
+          buttons: [
+            { label: 'B', primary: true, taskValues: [{ field: 'Status', value: 'Elvégezve' }], itemValues: [{ field: 'ApprovalStatus', value: 'D' }] },
+            { label: 'C', commentRequired: true }
+          ]
+        },
+        { when: { field: '[Task:Kind]', op: 'eq', value: 'Ellenőrzés' }, buttons: [{ label: 'E' }, { label: 'F' }] },
+        { buttons: [{ label: 'Kész' }, { label: '' }] }
+      ]
+    };
+
+    it('a beállítás ellenőrzése: félkész is menthető, a hibás mezőnév és feltétel elutasítva', () => {
+      const parse = (value: unknown): ReturnType<typeof parseConfig> =>
+        parseConfig(configJson({ schemaVersion: 5, texts: { 'related:1': { kind: 'related', name: 'x', related: { ...related, task: value } } } }));
+      expect(parse(task).config?.texts?.['related:1'].related?.task).toEqual(task);
+      expect(parse({}).config?.texts?.['related:1'].related?.task).toEqual({ assignedField: '' });
+      expect(parse({ assignedField: 'A B' }).error).toContain('task.assignedField');
+      expect(parse({ assignedField: 'A', openWhen: { field: 'X', op: 'between' } }).error).toBeDefined();
+      expect(parse({ assignedField: 'A', buttonRules: [{ buttons: [{ label: 'x', taskValues: [{ field: "x'" }] }] }] }).error).toContain(
+        'buttonRules[0].buttons[0].taskValues[0].field'
+      );
+    });
+
+    it('isTaskEnabled: csak kiválasztott személy mezővel', () => {
+      expect(isTaskEnabled({ ...related, task })).toBe(true);
+      expect(isTaskEnabled({ ...related, task: { assignedField: '' } })).toBe(false);
+      expect(isTaskEnabled(related)).toBe(false);
+    });
+
+    it('a hozzárendelt elemek lekérdezése: párosítás ÉS (a felhasználó VAGY a csoportja)', () => {
+      const single = buildAssignedViewXml({ ...related, task }, 'Text', 'IG-1', 'User') as string;
+      expect(single).toContain(
+        "<Where><And><Eq><FieldRef Name='RequestNumber'/><Value Type='Text'>IG-1</Value></Eq>" +
+          "<Or><Eq><FieldRef Name='AssignedTo' LookupId='TRUE'/><Value Type='Integer'><UserID/></Value></Eq>" +
+          "<Membership Type='CurrentUserGroups'><FieldRef Name='AssignedTo'/></Membership></Or></And></Where>"
+      );
+      expect(single).toContain("<ViewFields><FieldRef Name='ID'/></ViewFields>");
+      expect(buildAssignedViewXml({ ...related, task }, 'Text', 'IG-1', 'UserMulti')).toContain('<Includes>');
+      // Nem személy mező, nincs feladatkezelés, vagy nincs párosító érték: nincs lekérdezés.
+      expect(buildAssignedViewXml({ ...related, task }, 'Text', 'IG-1', 'Text')).toBeUndefined();
+      expect(buildAssignedViewXml(related, 'Text', 'IG-1', 'User')).toBeUndefined();
+      expect(buildAssignedViewXml({ ...related, task }, 'Text', '', 'User')).toBeUndefined();
+    });
+
+    it('megnyithatóság: a feladat mezői szerint; feltétel nélkül mindig', () => {
+      expect(isTaskOpenable(task, { Status: 'Folyamatban' })).toBe(true);
+      expect(isTaskOpenable(task, { Status: 'Elvégezve' })).toBe(false);
+      expect(isTaskOpenable({ assignedField: 'AssignedTo' }, { Status: 'Elvégezve' })).toBe(true);
+    });
+
+    it('gombok: az első teljesülő szabály gombjai, az elem és a feladat mezői szerint', () => {
+      const pick = (item: Record<string, string>, taskValues: Record<string, string>): string[] =>
+        pickTaskButtons(task, taskConditionValues(item, taskValues)).map((button) => button.label);
+      expect(pick({ ApprovalStatus: 'A' }, { Kind: 'Ellenőrzés' })).toEqual(['B', 'C']);
+      expect(pick({ ApprovalStatus: 'D' }, { Kind: 'Ellenőrzés' })).toEqual(['E', 'F']);
+      // A feltétel nélküli szabály az alapértelmezés; a felirat nélküli gomb kimarad.
+      expect(pick({ ApprovalStatus: 'D' }, { Kind: 'Másik' })).toEqual(['Kész']);
+      expect(pickTaskButtons({ assignedField: 'X' }, {})).toEqual([]);
+    });
+
+    it('a feladatok feltételeiben hivatkozott csoportok tagságát is lekérdezzük', () => {
+      const config = parseConfig(
+        configJson({
+          schemaVersion: 5,
+          texts: {
+            'related:1': {
+              kind: 'related',
+              name: 'x',
+              related: { ...related, task: { assignedField: 'A', buttonRules: [{ when: { field: '[Group:7]', op: 'eq', value: true }, buttons: [] }] } }
+            }
+          }
+        })
+      ).config as IFormConfig;
+      expect(collectGroupIds(config)).toEqual([7]);
+    });
+  });
+
+  it('új kapcsolódó elem: üres beállítással, a szakasz végére, teljes szélességben', () => {
+    const base = parseConfig(configJson({ sections: [{ id: 's', columns: 3, fields: [{ field: 'Title' }] }] })).config as IFormConfig;
+    const added = addTextElement(base, 'Feladatok', 's', 'related');
+    expect(added.id).toBe('related:1');
+    expect(added.config.texts?.['related:1']).toEqual({
+      kind: 'related',
+      name: 'Feladatok',
+      related: { listId: '', matchField: '', sourceField: 'ID', columns: [] }
+    });
+    expect(added.config.sections[0].fields).toEqual([{ field: 'Title' }, { field: 'related:1', colSpan: 3 }]);
+    // Visszaolvasva ugyanaz (a JSON fül és a mentés is ezt látja).
+    expect(parseConfig(JSON.stringify(added.config)).config?.texts).toEqual(added.config.texts);
+  });
+
+  it('letiltva a feladatok nem nyithatók meg (a feloldott elem csak olvasható), megtekintéskor is működik', () => {
+    const config = parseConfig(
+      configJson({
+        schemaVersion: 5,
+        sections: [{ id: 's', columns: 1, fields: [{ field: 'related:1' }] }],
+        texts: { 'related:1': { kind: 'related', name: 'x', related } },
+        fields: { 'related:1': { readOnlyIn: ['edit'] } }
+      })
+    ).config as IFormConfig;
+    const schema = sampleSchema();
+    expect(getField(resolveForm(schema, config, 'edit', {}), 'related:1').readOnly).toBe(true);
+    const display = getField(resolveForm(schema, config, 'display', {}), 'related:1');
+    expect(display.readOnly).toBe(false);
+    expect(display.required).toBe(false);
+    expect(display.related).toEqual(related);
   });
 });

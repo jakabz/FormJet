@@ -20,7 +20,7 @@ import { IResolvedField } from '../engine/LayoutResolver';
 import { formatLocationValue } from '../engine/LocationValue';
 import { getCurrencyAffix, ICurrencyAffix } from '../engine/NumberFormat';
 import { backgroundCss } from '../engine/FormStyle';
-import { isButtonElement, isTextElement } from '../engine/TextElement';
+import { isButtonElement, isRelatedElement, isTextElement } from '../engine/TextElement';
 import { isSafeUrl } from '../engine/UrlValue';
 import { formatUserValue } from '../engine/UserValue';
 import { IFieldSchema } from '../models/IFieldSchema';
@@ -32,6 +32,7 @@ import { ImageField } from './ImageField';
 import { LocationField } from './LocationField';
 import { LookupField } from './LookupField';
 import { PeopleField } from './PeopleField';
+import { RelatedItems } from './RelatedItems';
 import { TaxonomyField } from './TaxonomyField';
 import { UrlField } from './UrlField';
 
@@ -205,6 +206,11 @@ export const FieldRenderer: React.FC<IFieldRendererProps> = (props) => {
   // Szövegelem: nincs mögötte mező, csak a tervezőben megadott szöveg jelenik meg (címke nélkül).
   if (isTextElement(schema)) {
     return <div className={classes.textElement}>{field.text ?? ''}</div>;
+  }
+
+  // Kapcsolódó elemek: egy másik lista párosított elemei (feladatkezelésnél a hozzárendelt feladatok megnyithatók).
+  if (isRelatedElement(schema)) {
+    return <RelatedItems field={field} designing={!!props.designing} />;
   }
 
   // Gomb: a megnevezése a felirata. A stílus magára a gombra vonatkozik.

@@ -1,4 +1,4 @@
-// A tervező szekciókártyájának „Kapcsolódó elemek” része.
+// A kapcsolódó elemek tulajdonságlapjának Lista füle: a lista, a párosítás, az oszlopok és a rendezés.
 // Csak a draft konfigurációt módosítja az onChange-en keresztül; a listákat és mezőket a szolgáltatásból olvassa.
 
 import * as React from 'react';
@@ -31,10 +31,10 @@ const classes = mergeStyleSets({
 const NON_COLUMN_TYPES: string[] = ['Note'];
 
 export interface IRelatedListEditorProps {
-  value: IRelatedListConfig | undefined;
+  value: IRelatedListConfig;
   /** Ennek a listának a mezői: ezekből választható a párosítás forrása. */
   schema: IFieldSchema[];
-  onChange: (value: IRelatedListConfig | undefined) => void;
+  onChange: (value: IRelatedListConfig) => void;
 }
 
 function fieldOption(name: string, title: string): IDropdownOption {
@@ -43,18 +43,14 @@ function fieldOption(name: string, title: string): IDropdownOption {
 
 export const RelatedListEditor: React.FC<IRelatedListEditorProps> = (props) => {
   const { value } = props;
-  const enabled: boolean = value !== undefined;
-  const listId: string = value?.listId ?? '';
+  const listId: string = value.listId;
 
   const [lists, setLists] = React.useState<RelatedListService.IListInfo[]>([]);
   const [fields, setFields] = React.useState<RelatedListService.IListFieldInfo[]>([]);
   const [error, setError] = React.useState<string | undefined>();
-  const [limitText, setLimitText] = React.useState<string>(value?.rowLimit !== undefined ? String(value.rowLimit) : '');
+  const [limitText, setLimitText] = React.useState<string>(value.rowLimit !== undefined ? String(value.rowLimit) : '');
 
   React.useEffect(() => {
-    if (!enabled) {
-      return;
-    }
     let cancelled: boolean = false;
     RelatedListService.getLists()
       .then((result) => {
@@ -70,7 +66,7 @@ export const RelatedListEditor: React.FC<IRelatedListEditorProps> = (props) => {
     return () => {
       cancelled = true;
     };
-  }, [enabled]);
+  }, []);
 
   React.useEffect(() => {
     if (listId === '') {
@@ -97,23 +93,8 @@ export const RelatedListEditor: React.FC<IRelatedListEditorProps> = (props) => {
   }, [listId]);
 
   const update = (patch: Partial<IRelatedListConfig>): void => {
-    if (value) {
-      props.onChange({ ...value, ...patch });
-    }
+    props.onChange({ ...value, ...patch });
   };
-
-  const toggle = (
-    <Checkbox
-      label={strings.RelatedEnable}
-      checked={enabled}
-      onChange={(_, checked) =>
-        props.onChange(checked ? { listId: '', matchField: '', sourceField: ID_FIELD, columns: [] } : undefined)
-      }
-    />
-  );
-  if (!value) {
-    return toggle;
-  }
 
   const listOptions: IDropdownOption[] = lists.map((list) => ({ key: list.id, text: list.title }));
   const matchOptions: IDropdownOption[] = fields
@@ -149,15 +130,14 @@ export const RelatedListEditor: React.FC<IRelatedListEditorProps> = (props) => {
 
   return (
     <div className={classes.root}>
-      {toggle}
       {error && <MessageBar messageBarType={MessageBarType.warning}>{error}</MessageBar>}
       <Dropdown
         label={strings.RelatedList}
         options={listOptions}
         selectedKey={listId || null}
-        // Másik lista választásakor a mezőkre vonatkozó beállítások érvényüket vesztik.
+        // Másik lista választásakor a mezőkre vonatkozó beállítások (a feladatkezelés is) érvényüket vesztik.
         onChange={(_, option) =>
-          option && update({ listId: String(option.key), matchField: '', columns: [], sortField: undefined })
+          option && update({ listId: String(option.key), matchField: '', columns: [], sortField: undefined, task: undefined })
         }
       />
       <Dropdown

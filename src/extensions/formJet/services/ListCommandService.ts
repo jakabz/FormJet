@@ -162,7 +162,8 @@ async function findMatchingItems(listId: string, matchField: string, value: stri
     throw new RelatedListService.RelatedMatchFieldError(matchField);
   }
   const viewXml: string | undefined = buildRelatedViewXml(
-    { listId, matchField, sourceField: ID_FIELD, columns: [], rowLimit: MAX_ROW_LIMIT },
+    // Az oszloplista nem lehet üres (különben nincs lekérdezés); csak az azonosító kell.
+    { listId, matchField, sourceField: ID_FIELD, columns: [ID_FIELD], rowLimit: MAX_ROW_LIMIT },
     match.type,
     value
   );

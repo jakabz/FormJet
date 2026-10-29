@@ -27,9 +27,10 @@ describe('TextElement – szövegelemek', () => {
   ];
 
   it('az 1-es és 2-es sémaverziójú konfiguráció érvényes marad, és az aktuális verzióra kerül', () => {
-    expect(load({ schemaVersion: 1 }).schemaVersion).toBe(4);
-    expect(load({ schemaVersion: 2 }).schemaVersion).toBe(4);
-    expect(load({ schemaVersion: 3 }).schemaVersion).toBe(4);
+    expect(load({ schemaVersion: 1 }).schemaVersion).toBe(5);
+    expect(load({ schemaVersion: 2 }).schemaVersion).toBe(5);
+    expect(load({ schemaVersion: 3 }).schemaVersion).toBe(5);
+    expect(load({ schemaVersion: 4 }).schemaVersion).toBe(5);
   });
 
   it('parseConfig: a szövegelemek megmaradnak; hibás azonosító vagy hiányzó megnevezés hibát ad', () => {

@@ -1,7 +1,11 @@
 // Kapcsolódó elemek: a webhely listái, egy lista mezői, és a párosított elemek lekérdezése.
+// Feladatkezelésnél a felhasználóhoz rendelt elemek, egy feladat betöltése és mentése (validateUpdateListItem).
 
-import { buildRelatedViewXml, getRowLimit, ID_FIELD } from '../engine/RelatedList';
+import { buildAssignedViewXml, buildRelatedViewXml, getRowLimit, ID_FIELD, isTaskEnabled } from '../engine/RelatedList';
+import { FormValues, IFieldSchema } from '../models/IFieldSchema';
 import { IRelatedListConfig } from '../models/IFormConfig';
+import * as ItemService from './ItemService';
+import * as SchemaService from './SchemaService';
 import { getSP } from './sp';
 
 export interface IListInfo {
@@ -30,6 +34,25 @@ export interface IRelatedData {
   hasMore: boolean;
   displayFormUrl: string;
   newFormUrl: string;
+  /** Feladatkezelésnél a bejelentkezett felhasználóhoz (vagy a csoportjához) rendelt elemek azonosítói. */
+  assignedIds: number[];
+}
+
+/** A feladatot a megnyitása óta valaki más módosította. */
+export class TaskConflictError extends Error {
+  public constructor() {
+    super('conflict');
+    Object.setPrototypeOf(this, TaskConflictError.prototype);
+  }
+}
+
+export interface ITaskData {
+  /** Form-string értékek (ezeket írjuk vissza). */
+  values: FormValues;
+  /** Megjelenítésre szánt szöveg. */
+  displayValues: FormValues;
+  /** Az ütközésvizsgálat alapja. */
+  modified: string;
 }
 
 /** A beállításban szereplő párosító mező nem létezik, vagy a típusa szerint nem lehet párosítani. */
@@ -144,10 +167,24 @@ export async function getRelatedItems(config: IRelatedListConfig, sourceValue: s
   );
   if (!viewXml) {
     // Nincs párosító érték: nincs mit lekérdezni.
-    return { columns, rows: [], hasMore: false, ...forms };
+    return { columns, rows: [], hasMore: false, assignedIds: [], ...forms };
   }
 
-  const data = (await list.renderListDataAsStream({ ViewXml: viewXml })) as { Row?: Array<Record<string, unknown>> };
+  // Feladatkezelésnél külön lekérdezés adja a felhasználóhoz rendelt elemeket (a tagságot a SharePoint dönti el).
+  const assignedXml: string | undefined = isTaskEnabled(config)
+    ? buildAssignedViewXml(config, matchField.type, sourceValue, byName[config.task.assignedField]?.type ?? '')
+    : undefined;
+  const [data, assigned] = await Promise.all([
+    getSP().web.lists.getById(config.listId).renderListDataAsStream({ ViewXml: viewXml }) as Promise<{
+      Row?: Array<Record<string, unknown>>;
+    }>,
+    assignedXml
+      ? (getSP().web.lists.getById(config.listId).renderListDataAsStream({ ViewXml: assignedXml }) as Promise<{
+          Row?: Array<Record<string, unknown>>;
+        }>)
+      : Promise.resolve({ Row: [] as Array<Record<string, unknown>> })
+  ]);
+  const assignedIds: number[] = (assigned.Row ?? []).map((row) => parseInt(toText(row[ID_FIELD]), 10)).filter((id) => !isNaN(id));
   const limit: number = getRowLimit(config);
   const rawRows: Array<Record<string, unknown>> = data.Row ?? [];
   const rows: IRelatedRow[] = rawRows.slice(0, limit).map((row) => {
@@ -157,5 +194,44 @@ export async function getRelatedItems(config: IRelatedListConfig, sourceValue: s
     });
     return { id: parseInt(toText(row[ID_FIELD]), 10), values };
   });
-  return { columns, rows, hasMore: rawRows.length > limit, ...forms };
+  return { columns, rows, hasMore: rawRows.length > limit, assignedIds, ...forms };
+}
+
+const schemaCache: Record<string, Promise<IFieldSchema[]> | undefined> = {};
+
+/** Egy lista sémája az alapértelmezett tartalomtípus szerint (a feladatok mezőihez). A munkamenet idejére megjegyezzük. */
+export function getListSchema(listId: string): Promise<IFieldSchema[]> {
+  const cached: Promise<IFieldSchema[]> | undefined = schemaCache[listId];
+  if (cached) {
+    return cached;
+  }
+  const request: Promise<IFieldSchema[]> = SchemaService.resolveContentTypeId(listId, undefined).then((contentTypeId) =>
+    SchemaService.getFields(listId, contentTypeId)
+  );
+  schemaCache[listId] = request;
+  request.catch(() => {
+    delete schemaCache[listId];
+  });
+  return request;
+}
+
+/** Egy feladat értékei (form-string és megjelenítendő szöveg) a felugró ablakhoz. */
+export async function loadTask(listId: string, taskId: number, schema: IFieldSchema[]): Promise<ITaskData> {
+  const loaded = await ItemService.loadEditableValues(listId, taskId, schema);
+  return { values: loaded.values, displayValues: loaded.displayValues, modified: loaded.modified };
+}
+
+/**
+ * A feladat mentése form-stringekkel (validateUpdateListItem). Ha a feladatot a megnyitása óta valaki módosította,
+ * `TaskConflictError`; mezőhiba esetén a hibaüzenetekkel dob.
+ */
+export async function saveTask(listId: string, taskId: number, changed: FormValues, expectedModified: string): Promise<void> {
+  if ((await ItemService.getModified(listId, taskId)) !== expectedModified) {
+    throw new TaskConflictError();
+  }
+  const result = await ItemService.save({ listId, itemId: taskId }, changed);
+  const names: string[] = Object.keys(result.errors);
+  if (names.length > 0) {
+    throw new Error(names.map((name) => `${name}: ${result.errors[name]}`).join('; '));
+  }
 }

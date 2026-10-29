@@ -13,9 +13,11 @@ import * as strings from 'FormJetFormCustomizerStrings';
 
 import { ATTACHMENTS_FIELD } from '../engine/Attachments';
 import { effectiveActions, isButtonSettableField } from '../engine/ButtonAction';
-import { collectGroupIds } from '../engine/ConditionContext';
+import { collectGroupIds, contextValues } from '../engine/ConditionContext';
 import { isEmptyValue } from '../engine/ConditionEngine';
 import { format } from '../engine/EngineStrings';
+import { resolveTemplate } from '../engine/ListCommands';
+import { ID_FIELD } from '../engine/RelatedList';
 import { isLayoutElement, withTextElements } from '../engine/TextElement';
 import { ICurrentUser } from '../engine/UserValue';
 import {
@@ -29,6 +31,7 @@ import {
 } from '../engine/LayoutResolver';
 import { FieldErrors, FormValues, IFieldSchema } from '../models/IFieldSchema';
 import { ButtonAction, FormMode, IFormConfig } from '../models/IFormConfig';
+import { IFieldAssignment } from '../models/IListCommands';
 import * as AttachmentService from '../services/AttachmentService';
 import * as ConfigService from '../services/ConfigService';
 import * as GroupService from '../services/GroupService';
@@ -260,6 +263,12 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
   // Az űrlap élettartamáig megmaradnak, így ütközés utáni felülírásnál vagy javítás utáni újramentésnél is érvényesek.
   const buttonSetFields = React.useRef<Set<string>>(new Set<string>());
   const runActions = React.useCallback((actions: ButtonAction[]): Promise<void> => runActionsRef.current(actions), []);
+  // A kapcsolódó feladat gombjával beállított elemmezők mentése; ugyanígy mindig a legfrissebb állapotot látja.
+  const applyItemValuesRef = React.useRef<(assignments: IFieldAssignment[]) => Promise<void>>(() => Promise.resolve());
+  const applyItemValues = React.useCallback(
+    (assignments: IFieldAssignment[]): Promise<void> => applyItemValuesRef.current(assignments),
+    []
+  );
   // A felhasználó SharePoint csoporttagsága a feltételekben hivatkozott (már lekérdezett) csoportokra.
   const [membership, setMembership] = React.useState<IMembershipState>({ checked: [], memberOf: [], incomplete: false });
   const [siteGroups, setSiteGroups] = React.useState<GroupService.ISiteGroup[] | undefined>();
@@ -475,6 +484,19 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
     return result;
   }, [loaded, values]);
 
+  // A feladatok gombszabályai az elem mentett értékeit és a környezeti változókat látják.
+  const itemConditionValues: FormValues = React.useMemo(
+    () =>
+      loaded && activeConfig
+        ? {
+            ...loaded.original,
+            [ID_FIELD]: itemId !== undefined ? String(itemId) : '',
+            ...contextValues(activeConfig, activeMode, membership.memberOf, loaded.isAuthor, loaded.original, loaded.original)
+          }
+        : {},
+    [loaded, activeConfig, activeMode, membership, itemId]
+  );
+
   const formContext: IFormContext = React.useMemo(
     () => ({
       cultureName: props.cultureName,
@@ -487,9 +509,27 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
       pendingImages,
       setPendingImage,
       runButtonActions: runActions,
-      busy: saving
+      busy: saving,
+      currentUser,
+      itemConditionValues,
+      applyItemValues
     }),
-    [props.cultureName, props.uiCultureName, props.listUrl, mode, itemId, loaded, attachments, pendingImages, setPendingImage, runActions, saving]
+    [
+      props.cultureName,
+      props.uiCultureName,
+      props.listUrl,
+      mode,
+      itemId,
+      loaded,
+      attachments,
+      pendingImages,
+      setPendingImage,
+      runActions,
+      saving,
+      currentUser,
+      itemConditionValues,
+      applyItemValues
+    ]
   );
 
   const onFieldChange = React.useCallback((name: string, value: string): void => {
@@ -772,6 +812,54 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
     }
   };
   runActionsRef.current = runButtonActions;
+
+  /**
+   * A kapcsolódó feladat gombjával beállított mezők mentése az elemen. Csak ezek a mezők mentődnek (az űrlap nem mentett
+   * módosításai nem), és csak a SharePoint szerint írható mező állítható. Utána a mentett értékek újratöltődnek, így a
+   * form későbbi mentése nem jelez ütközést; a nem mentett módosítások megmaradnak (a most beállított mezőké kivételével).
+   */
+  applyItemValuesRef.current = async (assignments: IFieldAssignment[]): Promise<void> => {
+    if (!loaded || itemId === undefined || mode === 'new') {
+      return;
+    }
+    const source: FormValues = { ...loaded.original, [ID_FIELD]: String(itemId) };
+    const now: Date = new Date();
+    const changed: FormValues = {};
+    assignments.forEach((assignment) => {
+      const field: IFieldSchema | undefined = loaded.schema.filter((item) => item.InternalName === assignment.field)[0];
+      if (field && isButtonSettableField(field)) {
+        changed[field.InternalName] = resolveFieldValue(
+          field,
+          resolveTemplate(assignment.value, source),
+          props.cultureName,
+          now,
+          currentUser
+        );
+      }
+    });
+    if (Object.keys(changed).length === 0) {
+      return;
+    }
+    const result: ItemService.ISaveResult = await ItemService.save({ listId, itemId }, changed);
+    const names: string[] = Object.keys(result.errors);
+    if (names.length > 0) {
+      throw new Error(names.map((name) => `${name}: ${result.errors[name]}`).join('; '));
+    }
+    const previous: FormValues = loaded.original;
+    const refreshed = await ItemService.loadEditableValues(listId, itemId, loaded.schema);
+    setLoaded((current) =>
+      current && { ...current, original: refreshed.values, displayValues: refreshed.displayValues, modified: refreshed.modified }
+    );
+    setValues((current) => {
+      const next: FormValues = { ...refreshed.values };
+      Object.keys(current).forEach((name) => {
+        if (changed[name] === undefined && (current[name] ?? '') !== (previous[name] ?? '')) {
+          next[name] = current[name];
+        }
+      });
+      return next;
+    });
+  };
 
   const startDesign = (): void => {
     if (!loaded) {

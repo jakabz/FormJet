@@ -165,7 +165,7 @@ A tartalomtípus mezői közül a rejtett és a számított megjelenítő (`Comp
 
 | Tulajdonság | Típus | Kötelező | Jelentés |
 | --- | --- | --- | --- |
-| `schemaVersion` | `3` | igen | Sémaverzió, a migráció alapja. Az `1`-es és `2`-es konfigurációt a `parseConfig` átalakítás nélkül elfogadja (a 2-es a `texts`, a 3-as a `variables` résszel bővült), és a tervező mentésekor 3-asként íródik vissza. |
+| `schemaVersion` | `5` | igen | Sémaverzió, a migráció alapja. Az `1`–`4`-es konfigurációt a `parseConfig` elfogadja (a 2-es a `texts`, a 3-as a `variables`, a 4-es a `footer` résszel bővült; ezek átalakítás nélkül érvényesek). Az 5-ös verzióban a kapcsolódó elemek önálló elemek lettek: a 4-es és korábbi konfigurációban a szakasz `related` beállítását a `RelatedList.migrateSectionRelated` alakítja át. A tervező mentésekor 5-ösként íródik vissza. |
 | `listId` | string | igen | A cél lista GUID-ja. |
 | `contentTypeId` | string | igen | A lista tartalomtípusának azonosítója. |
 | `title` | string | nem | A form fejléce. |
@@ -174,7 +174,7 @@ A tartalomtípus mezői közül a rejtett és a számított megjelenítő (`Comp
 | `labelPosition` | `'top'` \| `'left'` | nem | Címkék helye. Alapértelmezés: `top`. A `left` még nincs megvalósítva a renderelőben. |
 | `sections` | `ISectionConfig[]` | igen | Szekciók megjelenési sorrendben. |
 | `fields` | `Record<InternalName, IFieldConfig>` | igen | Mezőnkénti beállítások. |
-| `texts` | `Record<azonosító, ITextElement>` | nem | Szövegelemek (lásd lent). |
+| `texts` | `Record<azonosító, ITextElement>` | nem | Mező nélküli elemek: felirat, gomb, kapcsolódó elemek (lásd lent). |
 | `variables` | `Record<név, IFormVariable>` | nem | A form változói (lásd lent). |
 
 ### ISectionConfig
@@ -269,7 +269,8 @@ A `texts` mező nélküli elemeket tárol: a **felirat** a formon megjelenő, fo
 
 | Tulajdonság | Típus | Kötelező | Jelentés |
 | --- | --- | --- | --- |
-| `kind` | `'text'` \| `'button'` | nem | Az elem fajtája; hiányában felirat. Gombnál kötelező, és az azonosító `button:` előtagú. |
+| `kind` | `'text'` \| `'button'` \| `'related'` | nem | Az elem fajtája; hiányában felirat. Gombnál és kapcsolódó elemeknél kötelező, és az azonosító `button:`, illetve `related:` előtagú. |
+| `related` | `IRelatedListConfig` | nem | Csak kapcsolódó elemek: a lista, a párosítás, az oszlopok és a feladatkezelés (lásd „Kapcsolódó elemek”). |
 | `name` | string | igen | Feliratnál megnevezés, csak a tervezőben látszik; gombnál a gomb felirata. |
 | `content` | string | nem | Csak felirat: a formon megjelenő szöveg; a sortörések megmaradnak. |
 | `url` | string | nem | Csak gomb: a megnyitandó cím. Csak `http(s)://`, `mailto:` vagy webhelyen belüli cím nyílik meg (`UrlValue.isSafeUrl`), más címmel a gomb nem navigál. |
@@ -369,20 +370,46 @@ Szabályok:
 
 A tervezőben a **Stílus** fülön szerkeszthető: felül az érvényesség (alap vagy egy mód), alatta a form, a kiválasztott szekció és a kiválasztott mező beállításai. Módonkénti szerkesztésnél az alapból örökölt érték helykitöltőként látszik.
 
-### Kapcsolódó elemek (`ISectionConfig.related`)
+### Kapcsolódó elemek (`texts`, `kind: related`)
 
-Egy szekció a mezői alatt egy másik, **azonos webhelyen lévő** lista elemeit is felsorolhatja, csak olvasható táblázatban. Azok az elemek jelennek meg, amelyek `matchField` mezője megegyezik a megnyitott elem `sourceField` értékével.
+A kapcsolódó elemek egy másik, **azonos webhelyen lévő** lista elemeit sorolják fel táblázatban: azokat, amelyek `matchField` mezője megegyezik a megnyitott elem `sourceField` értékével. A felirathoz és a gombhoz hasonlóan **mező nélküli elem**: `related:` előtagú azonosítóval a `texts`-ben van (`kind: related`), pszeudo-mezőként (`FormJetRelated`) kerül a sémába (`withTextElements`), így bármelyik szakaszban elhelyezhető és a többi mezővel együtt sorba rendezhető. A láthatósága és a letiltása a `fields` azonos kulcsú bejegyzésében van; letiltva a felsorolás látszik, de a feladatok nem nyithatók meg (a gombhoz hasonlóan megtekintéskor is működik).
+
+Az 5-ös sémaverzió előtt a beállítás a szakasz `related` tulajdonsága volt; a `parseConfig` ezt a `RelatedList.migrateSectionRelated` függvénnyel önálló elemmé alakítja (a szakasz végére, a szakasz oszlopszámának megfelelő szélességben; a megnevezés a szakasz címe).
 
 ```json
-"related": {
-  "listId": "11111111-1111-1111-1111-111111111111",
-  "matchField": "RequestNumber",
-  "sourceField": "Title",
-  "columns": ["Title", "InvoiceDate", "Amount"],
-  "sortField": "InvoiceDate",
-  "sortAscending": false,
-  "rowLimit": 20,
-  "showNewButton": true
+"texts": {
+  "related:1": {
+    "kind": "related",
+    "name": "Feladatok",
+    "related": {
+      "listId": "11111111-1111-1111-1111-111111111111",
+      "matchField": "RequestId",
+      "sourceField": "ID",
+      "columns": ["Title", "AssignedTo", "Status"],
+      "task": {
+        "assignedField": "AssignedTo",
+        "openWhen": { "field": "Status", "op": "ne", "value": "Elvégezve" },
+        "descriptionField": "Body",
+        "commentField": "Comment",
+        "fields": [{ "field": "DueDate" }, { "field": "Result", "editable": true }],
+        "buttonRules": [
+          {
+            "when": { "field": "Status", "op": "eq", "value": "Jóváhagyásra vár" },
+            "buttons": [
+              {
+                "label": "Jóváhagyom",
+                "primary": true,
+                "taskValues": [{ "field": "Status", "value": "Elvégezve" }, { "field": "Outcome", "value": "Jóváhagyva" }],
+                "itemValues": [{ "field": "Status", "value": "Jóváhagyva" }]
+              },
+              { "label": "Elutasítom", "commentRequired": true, "taskValues": [{ "field": "Status", "value": "Elvégezve" }] }
+            ]
+          },
+          { "buttons": [{ "label": "Kész", "taskValues": [{ "field": "Status", "value": "Elvégezve" }] }] }
+        ]
+      }
+    }
+  }
 }
 ```
 
@@ -395,18 +422,39 @@ Egy szekció a mezői alatt egy másik, **azonos webhelyen lévő** lista elemei
 | `sortField`, `sortAscending` | InternalName, boolean | `ID`, növekvő | Rendezés. |
 | `rowLimit` | 1–500 | 30 | Sorok maximális száma; ha több elem van, a táblázat alatt jelzés látszik. |
 | `showNewButton` | boolean | false | „Új elem” gomb, amely a kapcsolódó lista új elem formját nyitja meg új lapon. |
+| `task` | objektum | – | Feladatkezelés (lásd lent). |
 
 Tudnivalók:
 
 - **Párosítható típusok** (mindkét oldalon): Text, Choice, Number, Currency, Integer, Counter (`ID`), Lookup. A lekérdezés módját a kapcsolódó lista párosító mezőjének típusa dönti el: szövegnél pontos egyezés, számnál a form-string számmá alakítva, keresőmezőnél a hivatkozott elem azonosítója szerint.
-- **A párosítás a mentett értékkel történik**, nem a formon éppen szerkesztett értékkel. Ezért **New módban a felsorolás nem jelenik meg**; ha a szekcióban nincs mező, az egész szekció rejtve marad.
-- A lekérdezés a felhasználó nevében fut (`renderListDataAsStream`), így csak azok az elemek látszanak, amelyekhez joga van. Az értékek a SharePoint megjelenítési formátumában érkeznek.
-- **Nagy listánál** (5000 elem felett) a párosító mezőt indexelni kell, különben a lekérdezés hibát ad, és a szekcióban figyelmeztetés jelenik meg.
-- Az „Új elem” gomb nem tölti ki előre a párosító mezőt, és a táblázat nem frissül magától; erre a szekció Frissítés gombja szolgál.
+- **A párosítás a mentett értékkel történik**, nem a formon éppen szerkesztett értékkel. **New módban** ezért nincs felsorolás, csak egy szaggatott keretes jelzés mutatja a helyét (`RelatedNeedsItem`).
+- A lekérdezés a felhasználó nevében fut (`renderListDataAsStream`), így csak azok az elemek látszanak, amelyekhez joga van. A nézet `Scope='Recursive'`: a mappákba rendezett elemek is megjelennek (maguk a mappák nem). Az értékek a SharePoint megjelenítési formátumában érkeznek.
+- **Nagy listánál** (5000 elem felett) a párosító mezőt indexelni kell, különben a lekérdezés hibát ad, és a felsorolás helyén figyelmeztetés jelenik meg.
+- Az „Új elem” gomb nem tölti ki előre a párosító mezőt, és a táblázat nem frissül magától; erre a Frissítés gomb szolgál.
 - A tervezőben félkész beállítás is menthető (például még nincs oszlop kiválasztva); ilyenkor a felsorolás nem jelenik meg.
-- A mezőnevek a CAML lekérdezésbe kerülnek, ezért a `parseConfig` csak belső névnek megfelelő értéket fogad el, a `listId` pedig csak GUID lehet.
+- A mezőnevek a CAML lekérdezésbe kerülnek, ezért a `parseConfig` csak belső névnek megfelelő értéket fogad el (a feladatkezelés mezőinél is), a `listId` pedig csak GUID lehet.
 
-A logika az `engine/RelatedList.ts`-ben (ellenőrzés, `buildRelatedViewXml`), a lekérdezés a `services/RelatedListService.ts`-ben, a megjelenítés a `components/RelatedItems.tsx`-ben van. A tervezőben a szakasz tulajdonságai között, a „Kapcsolódó elemek megjelenítése egy másik listából” jelölővel állítható be.
+#### Feladatkezelés (`task`)
+
+A kapcsolódó lista elemei feladatként kezelhetők: **látni mindenki látja** a felsorolást, de **megnyitni csak az tudja** a feladatot, akihez rendelték. A megnyitott feladat felugró ablakban (`components/TaskDialog.tsx`, lazy chunk) jelenik meg: cím, leírás, további mezők, megjegyzés és a gombok. A 8. kulcsdöntés egyeztetett kivétele: a felugró ablak gombja a feladatot (és ha be van állítva, az eredeti elemet) **írja**.
+
+| Tulajdonság | Jelentés |
+| --- | --- |
+| `assignedField` | A kapcsolódó lista személy mezője (User / UserMulti). Üres értékkel a feladatkezelés félkész, nem működik (`isTaskEnabled`). |
+| `openWhen` | Feltétel a feladat mezőire (InternalName, plusz a környezeti változók): ha nem teljesül, a hozzárendelt feladat sem nyitható meg (például elvégezve). |
+| `titleField`, `descriptionField` | A felugró ablak címe (alapból `Title`) és a cím alatti leírás (megjelenítési szövegként, `FieldValuesAsText`). |
+| `commentField` | Többsoros szöveg mező; a beírt megjegyzés felülírja (csak ha a szöveg változott). Hiányában nincs megjegyzés. |
+| `fields` | További mezők sorrendben; `editable: true` esetén kitölthetők (a `FieldRenderer` vezérlőjével; mellékletek és kép nem). |
+| `buttonRules` | `{ when, buttons }` szabályok: az **első teljesülő** szabály gombjai jelennek meg (`pickTaskButtons`); feltétel nélkül a szabály mindig teljesül. |
+
+- **Hozzárendelés:** a felsorolás mellett egy második CAML lekérdezés adja a felhasználóhoz rendelt sorokat (`buildAssignedViewXml`): párosítás ÉS (`<Eq>` / `<Includes>` a `<UserID/>`-ra VAGY `<Membership Type='CurrentUserGroups'>`). A SharePoint-csoporttagságot így a SharePoint dönti el; több személyes mezőnél bármelyik szereplő megnyithatja. A közvetlenül a mezőbe felvett Entra-csoport tagságát a `Membership` nem vizsgálja.
+- **Megnyithatóság:** ha van `openWhen`, a hozzárendelt feladatok értékei betöltődnek (`RelatedListService.loadTask`), és csak a teljesülők kapnak **Megnyitás** gombot. Letiltott elemnél és a tervezőben a gomb nem kattintható.
+- **A gombszabályok feltétele** az eredeti elem **mentett** értékeit (InternalName), a környezeti változókat (`FormContext.itemConditionValues`: mód, csoporttagság, `[IsAuthor]`, változók) és a feladat mezőit látja, utóbbiakat `[Task:<InternalName>]` alakban (`taskConditionValues`). A szabályokban hivatkozott csoportok tagságát a `collectGroupIds` gyűjti.
+- **Gomb:** `label`, `primary`, `commentRequired` (üres megjegyzésnél hibaüzenet), `taskValues` (a feladat mezői) és `itemValues` (az eredeti elem mezői), mindkettő `{ field, value }`. Az érték a kezdőérték formátumában van (`LayoutResolver.resolveFieldValue`: `[today]`, `[me]` …), a `{Mező}` az eredeti elem mentett értéke (`ListCommands.resolveTemplate`).
+- **Mentés:** előbb a feladat: a kitölthető mezők közül a módosultak, a megjegyzés és a gomb `taskValues` értékei, `validateUpdateListItem`-mel (`RelatedListService.saveTask`). Ütközésvizsgálat: ha a feladat `Modified` értéke a megnyitás óta változott, `TaskConflictError`. Utána az elem: a `FormHost` `applyItemValues` függvénye csak a gomb `itemValues` mezőit menti (csak SharePoint szerint írható mezőt, `isButtonSettableField`), az űrlap nem mentett módosításait nem; majd az elem mentett értékeit újratölti (a `Modified` is frissül, így a form későbbi mentése nem jelez ütközést), a nem mentett módosítások megmaradnak (a most beállított mezőké kivételével). Ha a feladat mentődött, de az elemé nem, a hibaüzenet mellett **Újrapróbálás** gomb jelenik meg, amely már csak az elem mezőit menti.
+- A „csak a hozzárendelt nyithatja meg” **nem jogosultsági határ** (4. kulcsdöntés): a feladatlista jogosultságát a SharePointban kell beállítani.
+
+A logika az `engine/RelatedList.ts`-ben (ellenőrzés, migráció, `buildRelatedViewXml`, `buildAssignedViewXml`, `pickTaskButtons`, `isTaskOpenable`), a lekérdezés és a mentés a `services/RelatedListService.ts`-ben, a megjelenítés a `components/RelatedItems.tsx`-ben és a `components/TaskDialog.tsx`-ben van. A tervezőben a szakasz **Kapcsolódó elemek hozzáadása** gombjával vehető fel; a tulajdonságlapja (`components/RelatedElementEditor.tsx`) négy fület kap: Lista (`RelatedListEditor`, láthatóság, letiltás), Hozzárendelés, Felugró ablak, Gombok.
 
 ### Mellékletek
 
@@ -615,7 +663,7 @@ A parancs a Heft `test` lépése: lefordítja a projektet, lefuttatja a lintet, 
 | `LayoutMoves.test.ts` | szekció és mező áthelyezése, új mező felvétele, a szélesség igazítása, az eredeti konfiguráció változatlansága |
 | `LayoutResolver.test.ts` | a példa konfiguráció mindhárom módban, láthatóság, kötelezőség, szerkeszthetőség, `parseConfig` hibái, kezdőértékek (dátum, szám, százalék, felügyelt metaadat), mellékletek |
 | `FormStyle.test.ts` | módonkénti feloldás, színátmenet, a szabad CSS-re alkalmas értékek elutasítása |
-| `RelatedList.test.ts` | a CAML lekérdezés összeállítása, a mezőnevek és az érték biztonságos kezelése |
+| `RelatedList.test.ts` | a CAML lekérdezés összeállítása (a hozzárendelt feladatoké is), a mezőnevek és az érték biztonságos kezelése, a régi szakaszbeállítás átalakítása, a feladatkezelés ellenőrzése, a megnyithatóság és a gombszabályok |
 | `DateFormat.test.ts` | dátumminta, formázás és értelmezés több kultúrán, kerekítés |
 | `NumberFormat.test.ts` | tizedesjel, százalék, pénznem jele |
 | `FieldValues.test.ts` | a keresőmező, személy, hivatkozás, hely, kép, felügyelt metaadat és a mellékletek form-stringjei |

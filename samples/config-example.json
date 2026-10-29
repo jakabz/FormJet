@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "listId": "00000000-0000-0000-0000-000000000000",
   "contentTypeId": "0x0100000000000000000000000000000000",
   "title": "Beszerzési igény",
@@ -50,6 +50,13 @@
       "title": "Kapcsolódó számlák",
       "columns": 1,
       "collapsible": true,
+      "fields": [{ "field": "related:1" }]
+    }
+  ],
+  "texts": {
+    "related:1": {
+      "kind": "related",
+      "name": "Kapcsolódó számlák",
       "related": {
         "listId": "11111111-1111-1111-1111-111111111111",
         "matchField": "RequestNumber",
@@ -59,10 +66,9 @@
         "sortAscending": false,
         "rowLimit": 20,
         "showNewButton": true
-      },
-      "fields": []
+      }
     }
-  ],
+  },
   "fields": {
     "Title": {
       "label": "Megnevezés",

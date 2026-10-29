@@ -68,19 +68,21 @@ function choiceOptions(field: IFieldSchema, selected: string[]): IDropdownOption
   return choices.map((choice) => ({ key: choice, text: choice }));
 }
 
-interface IActionValueEditorProps {
+export interface IActionValueEditorProps {
   /** A kiválasztott mező; hiányában (még nincs kiválasztva) sima szövegmező. */
   field?: IFieldSchema;
   /** Az érték a kezdőérték formátumában (form-string). */
   value: string;
   onChange: (value: string) => void;
+  /** A szövegmező súgója; hiányában a gomb lépésének súgója. */
+  description?: string;
 }
 
 /**
  * A beállítandó érték vezérlője a mező típusához igazodik, mint a feltételszerkesztőben: választásnál a mező értékei
  * közül (több választásnál többet is), igen/nem mezőnél Igen / Nem; egyébként szövegmező a kezdőérték formátumában.
  */
-const ActionValueEditor: React.FC<IActionValueEditorProps> = ({ field, value, onChange }) => {
+export const ActionValueEditor: React.FC<IActionValueEditorProps> = ({ field, value, onChange, description }) => {
   const type: string | undefined = field?.TypeAsString;
   if (field && type === 'Boolean') {
     return (
@@ -138,7 +140,7 @@ const ActionValueEditor: React.FC<IActionValueEditorProps> = ({ field, value, on
   return (
     <TextField
       label={strings.ButtonActionValue}
-      description={strings.ButtonActionSetValueHint}
+      description={description ?? strings.ButtonActionSetValueHint}
       value={value}
       onChange={(_, v) => onChange(v ?? '')}
     />

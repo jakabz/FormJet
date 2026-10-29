@@ -32,9 +32,9 @@ import { formatDateValue, parseDateValue, roundToTimeStep } from './DateFormat';
 import { engineStrings, format } from './EngineStrings';
 import { resolveNumberDefault } from './NumberFormat';
 import { parseTaxonomyValue, serializeTaxonomyValue } from './TaxonomyValue';
-import { isButtonElement, isLayoutElement, parseFooter, parseTexts, withTextElements } from './TextElement';
+import { isButtonElement, isLayoutElement, isRelatedElement, parseFooter, parseTexts, withTextElements } from './TextElement';
 import { ICurrentUser, resolveUserDefault } from './UserValue';
-import { isRelatedComplete, parseRelated } from './RelatedList';
+import { migrateSectionRelated } from './RelatedList';
 import { parseFieldStyles, parseFormStyles, parseSectionStyles, resolveModeStyle } from './FormStyle';
 
 /** Mezőtípusok, amelyekhez a FieldRenderer szerkesztő vezérlőt ad. A többi csak olvasható. */
@@ -55,6 +55,8 @@ export interface IResolvedField {
   text?: string;
   /** Gombnál a megnyitandó cím, az ikon és a műveletek; a letiltást a `readOnly` jelzi. */
   button?: { url?: string; newTab: boolean; icon?: string; primary: boolean; actions: ButtonAction[] };
+  /** Kapcsolódó elemeknél a beállítás; a `readOnly` itt azt jelenti, hogy a feladatok nem nyithatók meg. */
+  related?: IRelatedListConfig;
   /** Többértékű keresőmező megjelenítése. */
   lookupDisplay: LookupDisplay;
   /** A mellékletek megjelenítése. */
@@ -77,8 +79,6 @@ export interface IResolvedSection {
   collapsed: boolean;
   visible: boolean;
   style: ISectionStyle;
-  /** Kapcsolódó elemek beállítása; New módban nincs (a szülő elem még nem létezik). */
-  related?: IRelatedListConfig;
   fields: IResolvedField[];
 }
 
@@ -149,12 +149,7 @@ export function resolveForm(
 
   const sections: IResolvedSection[] = config.sections.map((section) => {
     const columns: number = clampColumns(section.columns);
-    const related: IRelatedListConfig | undefined = mode === 'new' ? undefined : section.related;
-    // Ha a szekcióban csak kapcsolódó elemek lennének, de azok nem jeleníthetők meg, a szekció sem látszik.
-    const nothingToShow: boolean =
-      section.fields.length === 0 && section.related !== undefined && !isRelatedComplete(related);
-    const sectionVisible: boolean =
-      !nothingToShow && inMode(section.visibleIn, mode, true) && evaluate(section.visibleWhen, conditionValues);
+    const sectionVisible: boolean = inMode(section.visibleIn, mode, true) && evaluate(section.visibleWhen, conditionValues);
     // A szakasz letiltása a benne lévő összes mezőre hat (a mezők saját csak olvasható beállítása mellett).
     const sectionReadOnly: boolean = section.readOnlyWhen !== undefined && evaluate(section.readOnlyWhen, conditionValues);
     const fields: IResolvedField[] = [];
@@ -184,7 +179,6 @@ export function resolveForm(
       collapsed: !!section.collapsible && !!section.collapsed,
       visible: sectionVisible,
       style: resolveModeStyle(section.style, mode),
-      related,
       fields
     };
   });
@@ -218,8 +212,9 @@ export function resolveForm(
       const conditional: IFieldConfig['conditional'] = fieldConfig.conditional;
       const visible: boolean =
         sectionVisible && inMode(fieldConfig.visibleIn, mode, true) && evaluate(fieldConfig.visibleWhen, conditionValues);
-      const isButton: boolean = isButtonElement(fieldSchema);
       // A gombnál a „csak olvasható” a letiltást jelenti: csak a beállítás dönt róla, megtekintéskor is működhet.
+      // A kapcsolódó elemeknél ugyanígy: letiltva a feladatok nem nyithatók meg.
+      const isButton: boolean = isButtonElement(fieldSchema) || isRelatedElement(fieldSchema);
       const configuredReadOnly: boolean =
         sectionReadOnly ||
         inMode(fieldConfig.readOnlyIn, mode, false) ||
@@ -244,7 +239,8 @@ export function resolveForm(
           pickConditionalValue(conditional?.description, conditionValues) ?? fieldConfig.description ?? fieldSchema.Description,
         placeholder: pickConditionalValue(conditional?.placeholder, conditionValues) ?? fieldConfig.placeholder,
         text: config.texts?.[name]?.content,
-        button: isButton
+        related: isRelatedElement(fieldSchema) ? config.texts?.[name]?.related : undefined,
+        button: isButtonElement(fieldSchema)
           ? {
               url: config.texts?.[name]?.url,
               newTab: !!config.texts?.[name]?.newTab,
@@ -517,8 +513,6 @@ function parseSection(input: unknown, index: number): ISectionConfig {
   if (readOnlyWhen) section.readOnlyWhen = readOnlyWhen;
   const style = parseSectionStyles(input.style, `${path}.style`);
   if (style) section.style = style;
-  const related = parseRelated(input.related, `${path}.related`);
-  if (related) section.related = related;
   const conditional = parseConditional(input.conditional, `${path}.conditional`, SECTION_CONDITIONAL_PROPERTIES);
   if (conditional) section.conditional = conditional;
   return section;
@@ -591,9 +585,15 @@ export function parseConfig(raw: string): IParseConfigResult {
   // 1 → 2: csak a `texts` (szövegelemek) rész jött hozzá, az 1-es szerkezet átalakítás nélkül érvényes.
   // 2 → 3: csak a `variables` (változók) rész jött hozzá, a 2-es szerkezet átalakítás nélkül érvényes.
   // 3 → 4: csak a `footer` (alsó gombsor) rész jött hozzá, a 3-as szerkezet átalakítás nélkül érvényes.
-  if ([1, 2, 3, CONFIG_SCHEMA_VERSION].indexOf(input.schemaVersion as number) === -1) {
+  // 4 → 5: a szakaszok `related` beállítása önálló kapcsolódó elem lesz (`migrateSectionRelated`).
+  if ([1, 2, 3, 4, CONFIG_SCHEMA_VERSION].indexOf(input.schemaVersion as number) === -1) {
     return { error: format(engineStrings().UnknownSchemaVersion, String(input.schemaVersion)) };
   }
+  return parseCurrentConfig(input.schemaVersion === CONFIG_SCHEMA_VERSION ? input : migrateSectionRelated(input));
+}
+
+/** Az aktuális szerkezetű (szükség esetén már átalakított) konfiguráció ellenőrzése. */
+function parseCurrentConfig(input: Record<string, unknown>): IParseConfigResult {
 
   try {
     if (!Array.isArray(input.sections)) {

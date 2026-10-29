@@ -1,5 +1,5 @@
-// Mező nélküli elemek: felirat (a formon megjelenő sima szöveg) és gomb (egy cím megnyitására), amelyek mögött nincs
-// SharePoint mező. A sémában pszeudo-mezőként szerepelnek (mint a mellékletek), így a szekciókban ugyanúgy
+// Mező nélküli elemek: felirat (a formon megjelenő sima szöveg), gomb (egy cím megnyitására vagy lépések futtatására) és
+// kapcsolódó elemek (egy másik lista párosított elemei), amelyek mögött nincs SharePoint mező. A sémában pszeudo-mezőként szerepelnek (mint a mellékletek), így a szekciókban ugyanúgy
 // elhelyezhetők és áthelyezhetők, mint a mezők. Értékük nincs, ezért soha nem kerülnek a mentésbe.
 // Tiszta logika: nem importálhat services/-ből, components/-ből, @pnp/*-ból vagy @microsoft/*-ból.
 
@@ -7,15 +7,24 @@ import { IFieldSchema } from '../models/IFieldSchema';
 import { IFieldConfig, IFormConfig, ITextElement, LayoutElementKind } from '../models/IFormConfig';
 import { isIconName, parseButtonActions } from './ButtonAction';
 import { engineStrings, format } from './EngineStrings';
+import { ID_FIELD, parseRelated } from './RelatedList';
 
 /** A felirat (szövegelem) pszeudo-mezőjének típusa a sémában. */
 export const TEXT_ELEMENT_TYPE: string = 'FormJetText';
 /** A gomb pszeudo-mezőjének típusa a sémában. */
 export const BUTTON_ELEMENT_TYPE: string = 'FormJetButton';
+/** A kapcsolódó elemek pszeudo-mezőjének típusa a sémában. */
+export const RELATED_ELEMENT_TYPE: string = 'FormJetRelated';
+
+const ELEMENT_TYPES: Record<LayoutElementKind, string> = {
+  text: TEXT_ELEMENT_TYPE,
+  button: BUTTON_ELEMENT_TYPE,
+  related: RELATED_ELEMENT_TYPE
+};
 
 /** Az azonosító előtagja fajtánként. A kettőspont miatt az azonosító nem ütközhet SharePoint mező belső nevével. */
-const ID_PREFIXES: Record<LayoutElementKind, string> = { text: 'text:', button: 'button:' };
-const ELEMENT_ID: RegExp = /^(text|button):[A-Za-z0-9_-]+$/;
+const ID_PREFIXES: Record<LayoutElementKind, string> = { text: 'text:', button: 'button:', related: 'related:' };
+const ELEMENT_ID: RegExp = /^(text|button|related):[A-Za-z0-9_-]+$/;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -30,9 +39,18 @@ export function isButtonElement(schema: IFieldSchema): boolean {
   return schema.TypeAsString === BUTTON_ELEMENT_TYPE;
 }
 
-/** Mező nélküli elem (felirat vagy gomb): nincs értéke, feltétel nem hivatkozhat rá, és nem kerül a mentésbe. */
+export function isRelatedElement(schema: IFieldSchema): boolean {
+  return schema.TypeAsString === RELATED_ELEMENT_TYPE;
+}
+
+/** Mező nélküli elem (felirat, gomb, kapcsolódó elemek): nincs értéke, feltétel nem hivatkozhat rá, és nem kerül a mentésbe. */
 export function isLayoutElement(schema: IFieldSchema): boolean {
-  return isTextElement(schema) || isButtonElement(schema);
+  return isTextElement(schema) || isButtonElement(schema) || isRelatedElement(schema);
+}
+
+/** Az elem fajtája az azonosítója előtagjából. */
+function kindOfId(id: string): LayoutElementKind {
+  return id.indexOf(ID_PREFIXES.button) === 0 ? 'button' : id.indexOf(ID_PREFIXES.related) === 0 ? 'related' : 'text';
 }
 
 /** A séma kiegészítve a konfiguráció szövegelemeivel. Többször is hívható: a már szereplő elemet nem veszi fel újra. */
@@ -46,7 +64,7 @@ export function withTextElements(schema: IFieldSchema[], config: IFormConfig): I
     missing.map((id) => ({
       InternalName: id,
       Title: texts[id].name || id,
-      TypeAsString: texts[id].kind === 'button' ? BUTTON_ELEMENT_TYPE : TEXT_ELEMENT_TYPE,
+      TypeAsString: ELEMENT_TYPES[texts[id].kind ?? 'text'],
       Required: false,
       ReadOnlyField: true
     }))
@@ -54,8 +72,8 @@ export function withTextElements(schema: IFieldSchema[], config: IFormConfig): I
 }
 
 /**
- * Új felirat vagy gomb a megadott megnevezéssel. A megadott szekció végére kerül; ha nincs ilyen szekció, az utolsóéra,
- * szekció nélkül pedig nem elhelyezett elem marad.
+ * Új felirat, gomb vagy kapcsolódó elemek a megadott megnevezéssel. A megadott szekció végére kerül (a kapcsolódó elemek
+ * teljes szélességben); ha nincs ilyen szekció, az utolsóéra, szekció nélkül pedig nem elhelyezett elem marad.
  */
 export function addTextElement(
   config: IFormConfig,
@@ -70,7 +88,12 @@ export function addTextElement(
     n++;
   }
   const id: string = `${prefix}${n}`;
-  const element: ITextElement = kind === 'button' ? { kind, name } : { name };
+  const element: ITextElement =
+    kind === 'related'
+      ? { kind, name, related: { listId: '', matchField: '', sourceField: ID_FIELD, columns: [] } }
+      : kind === 'button'
+        ? { kind, name }
+        : { name };
   const target: string | undefined = config.sections.some((section) => section.id === sectionId)
     ? sectionId
     : config.sections[config.sections.length - 1]?.id;
@@ -80,7 +103,12 @@ export function addTextElement(
       ...config,
       texts: { ...texts, [id]: element },
       sections: config.sections.map((section) =>
-        section.id === target ? { ...section, fields: [...section.fields, { field: id }] } : section
+        section.id === target
+          ? {
+              ...section,
+              fields: [...section.fields, kind === 'related' && section.columns > 1 ? { field: id, colSpan: section.columns } : { field: id }]
+            }
+          : section
       )
     }
   };
@@ -203,16 +231,29 @@ export function parseTexts(input: unknown, path: string): Record<string, ITextEl
   const texts: Record<string, ITextElement> = {};
   Object.keys(input).forEach((id) => {
     const item: unknown = input[id];
-    // A fajta és az azonosító előtagja összetartozik (`button:` ↔ `kind: button`).
-    const isButton: boolean = id.indexOf(ID_PREFIXES.button) === 0;
+    // A fajta és az azonosító előtagja összetartozik (`button:` ↔ `kind: button`, `related:` ↔ `kind: related`).
+    const kind: LayoutElementKind = kindOfId(id);
+    const isButton: boolean = kind === 'button';
     if (
       !ELEMENT_ID.test(id) ||
       !isRecord(item) ||
       typeof item.name !== 'string' ||
-      (item.kind !== undefined && item.kind !== 'text' && item.kind !== 'button') ||
-      (item.kind === 'button') !== isButton
+      (item.kind ?? 'text') !== kind
     ) {
       throw new Error(format(engineStrings().InvalidText, `${path}.${id}`));
+    }
+    if (kind === 'related') {
+      texts[id] = {
+        kind,
+        name: item.name,
+        related: parseRelated(item.related, `${path}.${id}.related`) ?? {
+          listId: '',
+          matchField: '',
+          sourceField: ID_FIELD,
+          columns: []
+        }
+      };
+      return;
     }
     const text: ITextElement = isButton ? { kind: 'button', name: item.name } : { name: item.name };
     if (!isButton && typeof item.content === 'string' && item.content !== '') {

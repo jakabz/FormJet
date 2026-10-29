@@ -303,7 +303,6 @@ Jelöld ki a szakaszt a fogaskerekével (vagy a fa nézetben); a **Tulajdonságo
 | Látható ezekben a módokban | Új elem / Szerkesztés / Megtekintés. |
 | Látható, ha | Feltétel, amely mellett a szekció megjelenik (lásd [Feltételek](#7-feltételek)). |
 | Letiltva, ha | Feltétel, amely mellett a szakasz minden mezője csak olvasható, a gombjai pedig nem kattinthatók. A mezők saját „Csak olvasható” beállítása ettől függetlenül érvényes. |
-| Kapcsolódó elemek… | Egy másik lista elemeinek felsorolása (lásd [9. fejezet](#9-kapcsolódó-elemek-egy-másik-listából)). |
 
 A tulajdonságok tetején lévő nyilakkal a szakasz mozgatható, a kuka ikonnal törölhető. Törléskor a mezői nem vesznek el, hanem a nem elhelyezett mezők közé kerülnek, és a kijelölés az űrlapra ugrik.
 
@@ -471,11 +470,13 @@ Sötét vagy színátmenetes háttéren a szöveg színe nem igazodik magától:
 
 ## 9. Kapcsolódó elemek egy másik listából
 
-Egy szekció felsorolhatja egy másik lista azon elemeit, amelyek a megnyitott elemhez tartoznak – például egy megrendelés alatt a hozzá tartozó számlákat. A felsorolás csak olvasható táblázat.
+Az űrlapon felsorolhatók egy másik lista azon elemei, amelyek a megnyitott elemhez tartoznak – például egy megrendelés alatt a hozzá tartozó számlák, vagy egy kérelemhez tartozó feladatok. A felsorolás táblázat; feladatkezeléssel a neked kiosztott feladatokat innen el is végezheted.
 
-### Beállítás
+### Felvétel és elhelyezés
 
-Jelöld ki a szakaszt, és a tulajdonságai között jelöld be a **Kapcsolódó elemek megjelenítése egy másik listából** lehetőséget, majd add meg:
+A szakasz tulajdonságai között a **Kapcsolódó elemek hozzáadása** gombbal veheted fel (a felirathoz és a gombhoz hasonlóan). A szakasz végére kerül, teljes szélességben; onnan a többi mezővel együtt áthelyezhető, akár másik szakaszba is. Egy kijelölt kapcsolódó elem tulajdonságai négy fülön állíthatók: **Lista**, **Hozzárendelés**, **Felugró ablak**, **Gombok**.
+
+### Lista fül
 
 | Beállítás | Jelentés |
 | --- | --- |
@@ -486,15 +487,50 @@ Jelöld ki a szakaszt, és a tulajdonságai között jelöld be a **Kapcsolódó
 | Rendezés, Csökkenő sorrend | A sorok sorrendje. |
 | Sorok maximális száma | Alapból 30. |
 | „Új elem” gomb megjelenítése | Megjelenjen-e gomb a másik lista új elem űrlapjának megnyitásához. |
+| Látható ezekben a módokban, Látható, ha | Mikor jelenjen meg a felsorolás. |
+| Letiltva ezekben a módokban, Letiltva, ha | Letiltva a felsorolás látszik, de a feladatok nem nyithatók meg. |
 
 **Példa:** a számlák listájában van egy „Megrendelésszám” mező, a megrendeléseknél a „Cím” tartalmazza ugyanezt a számot. A párosító mező a „Megrendelésszám”, a megnyitott elem mezője a „Cím”.
+
+### Feladatok elvégzése az űrlapról
+
+Ha a kapcsolódó lista feladatokat tartalmaz, a **Hozzárendelés** fülön kapcsold be a **Feladatkezelés** lehetőséget, és válaszd ki, melyik személy mező mondja meg, kihez tartozik a feladat. Ezután:
+
+- **Látni mindenki látja** a felsorolást, de a **Megnyitás** gomb csak annál a sornál jelenik meg, amelyik neked szól: a személy mezőben te szerepelsz, vagy egy SharePoint csoport, amelynek tagja vagy. Ha a mező több személyt tartalmaz, bármelyikük megnyithatja.
+- A **Megnyitható, ha** feltétellel a feladat mezői alapján szűkítheted, mikor nyitható meg (például: Állapot nem egyenlő Elvégezve). Így az elvégzett feladatot már nem lehet újra megnyitni.
+
+A **Felugró ablak** fülön adhatod meg, mi jelenjen meg a feladat megnyitásakor:
+
+| Beállítás | Jelentés |
+| --- | --- |
+| Cím | A feladat melyik mezője legyen az ablak címe (alapból a Cím). |
+| Leírás | A cím alatt megjelenő szöveg mezője. |
+| Megjegyzés mezője | A feladatlista többsoros szöveg mezője; ide kerül a beírt megjegyzés (felülírja a korábbit). Ha nincs megadva, nincs megjegyzés. |
+| További mezők | További mezők, sorrendben; a **Kitölthető** jelölővel a felugró ablakban ki is tölthetők. |
+
+A **Gombok** fülön szabályokat adsz meg. Minden szabálynak van egy feltétele és néhány gombja; **az első teljesülő szabály gombjai** jelennek meg a felugró ablakban. A feltétel az elem (mentett) mezőit és a feladat mezőit („Feladat: …”) is látja. A feltétel nélküli szabály mindig teljesül, ezért a lista végére téve alapértelmezésként működik.
+
+**Példa:** ha az elem állapota „A”, a feladatnál a „B” és a „C” gomb jelenjen meg, ha „D”, akkor az „E” és az „F”. Két szabály kell: az elsőnél a feltétel Állapot egyenlő A, a gombok B és C; a másodiknál Állapot egyenlő D, a gombok E és F.
+
+Gombonként beállítható:
+
+| Beállítás | Jelentés |
+| --- | --- |
+| Felirat | A gomb szövege. |
+| Kiemelt gomb | Kék, elsődleges gomb. |
+| A megjegyzés kitöltése kötelező | Ennél a gombnál üres megjegyzéssel nem lehet továbblépni (például elutasításnál). |
+| A feladat mezői | Mely mezőit és milyen értékre állítsa a feladatnak (például Állapot = Elvégezve, Eredmény = Jóváhagyva). Választásnál és igen/nem mezőnél listából választasz; más mezőnél az érték formátuma ugyanaz, mint a kezdőértéknél (`[today]`, `[me]` is). `{Mező}` helyére az elem mentett értéke kerül. |
+| Az elem mezői | Az űrlapon megnyitott elem mely mezőit állítsa (például az elem állapotát a következő fázisra). |
+
+A gomb megnyomásakor előbb a feladat mentődik (a megjegyzéssel és a kitöltött mezőkkel együtt), utána az elem beállított mezői. Az elemen **csak a gomb által beállított mezők** mentődnek: ha az űrlapon közben mást is átírtál, az nem mentődik el, de az űrlapon megmarad, és a szokásos Mentéssel mentheted. Ha a feladatot a megnyitása óta valaki más módosította, figyelmeztetést kapsz; zárd be az ablakot, és nyisd meg újra.
 
 ### Tudnivalók
 
 - A táblázat első oszlopa a kapcsolódó elem megtekintő űrlapjára mutat, új lapon.
-- **Új elem űrlapon a felsorolás nem látszik**, mert a párosítás az elem már mentett értékével történik.
+- **Új elem űrlapján** még nincs felsorolás, mert a párosítás az elem mentett értékével történik; egy keretes jelzés mutatja, hol jelennek majd meg a kapcsolódó elemek.
 - Az „Új elem” gomb nem tölti ki előre a párosító mezőt: az új elembe be kell írni az egyező értéket. A táblázat a **Frissítés** gombbal frissíthető.
 - Mindenki csak azokat az elemeket látja, amelyekhez a másik listán joga van.
+- **A „csak a hozzárendelt nyithatja meg” nem védelem.** Aki írási jogot kapott a feladatlistán, a SharePointban közvetlenül is módosíthatja a feladatot; ha ezt korlátozni kell, a feladatlista jogosultságát kell beállítani.
 
 ## 10. Tudnivalók és korlátok
 
