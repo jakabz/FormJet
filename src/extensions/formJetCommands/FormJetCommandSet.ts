@@ -43,8 +43,10 @@ export default class FormJetCommandSet extends BaseListViewCommandSet<IFormJetCo
   private _memberGroupIds: number[] = [];
   /** A kijelölt elemek értékei a feltételekhez, azonosító szerint (betöltés alatt `loading`). */
   private _items: Record<number, IItemState | 'loading' | 'failed'> = {};
-  /** Az elkészült ikonképek ikonnév szerint (`undefined`: nem készíthető el); ami nincs benne, az még töltődik. */
-  private _icons: Map<string, string | undefined> = new Map();
+  /** Az elkészült ikonképek ikonnév szerint. */
+  private _icons: Map<string, string> = new Map();
+  /** A készülő ikonképek; a sikertelen a következő frissítéskor (kijelölés-változáskor) újra próbálkozik. */
+  private _iconsLoading: Set<string> = new Set();
 
   public async onInit(): Promise<void> {
     getSP(this.context);
@@ -173,15 +175,17 @@ export default class FormJetCommandSet extends BaseListViewCommandSet<IFormJetCo
     if (!icon) {
       return undefined;
     }
-    if (!this._icons.has(icon)) {
+    if (!this._icons.has(icon) && !this._iconsLoading.has(icon)) {
+      this._iconsLoading.add(icon);
       getCommandIconUrl(icon)
         .then((url) => {
-          if (!this._icons.has(icon)) {
+          this._iconsLoading.delete(icon);
+          if (url) {
             this._icons.set(icon, url);
             this._update();
           }
         })
-        .catch(() => undefined);
+        .catch(() => this._iconsLoading.delete(icon));
     }
     return this._icons.get(icon);
   }
