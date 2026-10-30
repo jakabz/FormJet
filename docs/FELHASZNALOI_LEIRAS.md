@@ -41,6 +41,17 @@ Az űrlap csoportokra (szekciókra) tagolódik. A lefelé mutató nyíllal jelö
 
 A csillaggal (`*`) jelölt mezők kitöltése kötelező.
 
+### Kapcsolódó elemek és feladatok az űrlapon
+
+Az űrlapon táblázat is megjelenhet, amely egy másik lista ehhez az elemhez tartozó elemeit sorolja fel (például a kérelem feladatait). A táblázat első oszlopára kattintva az elem új lapon nyílik meg, a **Frissítés** gombbal (körkörös nyíl) a táblázat újratölthető.
+
+Ha a táblázat feladatokat tartalmaz:
+
+- A **Kitöltöm** gomb annál a sornál jelenik meg, amelyik neked szól (a feladat hozzád vagy egy csoportodhoz van rendelve, és még elvégezhető). Rákattintva felugró ablakban látod a feladatot: kitöltöd a kért mezőket, szükség esetén megjegyzést írsz, majd az alján lévő gombok egyikével (például **Jóváhagyom**, **Elutasítom** vagy **Beküldés**) elvégzed. A kötelező mezőket csillag jelöli; ha valamelyik üres, a gomb nem menti el a feladatot, hanem jelzi a hiányt.
+- A **Megtekintem** gomb (ha az adminisztrátor bekapcsolta) a többi sornál látszik: ugyanazt a felugró ablakot nyitja meg, de csak olvasásra, a **Bezárás** gombbal.
+- A gomb a feladatot menti el, és ha így van beállítva, az űrlapon megnyitott elem néhány mezőjét is (például az állapotát). Az űrlapon közben átírt, de még nem mentett mezőidet nem menti el; azokat a szokásos **Mentés** gombbal mentheted.
+- Új elem felvételekor még nincs táblázat, csak egy keretes jelzés mutatja a helyét: az elemhez tartozó elemek a mentés után jelennek meg.
+
 ## 2. A mezők kitöltése
 
 ### Szöveg és formázott szöveg
@@ -489,7 +500,7 @@ A szakasz tulajdonságai között a **Kapcsolódó elemek hozzáadása** gombbal
 | Sorok maximális száma | Alapból 30. |
 | „Új elem” gomb megjelenítése | Megjelenjen-e gomb a másik lista új elem űrlapjának megnyitásához. |
 | Látható ezekben a módokban, Látható, ha | Mikor jelenjen meg a felsorolás. |
-| Letiltva ezekben a módokban, Letiltva, ha | Letiltva a felsorolás látszik, de a feladatok nem nyithatók meg. |
+| Letiltva ezekben a módokban, Letiltva, ha | Letiltva a felsorolás látszik, de a feladatok nem tölthetők ki (a **Kitöltöm** gomb nem kattintható); a **Megtekintem** továbbra is működik. |
 
 **Példa:** a számlák listájában van egy „Megrendelésszám” mező, a megrendeléseknél a „Cím” tartalmazza ugyanezt a számot. A párosító mező a „Megrendelésszám”, a megnyitott elem mezője a „Cím”.
 
@@ -499,10 +510,10 @@ Ha a kapcsolódó lista feladatokat tartalmaz, a **Hozzárendelés** fülön kap
 
 - **Látni mindenki látja** a felsorolást, de a **Kitöltöm** gomb csak annál a sornál jelenik meg, amelyik neked szól: a személy mezőben te szerepelsz, vagy egy SharePoint csoport, amelynek tagja vagy. Ha a mező több személyt tartalmaz, bármelyikük megnyithatja.
 - A **Megnyitható, ha** feltétellel a feladat mezői alapján szűkítheted, mikor nyitható meg (például: Állapot nem egyenlő Elvégezve). Így az elvégzett feladatot már nem lehet újra megnyitni.
-- A **JSON alapú feladat** jelölő olyan feladatlistákhoz való, amelyekben a feladat egy kérés oszlopban (például RequestJSON) maga írja le, mit kell kitölteni. Bekapcsolva válaszd ki a **Kérés oszlopot** és a **Válasz oszlopot** (a RequestJSON és ResponseJSON nevű oszlop magától kiválasztódik, ha van ilyen). A felugró ablakban a kérésben felsorolt mezők jelennek meg (igen / nem, szöveg, többsoros szöveg, szám, dátum, választás), a kötelezők csillaggal. Az alján egyetlen **Beküldés** gomb van: ellenőrzi a kötelező mezőket, és a kitöltött értékeket a válasz oszlopba írja. Ha a válasz már ki van töltve, a felugró ablak azt mutatja. Ilyenkor a **Felugró ablak** fülön csak a cím állítható, a **Gombok** fülön pedig csak az, hogy a Beküldés a feladat és az elem mely mezőit állítsa még be (például Állapot = Elvégezve).
+- A **JSON alapú feladat** jelölővel a felugró ablak tartalmát maga a feladat írja le (lásd lent: [JSON alapú feladatok](#json-alapú-feladatok)).
 - A **Feladat megtekintése: a hozzárendelt elemek megtekintése** jelölővel minden olyan sornál, ahol nincs **Kitöltöm** gomb (más feladata, vagy már elvégzett), **Megtekintem** gomb jelenik meg. Ez ugyanazt a felugró ablakot nyitja meg, de minden csak olvasható, és az alján csak a **Bezárás** gomb van; semmit nem ment.
 
-A **Felugró ablak** fülön adhatod meg, mi jelenjen meg a feladat megnyitásakor:
+A **Felugró ablak** fülön adhatod meg, mi jelenjen meg a feladat megnyitásakor (JSON alapú feladatnál ebből csak a cím érvényes):
 
 | Beállítás | Jelentés |
 | --- | --- |
@@ -511,7 +522,7 @@ A **Felugró ablak** fülön adhatod meg, mi jelenjen meg a feladat megnyitásak
 | Megjegyzés mezője | A feladatlista többsoros szöveg mezője; ide kerül a beírt megjegyzés (felülírja a korábbit). Ha nincs megadva, nincs megjegyzés. |
 | További mezők | További mezők, sorrendben; a **Kitölthető** jelölővel a felugró ablakban ki is tölthetők. |
 
-A **Gombok** fülön szabályokat adsz meg. Minden szabálynak van egy feltétele és néhány gombja; **az első teljesülő szabály gombjai** jelennek meg a felugró ablakban. A feltétel az elem (mentett) mezőit és a feladat mezőit („Feladat: …”) is látja. A feltétel nélküli szabály mindig teljesül, ezért a lista végére téve alapértelmezésként működik.
+A **Gombok** fülön szabályokat adsz meg (JSON alapú feladatnál nem; ott csak a Beküldés gomb beállított mezői adhatók meg). Minden szabálynak van egy feltétele és néhány gombja; **az első teljesülő szabály gombjai** jelennek meg a felugró ablakban. A feltétel az elem (mentett) mezőit és a feladat mezőit („Feladat: …”) is látja. A feltétel nélküli szabály mindig teljesül, ezért a lista végére téve alapértelmezésként működik.
 
 **Példa:** ha az elem állapota „A”, a feladatnál a „B” és a „C” gomb jelenjen meg, ha „D”, akkor az „E” és az „F”. Két szabály kell: az elsőnél a feltétel Állapot egyenlő A, a gombok B és C; a másodiknál Állapot egyenlő D, a gombok E és F.
 
@@ -527,12 +538,47 @@ Gombonként beállítható:
 
 A gomb megnyomásakor előbb a feladat mentődik (a megjegyzéssel és a kitöltött mezőkkel együtt), utána az elem beállított mezői. Az elemen **csak a gomb által beállított mezők** mentődnek: ha az űrlapon közben mást is átírtál, az nem mentődik el, de az űrlapon megmarad, és a szokásos Mentéssel mentheted. Ha a feladatot a megnyitása óta valaki más módosította, figyelmeztetést kapsz; zárd be az ablakot, és nyisd meg újra.
 
+### JSON alapú feladatok
+
+Vannak feladatlisták, amelyekben a feladatot létrehozó folyamat (például egy Power Automate folyamat) a feladatban maga írja le, mit kell kitölteni: egy többsoros szöveg oszlopban (például **RequestJSON**) felsorolja a kérdéseket, a kitöltő válaszai pedig egy másik oszlopba (például **ResponseJSON**) kerülnek. Ilyen listánál:
+
+1. A **Hozzárendelés** fülön kapcsold be a **JSON alapú feladat** jelölőt.
+2. Válaszd ki a **Kérés oszlopot** és a **Válasz oszlopot**. Ha a listában van RequestJSON és ResponseJSON nevű oszlop, ezek magától kiválasztódnak.
+3. A **Gombok** fülön megadhatod, hogy a **Beküldés** gomb a feladat és az űrlapon megnyitott elem mely mezőit állítsa még be (például a feladat állapotát Elvégezve értékre). Ez nem kötelező: ha a feladat lezárását a folyamat végzi, üresen hagyható.
+
+A felugró ablakban a kérésben felsorolt mezők jelennek meg, ebben a sorrendben:
+
+| Típus a kérésben | Ami megjelenik | Ami a válaszba kerül |
+| --- | --- | --- |
+| `yes/no` | **Igen** / **Nem** választógomb | `yes` vagy `no` |
+| `text` | egysoros szövegmező | a beírt szöveg |
+| `multiline` | többsoros szövegmező | a beírt szöveg |
+| `number` | szövegmező, csak számot fogad el | a szám, tizedesponttal (a beírt vessző pontra cserélődik) |
+| `date` | dátumválasztó | a dátum `ÉÉÉÉ-HH-NN` alakban (például `2026-10-30`) |
+| `choice` | legördülő lista a kérésben megadott lehetőségekkel | a választott lehetőség értéke |
+
+Ismeretlen típus egysoros szövegmezőként jelenik meg. A kötelező (`required`) mezőket csillag jelöli; igen / nem mezőnél a kötelezőség azt jelenti, hogy választani kell (az Igen és a Nem is elfogadott).
+
+A **Beküldés** gomb ellenőrzi a kötelező mezőket és a számokat, majd a kérés teljes tartalmát a kitöltött értékekkel a válasz oszlopba írja (a kérés többi része, például a feladat típusa, változatlanul megmarad), végül beállítja a Gombok fülön megadott mezőket. Ha a válasz oszlop már ki van töltve, a felugró ablak a válasz értékeit mutatja; a **Megtekintem** is ezt mutatja. Ha a kérés oszlop üres vagy nem értelmezhető, a felugró ablak figyelmeztetést mutat, és nincs Beküldés gomb.
+
+Egy kérés például így néz ki:
+
+```json
+{"taskType":"14_CS_CreatingSalesInvoice","fields":[
+  {"name":"ArePricesChecked","label":"Prices are checked on items?","type":"yes/no","required":true,"value":""},
+  {"name":"SalesInvoiceReference","label":"Sales invoice reference","type":"text","required":true,"value":""},
+  {"name":"Comment","label":"Comment","type":"multiline","required":false,"value":""}]}
+```
+
+Választásnál a lehetőségeket az `options` adja, például `"options": ["Igen", "Nem", "Részben"]`, vagy értékkel és felirattal: `"options": [{"value": "partial", "label": "Részben"}]`. A `value` kezdőértékként jelenik meg a felugró ablakban.
+
 ### Tudnivalók
 
 - A táblázat első oszlopa a kapcsolódó elem megtekintő űrlapjára mutat, új lapon.
 - **Új elem űrlapján** még nincs felsorolás, mert a párosítás az elem mentett értékével történik; egy keretes jelzés mutatja, hol jelennek majd meg a kapcsolódó elemek.
 - Az „Új elem” gomb nem tölti ki előre a párosító mezőt: az új elembe be kell írni az egyező értéket. A táblázat a **Frissítés** gombbal frissíthető.
 - Mindenki csak azokat az elemeket látja, amelyekhez a másik listán joga van.
+- A táblázat a többsoros szöveg (például megjegyzés) oszlopot formázás nélkül mutatja: a félkövér, a színek és a hivatkozások nem látszanak, a sortörések igen.
 - **A „csak a hozzárendelt nyithatja meg” nem védelem.** Aki írási jogot kapott a feladatlistán, a SharePointban közvetlenül is módosíthatja a feladatot; ha ezt korlátozni kell, a feladatlista jogosultságát kell beállítani.
 
 ## 10. Tudnivalók és korlátok
@@ -568,6 +614,15 @@ A dátumot a webhely területi beállítása szerinti formában kell megadni. A 
 
 **A melléklet mező nem jelenik meg.**
 A listán engedélyezni kell a mellékleteket, és a mezőt el kell helyezni egy szekcióban.
+
+**Nem látom a Kitöltöm gombot egy feladatnál.**
+A gomb csak annál a feladatnál jelenik meg, amelyik hozzád vagy egy SharePoint csoportodhoz van rendelve, és amelyet a beállítás szerint még ki lehet tölteni (például nincs elvégezve). Ha a kapcsolódó elemek le vannak tiltva, a gomb látszik, de nem kattintható. Ha az adminisztrátor bekapcsolta a megtekintést, a többi feladatnál **Megtekintem** gomb látszik.
+
+**A JSON alapú feladat felugró ablaka azt írja, hogy a kérés hiányzik vagy nem értelmezhető.**
+A feladat kérés oszlopa (például RequestJSON) üres, vagy a tartalma nem érvényes JSON, vagy hiányzik belőle a `fields` lista. Ezt a feladatot létrehozó folyamatban kell javítani.
+
+**A menüpont ikonja nem jelenik meg, vagy kicsit másképp néz ki, mint a gyári menüpontoké.**
+A SharePoint a saját menüpontjainak ikonját másképp jeleníti meg, mint a hozzáadott menüpontokét, ezért kis eltérés lehet. Ha egy ikon egyáltalán nem jelenik meg, válassz másikat: nem minden ikon érhető el a lista oldalán.
 
 **Az űrlap helyett a SharePoint eredeti űrlapja nyílik meg.**
 A FormJet nincs bekapcsolva ezen a listán. A webhely tulajdonosa a **FormJet beállítása** webparton tudja bekapcsolni (lásd [A FormJet bekapcsolása egy listán](#a-formjet-bekapcsolása-egy-listán)).

@@ -437,7 +437,23 @@ Tudnivalók:
 
 #### Feladatkezelés (`task`)
 
-A kapcsolódó lista elemei feladatként kezelhetők: **látni mindenki látja** a felsorolást, de **megnyitni csak az tudja** a feladatot, akihez rendelték. A megnyitott feladat felugró ablakban (`components/TaskDialog.tsx`, lazy chunk) jelenik meg: cím, leírás, további mezők, megjegyzés és a gombok. A 8. kulcsdöntés egyeztetett kivétele: a felugró ablak gombja a feladatot (és ha be van állítva, az eredeti elemet) **írja**.
+A kapcsolódó lista elemei feladatként kezelhetők: **látni mindenki látja** a felsorolást, de **megnyitni csak az tudja** a feladatot, akihez rendelték. A táblázat első (név nélküli) oszlopában a felhasználóhoz rendelt, megnyitható sor **Kitöltöm** gombot kap; ha az `allowView` be van kapcsolva, a többi sor **Megtekintem** gombot. A feladat felugró ablakban (`components/TaskDialog.tsx`, lazy chunk) jelenik meg: cím, leírás, további mezők, megjegyzés és a gombok, JSON alapú feladatnál a JSON mezői és a **Beküldés** gomb; megtekintéskor (`readOnly`) minden csak olvasható, és csak **Bezárás** van. A 8. kulcsdöntés egyeztetett kivétele: a felugró ablak gombja a feladatot (és ha be van állítva, az eredeti elemet) **írja**.
+
+JSON alapú feladat beállítása (a `descriptionField`, `commentField`, `fields` és `buttonRules` ilyenkor nem érvényes):
+
+```json
+"task": {
+  "assignedField": "AssignedTo",
+  "openWhen": { "field": "ResponseJSON", "op": "empty" },
+  "allowView": true,
+  "json": {
+    "requestField": "RequestJSON",
+    "responseField": "ResponseJSON",
+    "taskValues": [{ "field": "Status", "value": "Completed" }],
+    "itemValues": [{ "field": "Stage", "value": "Számlázva" }]
+  }
+}
+```
 
 | Tulajdonság | Jelentés |
 | --- | --- |
@@ -455,10 +471,10 @@ A kapcsolódó lista elemei feladatként kezelhetők: **látni mindenki látja**
 - **Megnyithatóság:** ha van `openWhen`, a hozzárendelt feladatok értékei betöltődnek (`RelatedListService.loadTask`), és csak a teljesülők kapnak **Kitöltöm** gombot. Letiltott elemnél és a tervezőben a gomb nem kattintható.
 - **A gombszabályok feltétele** az eredeti elem **mentett** értékeit (InternalName), a környezeti változókat (`FormContext.itemConditionValues`: mód, csoporttagság, `[IsAuthor]`, változók) és a feladat mezőit látja, utóbbiakat `[Task:<InternalName>]` alakban (`taskConditionValues`). A szabályokban hivatkozott csoportok tagságát a `collectGroupIds` gyűjti.
 - **Gomb:** `label`, `primary`, `commentRequired` (üres megjegyzésnél hibaüzenet), `taskValues` (a feladat mezői) és `itemValues` (az eredeti elem mezői), mindkettő `{ field, value }`. Az érték a kezdőérték formátumában van (`LayoutResolver.resolveFieldValue`: `[today]`, `[me]` …), a `{Mező}` az eredeti elem mentett értéke (`ListCommands.resolveTemplate`).
-- **Mentés:** előbb a feladat: a kitölthető mezők közül a módosultak, a megjegyzés és a gomb `taskValues` értékei, `validateUpdateListItem`-mel (`RelatedListService.saveTask`). Ütközésvizsgálat: ha a feladat `Modified` értéke a megnyitás óta változott, `TaskConflictError`. Utána az elem: a `FormHost` `applyItemValues` függvénye csak a gomb `itemValues` mezőit menti (csak SharePoint szerint írható mezőt, `isButtonSettableField`), az űrlap nem mentett módosításait nem; majd az elem mentett értékeit újratölti (a `Modified` is frissül, így a form későbbi mentése nem jelez ütközést), a nem mentett módosítások megmaradnak (a most beállított mezőké kivételével). Ha a feladat mentődött, de az elemé nem, a hibaüzenet mellett **Újrapróbálás** gomb jelenik meg, amely már csak az elem mezőit menti.
+- **Mentés:** előbb a feladat: a kitölthető mezők közül a módosultak, a megjegyzés és a gomb `taskValues` értékei, `validateUpdateListItem`-mel (`RelatedListService.saveTask`). Ütközésvizsgálat: ha a feladat `Modified` értéke a megnyitás óta változott, `TaskConflictError`. Utána az elem: a `FormHost` `applyItemValues` függvénye csak a gomb `itemValues` mezőit menti (csak SharePoint szerint írható mezőt, `isButtonSettableField`), az űrlap nem mentett módosításait nem; majd az elem mentett értékeit újratölti (a `Modified` is frissül, így a form későbbi mentése nem jelez ütközést), a nem mentett módosítások megmaradnak (a most beállított mezőké kivételével). Ha a feladat mentődött, de az elemé nem, a hibaüzenet mellett **Újrapróbálás** gomb jelenik meg, amely már csak az elem mezőit menti. JSON alapú feladatnál a feladat mentése a válasz oszlopot (a `buildTaskJsonResponse` eredménye) és a `json.taskValues` értékeit tartalmazza, az elem mentése a `json.itemValues`-t; a sorrend és az újrapróbálás ugyanaz.
 - A „csak a hozzárendelt nyithatja meg” **nem jogosultsági határ** (4. kulcsdöntés): a feladatlista jogosultságát a SharePointban kell beállítani.
 
-A logika az `engine/RelatedList.ts`-ben (ellenőrzés, migráció, `buildRelatedViewXml`, `buildAssignedViewXml`, `pickTaskButtons`, `isTaskOpenable`), a lekérdezés és a mentés a `services/RelatedListService.ts`-ben, a megjelenítés a `components/RelatedItems.tsx`-ben és a `components/TaskDialog.tsx`-ben van. A tervezőben a szakasz **Kapcsolódó elemek hozzáadása** gombjával vehető fel; a tulajdonságlapja (`components/RelatedElementEditor.tsx`) négy fület kap: Lista (`RelatedListEditor`, láthatóság, letiltás), Hozzárendelés, Felugró ablak, Gombok.
+A logika az `engine/RelatedList.ts`-ben (ellenőrzés, migráció, `buildRelatedViewXml`, `buildAssignedViewXml`, `pickTaskButtons`, `isTaskOpenable`, `isTaskJson`, `noteToPlainText`) és az `engine/TaskJson.ts`-ben (a JSON alapú feladat), a lekérdezés és a mentés a `services/RelatedListService.ts`-ben, a megjelenítés a `components/RelatedItems.tsx`-ben, a `components/TaskDialog.tsx`-ben és a `components/TaskJsonFields.tsx`-ben van. A tervezőben a szakasz **Kapcsolódó elemek hozzáadása** gombjával vehető fel; a tulajdonságlapja (`components/RelatedElementEditor.tsx`) négy fület kap: Lista (`RelatedListEditor`, láthatóság, letiltás), Hozzárendelés (személy mező, `openWhen`, megtekintés, JSON alapú feladat és a két oszlop), Felugró ablak, Gombok. JSON alapú feladatnál a Felugró ablak fülön csak a cím, a Gombok fülön csak a Beküldés `taskValues` / `itemValues` értékei szerkeszthetők.
 
 ### Mellékletek
 
@@ -667,10 +683,16 @@ A parancs a Heft `test` lépése: lefordítja a projektet, lefuttatja a lintet, 
 | `LayoutMoves.test.ts` | szekció és mező áthelyezése, új mező felvétele, a szélesség igazítása, az eredeti konfiguráció változatlansága |
 | `LayoutResolver.test.ts` | a példa konfiguráció mindhárom módban, láthatóság, kötelezőség, szerkeszthetőség, `parseConfig` hibái, kezdőértékek (dátum, szám, százalék, felügyelt metaadat), mellékletek |
 | `FormStyle.test.ts` | módonkénti feloldás, színátmenet, a szabad CSS-re alkalmas értékek elutasítása |
-| `RelatedList.test.ts` | a CAML lekérdezés összeállítása (a hozzárendelt feladatoké is), a mezőnevek és az érték biztonságos kezelése, a régi szakaszbeállítás átalakítása, a feladatkezelés ellenőrzése, a megnyithatóság és a gombszabályok |
+| `RelatedList.test.ts` | a CAML lekérdezés összeállítása (a hozzárendelt feladatoké is), a mezőnevek és az érték biztonságos kezelése, a régi szakaszbeállítás átalakítása, a feladatkezelés ellenőrzése (`allowView`, `json`), a megnyithatóság és a gombszabályok, a többsoros mező sima szöveggé alakítása |
 | `DateFormat.test.ts` | dátumminta, formázás és értelmezés több kultúrán, kerekítés |
 | `NumberFormat.test.ts` | tizedesjel, százalék, pénznem jele |
 | `FieldValues.test.ts` | a keresőmező, személy, hivatkozás, hely, kép, felügyelt metaadat és a mellékletek form-stringjei |
+| `TaskJson.test.ts` | a JSON alapú feladat: a kérés / válasz értelmezése (típusok, kezdőértékek, választható értékek), a válasz elsőbbsége, a kötelező és a szám ellenőrzése, a válasz összeállítása (az ismeretlen részek megőrzése) |
+| `ListCommands.test.ts` | a lista menüpontjainak ellenőrzése (az ikonnév is), láthatóság, értéksablonok |
+| `ButtonAction.test.ts` | a gomb műveleteinek ellenőrzése és lefutó lépései |
+| `TextElement.test.ts`, `Footer.test.ts` | a szövegelemek (felirat, gomb, kapcsolódó elemek) és az alsó gombsor |
+| `ConditionalValue.test.ts`, `ConditionContext.test.ts`, `FormVariables.test.ts` | feltételes értékek, környezeti változók, a form változói |
+| `UserValue.test.ts` | a személy form-string és a `[me]` / e-mail kezdőérték |
 
 Szabályok új teszthez:
 
@@ -690,6 +712,13 @@ Szabályok új teszthez:
 | Nem admin felhasználó | nincs tervező kapcsoló | nincs tervező kapcsoló | nincs tervező kapcsoló |
 | Ütközés | – | másik böngészőben mentés után figyelmeztetés | – |
 | Hibás konfiguráció JSON | alapértelmezett elrendezés, admin figyelmeztetés | ugyanígy | ugyanígy |
+| Számmal kezdődő című mező (`_x0030_…` belső név), személy és szám típussal | – | az értékek betöltődnek, a mentés működik | az értékek látszanak |
+| Kapcsolódó feladat, hozzárendelt felhasználó | szaggatott keretes jelzés | **Kitöltöm**, a gomb ment, az elem mezői frissülnek | **Kitöltöm** |
+| Kapcsolódó feladat, `allowView`, nem hozzárendelt sor | – | **Megtekintem**, csak olvasható, **Bezárás** | ugyanígy |
+| JSON alapú feladat | – | a kérés mezői; a kötelező üresen hibát ad; Beküldés után a válasz oszlop kitöltve, újranyitáskor a válasz látszik | ugyanígy |
+| JSON alapú feladat hibás kéréssel | – | figyelmeztetés, nincs Beküldés | ugyanígy |
+| Többsoros (rich text) mező a kapcsolódó elemek oszlopában | – | sima szöveg, sortörésekkel | ugyanígy |
+| Lista menüpont ikonnal | – | a helyi menüben az ikon a téma színével látszik | – |
 
 ## 10. Kiadás és telepítés
 
@@ -780,6 +809,9 @@ Visszaállítás a gyári űrlapokra: ugyanez `-Unbind` kapcsolóval. A `FormCon
 | Mező nem jelenik meg | Nincs szekcióban, vagy a feltétel hamis | Tervezőben: "Nem elhelyezett mezők", illetve a feltétel ellenőrzése |
 | Konfiguráció mentésekor ütközés | Más admin közben mentett | Újratöltés, majd a módosítások újbóli elvégzése |
 | `_x005f_` a mezőnevekben | REST kódolás | A `decodeKeys` kezeli; új lekérdezésnél is használd |
+| A menüpont ikonja nem jelenik meg | Az ikonnév a lista oldalán nincs regisztrálva (a `getIcon` nem ismeri), vagy a betűkészlet még nem töltődött be | A következő kijelölés-változás újrapróbálja; ellenőrzés a konzolban: `window.__globalSettings__.icons['<ikonnév kisbetűvel>']`; ha nincs, másik ikon |
+| JSON alapú feladatnál „a kérés hiányzik vagy nem értelmezhető” | A kérés oszlop üres, nem JSON, vagy nincs benne `fields` tömb | A feladatot létrehozó folyamatot kell javítani; a `parseTaskJson` szabályai a 6. fejezetben |
+| A kapcsolódó elemek többsoros oszlopa üres | Hozzáfűzős (verziózott) megjegyzés mező: a `renderListDataAsStream` nem feltétlenül adja vissza a szövegét | Nem hozzáfűzős mező használata, vagy a szöveg másolása egy külön mezőbe |
 | 400-as hiba az elem lekérdezésénél, ha egy mező belső neve `_`-sal kezdődik (`_x0030_9Member`) | Az OData tulajdonságnév `OData_` előtagot kap | `$select` / `$expand` és a válasz kulcsa: `sp.restFieldName`; a `FieldValuesForEdit` / `FieldValuesAsText` kulcsairól a `decodeKeys` vágja le; a mentés és a CAML a belső nevet használja |
 
 ## 12. Biztonsági megfontolások
@@ -788,3 +820,5 @@ Visszaállítás a gyári űrlapokra: ugyanez `-Unbind` kapcsolóval. A `FormCon
 - A csoporttagságra épülő feltétel (`[Group:…]`) is csak a formot szabja testre: kliens oldalon értékelődik ki, a mezőt nem védi. Érzékeny adatot ne csak így rejts el.
 - A tervező kapcsoló elrejtése csak kényelmi funkció. A konfiguráció módosítását a `FormConfigurations` lista jogosultsága dönti el.
 - A konfiguráció JSON-ja nem tartalmazhat végrehajtható kódot, és a renderelő sem értelmez belőle HTML-t. Ezt a szabályt új funkcióknál is tartsd meg.
+- A JSON alapú feladat kérése **külső adat** (a feladatot létrehozó folyamat írja): a feliratai és értékei csak szövegként jelennek meg (Fluent vezérlők, `dangerouslySetInnerHTML` nélkül), a JSON-ból semmi nem fut le és nem lesz HTML. A kapcsolódó elemek többsoros oszlopának HTML-jét a `noteToPlainText` sima szöveggé alakítja, a cella szövegként jeleníti meg.
+- A `@pnp/spfx-controls-react` csak a beállító webpart csomagjába kerül (az `IconPicker` mélyimportjával); a form customizer és a Command Set csomagja nem tartalmazza.

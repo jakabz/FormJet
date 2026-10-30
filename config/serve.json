@@ -8,7 +8,7 @@
       "formCustomizer": {
         "componentId": "89262798-3b9c-4299-9d5b-754a7e8ac6d8",
         "PageType": 8,
-        "RootFolder": "/sites/logisticworkflow-hu-szentes-dev/Lists/Products"
+        "RootFolder": "/sites/logisticworkflow-hu-szentes-dev/Lists/Triangulation"
       }
     },
     "edit": {
@@ -16,8 +16,8 @@
       "formCustomizer": {
         "componentId": "89262798-3b9c-4299-9d5b-754a7e8ac6d8",
         "PageType": 6,
-        "RootFolder": "/sites/logisticworkflow-hu-szentes-dev/Lists/Products",
-        "ID": 2392
+        "RootFolder": "/sites/logisticworkflow-hu-szentes-dev/Lists/Triangulation",
+        "ID": 708
       }
     },
     "display": {
@@ -25,8 +25,8 @@
       "formCustomizer": {
         "componentId": "89262798-3b9c-4299-9d5b-754a7e8ac6d8",
         "PageType": 4,
-        "RootFolder": "/sites/logisticworkflow-hu-szentes-dev/Lists/Products",
-        "ID": 2392
+        "RootFolder": "/sites/logisticworkflow-hu-szentes-dev/Lists/Triangulation",
+        "ID": 708
       }
     },
     "setup": {
