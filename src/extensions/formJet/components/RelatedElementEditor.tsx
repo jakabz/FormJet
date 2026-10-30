@@ -75,6 +75,7 @@ function replaceAt<T>(items: T[], index: number, item: T): T[] {
 function compactTask(task: IRelatedTaskConfig): IRelatedTaskConfig {
   const result: IRelatedTaskConfig = { assignedField: task.assignedField };
   if (task.openWhen) result.openWhen = task.openWhen;
+  if (task.allowView) result.allowView = true;
   if (task.titleField) result.titleField = task.titleField;
   if (task.descriptionField) result.descriptionField = task.descriptionField;
   if (task.commentField) result.commentField = task.commentField;
@@ -242,6 +243,12 @@ export const RelatedElementEditor: React.FC<IRelatedElementEditorProps> = (props
             onChange={(openWhen) => updateTask({ openWhen })}
           />
           <div className={classes.hint}>{strings.TaskOpenWhenHint}</div>
+          <Checkbox
+            label={strings.TaskAllowView}
+            checked={!!task.allowView}
+            onChange={(_, checked) => updateTask({ allowView: checked ? true : undefined })}
+          />
+          <div className={classes.hint}>{strings.TaskAllowViewHint}</div>
         </>
       )}
     </div>

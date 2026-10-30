@@ -389,6 +389,7 @@ Az 5-ös sémaverzió előtt a beállítás a szakasz `related` tulajdonsága vo
       "task": {
         "assignedField": "AssignedTo",
         "openWhen": { "field": "Status", "op": "ne", "value": "Elvégezve" },
+        "allowView": true,
         "descriptionField": "Body",
         "commentField": "Comment",
         "fields": [{ "field": "DueDate" }, { "field": "Result", "editable": true }],
@@ -418,7 +419,7 @@ Az 5-ös sémaverzió előtt a beállítás a szakasz `related` tulajdonsága vo
 | `listId` | GUID | – | A kapcsolódó lista azonosítója. |
 | `matchField` | InternalName | – | A kapcsolódó lista párosító mezője. |
 | `sourceField` | InternalName vagy `ID` | `ID` | Ennek a listának a mezője, amelynek értékével párosítunk. |
-| `columns` | InternalName[] | – | A megjelenített oszlopok, sorrendben. Az első oszlop a kapcsolódó elem megtekintő formjára mutat (új lapon). |
+| `columns` | InternalName[] | – | A megjelenített oszlopok, sorrendben. Az első oszlop a kapcsolódó elem megtekintő formjára mutat (új lapon). Többsoros szöveg (`Note`) is lehet: a rich text HTML-t a `RelatedList.noteToPlainText` sima szöveggé alakítja (címkék nélkül, sortörésekkel), és a cella szövegként, `pre-wrap`-pel jeleníti meg (HTML-ként soha). A `Note` rendezési mezőnek nem választható (CAML). |
 | `sortField`, `sortAscending` | InternalName, boolean | `ID`, növekvő | Rendezés. |
 | `rowLimit` | 1–500 | 30 | Sorok maximális száma; ha több elem van, a táblázat alatt jelzés látszik. |
 | `showNewButton` | boolean | false | „Új elem” gomb, amely a kapcsolódó lista új elem formját nyitja meg új lapon. |
@@ -442,13 +443,14 @@ A kapcsolódó lista elemei feladatként kezelhetők: **látni mindenki látja**
 | --- | --- |
 | `assignedField` | A kapcsolódó lista személy mezője (User / UserMulti). Üres értékkel a feladatkezelés félkész, nem működik (`isTaskEnabled`). |
 | `openWhen` | Feltétel a feladat mezőire (InternalName, plusz a környezeti változók): ha nem teljesül, a hozzárendelt feladat sem nyitható meg (például elvégezve). |
+| `allowView` | Feladat megtekintése: a **Kitöltöm** gomb nélküli sorok **Megtekintem** gombot kapnak, amely a felugró ablakot csak olvashatóan nyitja meg (`TaskDialog` `readOnly`: a mezők és a megjegyzés csak olvashatók, gombszabály nincs, csak **Bezárás**). Letiltott elemnél is elérhető, a tervezőben nem. |
 | `titleField`, `descriptionField` | A felugró ablak címe (alapból `Title`) és a cím alatti leírás (megjelenítési szövegként, `FieldValuesAsText`). |
 | `commentField` | Többsoros szöveg mező; a beírt megjegyzés felülírja (csak ha a szöveg változott). Hiányában nincs megjegyzés. |
 | `fields` | További mezők sorrendben; `editable: true` esetén kitölthetők (a `FieldRenderer` vezérlőjével; mellékletek és kép nem). |
 | `buttonRules` | `{ when, buttons }` szabályok: az **első teljesülő** szabály gombjai jelennek meg (`pickTaskButtons`); feltétel nélkül a szabály mindig teljesül. |
 
 - **Hozzárendelés:** a felsorolás mellett egy második CAML lekérdezés adja a felhasználóhoz rendelt sorokat (`buildAssignedViewXml`): párosítás ÉS (`<Eq>` / `<Includes>` a `<UserID/>`-ra VAGY `<Membership Type='CurrentUserGroups'>`). A SharePoint-csoporttagságot így a SharePoint dönti el; több személyes mezőnél bármelyik szereplő megnyithatja. A közvetlenül a mezőbe felvett Entra-csoport tagságát a `Membership` nem vizsgálja.
-- **Megnyithatóság:** ha van `openWhen`, a hozzárendelt feladatok értékei betöltődnek (`RelatedListService.loadTask`), és csak a teljesülők kapnak **Megnyitás** gombot. Letiltott elemnél és a tervezőben a gomb nem kattintható.
+- **Megnyithatóság:** ha van `openWhen`, a hozzárendelt feladatok értékei betöltődnek (`RelatedListService.loadTask`), és csak a teljesülők kapnak **Kitöltöm** gombot. Letiltott elemnél és a tervezőben a gomb nem kattintható.
 - **A gombszabályok feltétele** az eredeti elem **mentett** értékeit (InternalName), a környezeti változókat (`FormContext.itemConditionValues`: mód, csoporttagság, `[IsAuthor]`, változók) és a feladat mezőit látja, utóbbiakat `[Task:<InternalName>]` alakban (`taskConditionValues`). A szabályokban hivatkozott csoportok tagságát a `collectGroupIds` gyűjti.
 - **Gomb:** `label`, `primary`, `commentRequired` (üres megjegyzésnél hibaüzenet), `taskValues` (a feladat mezői) és `itemValues` (az eredeti elem mezői), mindkettő `{ field, value }`. Az érték a kezdőérték formátumában van (`LayoutResolver.resolveFieldValue`: `[today]`, `[me]` …), a `{Mező}` az eredeti elem mentett értéke (`ListCommands.resolveTemplate`).
 - **Mentés:** előbb a feladat: a kitölthető mezők közül a módosultak, a megjegyzés és a gomb `taskValues` értékei, `validateUpdateListItem`-mel (`RelatedListService.saveTask`). Ütközésvizsgálat: ha a feladat `Modified` értéke a megnyitás óta változott, `TaskConflictError`. Utána az elem: a `FormHost` `applyItemValues` függvénye csak a gomb `itemValues` mezőit menti (csak SharePoint szerint írható mezőt, `isButtonSettableField`), az űrlap nem mentett módosításait nem; majd az elem mentett értékeit újratölti (a `Modified` is frissül, így a form későbbi mentése nem jelez ütközést), a nem mentett módosítások megmaradnak (a most beállított mezőké kivételével). Ha a feladat mentődött, de az elemé nem, a hibaüzenet mellett **Újrapróbálás** gomb jelenik meg, amely már csak az elem mezőit menti.

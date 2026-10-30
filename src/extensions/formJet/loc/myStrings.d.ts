@@ -442,6 +442,9 @@ declare interface IFormJetFormCustomizerStrings {
   TaskItemValueHint: string;
   TaskVarField: string;
   TaskOpen: string;
+  TaskAllowView: string;
+  TaskAllowViewHint: string;
+  TaskView: string;
   TaskTitleFallback: string;
   TaskLoadFailed: string;
   TaskComment: string;

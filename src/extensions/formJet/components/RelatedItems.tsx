@@ -1,8 +1,9 @@
 // Kapcsolódó elemek: egy másik lista párosított elemei csak olvasható táblázatban. Feladatkezelésnél a bejelentkezett
-// felhasználóhoz rendelt (és megnyitható) sorok felugró ablakban elvégezhetők.
+// felhasználóhoz rendelt (és megnyitható) sorok felugró ablakban elvégezhetők (Kitöltöm); ha a feladat megtekintése be van
+// kapcsolva, a többi sor csak olvasható felugró ablakban megtekinthető (Megtekintem).
 
 import * as React from 'react';
-import { DefaultButton, IconButton } from '@fluentui/react/lib/Button';
+import { DefaultButton, IButtonStyles, IconButton } from '@fluentui/react/lib/Button';
 import { DetailsList, DetailsListLayoutMode, IColumn, SelectionMode } from '@fluentui/react/lib/DetailsList';
 import { Link } from '@fluentui/react/lib/Link';
 import { MessageBar, MessageBarType } from '@fluentui/react/lib/MessageBar';
@@ -22,6 +23,7 @@ import { FormContext } from './FormContext';
 const TaskDialog = React.lazy(() => import(/* webpackChunkName: 'formjet-task' */ './TaskDialog'));
 
 const ACTION_COLUMN: string = '__task';
+const ROW_BUTTON_STYLES: IButtonStyles = { root: { height: 24, padding: '0 8px', minWidth: 0 } };
 
 const classes = mergeStyleSets({
   toolbar: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 },
@@ -37,7 +39,9 @@ const classes = mergeStyleSets({
     textAlign: 'center',
     background: '#faf9f8'
   },
-  table: { overflowX: 'auto' }
+  table: { overflowX: 'auto' },
+  // A többsoros szöveg sortörései megmaradnak.
+  note: { whiteSpace: 'pre-wrap' }
 });
 
 export interface IRelatedItemsProps {
@@ -61,7 +65,7 @@ export const RelatedItems: React.FC<IRelatedItemsProps> = (props) => {
   const [reloadCount, setReloadCount] = React.useState<number>(0);
   // A hozzárendelt sorok közül a megnyithatók (a feladat megnyithatóságának feltétele szerint).
   const [openable, setOpenable] = React.useState<number[]>([]);
-  const [openTask, setOpenTask] = React.useState<number | undefined>();
+  const [openTask, setOpenTask] = React.useState<{ id: number; readOnly: boolean } | undefined>();
 
   const complete: boolean = isRelatedComplete(config);
   // A párosítás a mentett elem értékével történik, nem a formon éppen szerkesztett értékkel.
@@ -119,6 +123,8 @@ export const RelatedItems: React.FC<IRelatedItemsProps> = (props) => {
   const taskMode: boolean = isTaskEnabled(config);
   // Letiltva (vagy a tervezőben) a feladatok nem nyithatók meg, de a felsorolás látszik.
   const canOpen: boolean = taskMode && !props.field.readOnly && !props.designing;
+  // A megtekintés nem módosít semmit, ezért letiltott elemnél is elérhető (a tervezőben nem).
+  const viewMode: boolean = taskMode && !!config.task?.allowView;
 
   const columns: IColumn[] = React.useMemo(() => {
     const result: IColumn[] = (data?.columns ?? []).map((column, index) => ({
@@ -136,32 +142,42 @@ export const RelatedItems: React.FC<IRelatedItemsProps> = (props) => {
           <Link href={itemUrl(data.displayFormUrl, row.id)} target="_blank" rel="noopener noreferrer">
             {text || `#${row.id}`}
           </Link>
+        ) : column.type === 'Note' ? (
+          <span className={classes.note}>{text}</span>
         ) : (
           text
         );
       }
     }));
     if (taskMode) {
-      // A feladat megnyitása: csak a felhasználóhoz rendelt, megnyitható soroknál.
+      // Kitöltöm: a felhasználóhoz rendelt, megnyitható soroknál; Megtekintem: a többinél, ha a megtekintés be van kapcsolva.
       result.unshift({
         key: ACTION_COLUMN,
         name: '',
-        minWidth: 90,
-        maxWidth: 110,
+        minWidth: viewMode ? 120 : 90,
+        maxWidth: viewMode ? 140 : 110,
         onRender: (row: RelatedListService.IRelatedRow): React.ReactNode =>
           openable.indexOf(row.id) !== -1 ? (
             <DefaultButton
               iconProps={{ iconName: 'TaskManager' }}
               text={strings.TaskOpen}
               disabled={!canOpen}
-              styles={{ root: { height: 24, padding: '0 8px', minWidth: 0 } }}
-              onClick={() => setOpenTask(row.id)}
+              styles={ROW_BUTTON_STYLES}
+              onClick={() => setOpenTask({ id: row.id, readOnly: false })}
+            />
+          ) : viewMode ? (
+            <DefaultButton
+              iconProps={{ iconName: 'View' }}
+              text={strings.TaskView}
+              disabled={props.designing}
+              styles={ROW_BUTTON_STYLES}
+              onClick={() => setOpenTask({ id: row.id, readOnly: true })}
             />
           ) : null
       });
     }
     return result;
-  }, [data, taskMode, openable, canOpen]);
+  }, [data, taskMode, viewMode, openable, canOpen, props.designing]);
 
   if (!complete) {
     return props.designing ? <div className={classes.hint}>{strings.RelatedIncomplete}</div> : <></>;
@@ -211,8 +227,9 @@ export const RelatedItems: React.FC<IRelatedItemsProps> = (props) => {
         <React.Suspense fallback={<Spinner size={SpinnerSize.small} />}>
           <TaskDialog
             listId={config.listId}
-            taskId={openTask}
+            taskId={openTask.id}
             task={config.task}
+            readOnly={openTask.readOnly}
             onDismiss={() => setOpenTask(undefined)}
             onCompleted={() => setReloadCount((count) => count + 1)}
           />

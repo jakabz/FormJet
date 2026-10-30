@@ -65,6 +65,36 @@ export function isRelatedComplete(config: IRelatedListConfig | undefined, withou
   );
 }
 
+/** HTML címke (a többsoros rich text mező értékében). */
+const HTML_TAG: RegExp = /<\/?[a-zA-Z][^>]*>/;
+const NAMED_ENTITIES: Record<string, string> = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ' };
+
+/**
+ * A többsoros szöveg mező cellaértéke sima szövegként: a rich text HTML-ből a címkék kimaradnak, a sortörések és a
+ * bekezdések sortöréssé válnak, a karakterhivatkozások feloldódnak. A sima szöveg (címke nélkül) változatlan marad.
+ * A táblázat szövegként jeleníti meg, HTML-ként soha.
+ */
+export function noteToPlainText(value: string): string {
+  if (!HTML_TAG.test(value)) {
+    return value;
+  }
+  return value
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/(p|div|li|h[1-6]|tr)>/gi, '\n')
+    .replace(/<[^>]*>/g, '')
+    .replace(/&(#x[0-9a-fA-F]+|#[0-9]+|[a-zA-Z]+);/g, (entity: string, code: string) => {
+      if (code[0] === '#') {
+        const point: number = code[1] === 'x' || code[1] === 'X' ? parseInt(code.substring(2), 16) : parseInt(code.substring(1), 10);
+        return point > 0 && point <= 0x10ffff ? String.fromCodePoint(point) : entity;
+      }
+      return NAMED_ENTITIES[code.toLowerCase()] ?? entity;
+    })
+    .replace(/\u200b/g, '')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
 export function getRowLimit(config: IRelatedListConfig): number {
   return config.rowLimit ?? DEFAULT_ROW_LIMIT;
 }
@@ -184,6 +214,7 @@ function parseTask(input: unknown, path: string): IRelatedTaskConfig | undefined
   const task: IRelatedTaskConfig = { assignedField: parseFieldName(input.assignedField, `${path}.assignedField`) };
   const openWhen: Condition | undefined = parseCondition(input.openWhen, `${path}.openWhen`);
   if (openWhen) task.openWhen = openWhen;
+  if (input.allowView === true) task.allowView = true;
   const titleField: string = parseFieldName(input.titleField, `${path}.titleField`);
   if (titleField !== '') task.titleField = titleField;
   const descriptionField: string = parseFieldName(input.descriptionField, `${path}.descriptionField`);

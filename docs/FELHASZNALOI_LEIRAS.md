@@ -484,8 +484,8 @@ A szakasz tulajdonságai között a **Kapcsolódó elemek hozzáadása** gombbal
 | Kapcsolódó lista | Melyik listából jöjjenek az elemek (ugyanazon a webhelyen). |
 | Párosító mező a kapcsolódó listában | A másik lista mezője, amely alapján az elemek összetartoznak. |
 | Ennek az elemnek ezzel a mezőjével egyezik | A megnyitott elem mezője (vagy az azonosítója), amellyel egyeznie kell. |
-| Oszlopok | A táblázat oszlopai, a kiválasztás sorrendjében. |
-| Rendezés, Csökkenő sorrend | A sorok sorrendje. |
+| Oszlopok | A táblázat oszlopai, a kiválasztás sorrendjében. Többsoros szöveg mező (például megjegyzés) is választható: formázás nélkül, a sortörésekkel jelenik meg. |
+| Rendezés, Csökkenő sorrend | A sorok sorrendje. Többsoros szöveg mező szerint nem lehet rendezni. |
 | Sorok maximális száma | Alapból 30. |
 | „Új elem” gomb megjelenítése | Megjelenjen-e gomb a másik lista új elem űrlapjának megnyitásához. |
 | Látható ezekben a módokban, Látható, ha | Mikor jelenjen meg a felsorolás. |
@@ -497,8 +497,9 @@ A szakasz tulajdonságai között a **Kapcsolódó elemek hozzáadása** gombbal
 
 Ha a kapcsolódó lista feladatokat tartalmaz, a **Hozzárendelés** fülön kapcsold be a **Feladatkezelés** lehetőséget, és válaszd ki, melyik személy mező mondja meg, kihez tartozik a feladat. Ezután:
 
-- **Látni mindenki látja** a felsorolást, de a **Megnyitás** gomb csak annál a sornál jelenik meg, amelyik neked szól: a személy mezőben te szerepelsz, vagy egy SharePoint csoport, amelynek tagja vagy. Ha a mező több személyt tartalmaz, bármelyikük megnyithatja.
+- **Látni mindenki látja** a felsorolást, de a **Kitöltöm** gomb csak annál a sornál jelenik meg, amelyik neked szól: a személy mezőben te szerepelsz, vagy egy SharePoint csoport, amelynek tagja vagy. Ha a mező több személyt tartalmaz, bármelyikük megnyithatja.
 - A **Megnyitható, ha** feltétellel a feladat mezői alapján szűkítheted, mikor nyitható meg (például: Állapot nem egyenlő Elvégezve). Így az elvégzett feladatot már nem lehet újra megnyitni.
+- A **Feladat megtekintése: a hozzárendelt elemek megtekintése** jelölővel minden olyan sornál, ahol nincs **Kitöltöm** gomb (más feladata, vagy már elvégzett), **Megtekintem** gomb jelenik meg. Ez ugyanazt a felugró ablakot nyitja meg, de minden csak olvasható, és az alján csak a **Bezárás** gomb van; semmit nem ment.
 
 A **Felugró ablak** fülön adhatod meg, mi jelenjen meg a feladat megnyitásakor:
 

@@ -1,5 +1,6 @@
 // A kapcsolódó elemek feladatának felugró ablaka: cím, leírás, további mezők, megjegyzés és a gombszabályok szerinti
-// gombok. A gomb a feladat (és ha be van állítva, az eredeti elem) mezőit menti, form-stringekkel.
+// gombok. A gomb a feladat (és ha be van állítva, az eredeti elem) mezőit menti, form-stringekkel. Megtekintéskor
+// (readOnly) minden csak olvasható, és csak a Bezárás gomb látszik.
 // Külön csomagrészként töltődik be (a RelatedItems React.lazy-vel).
 
 import * as React from 'react';
@@ -38,6 +39,8 @@ export interface ITaskDialogProps {
   listId: string;
   taskId: number;
   task: IRelatedTaskConfig;
+  /** Megtekintés: a mezők és a megjegyzés csak olvashatók, a gombszabályok gombjai nem jelennek meg. */
+  readOnly?: boolean;
   onDismiss: () => void;
   /** Sikeres mentés után (a felsorolás frissítéséhez). */
   onCompleted: () => void;
@@ -64,7 +67,7 @@ function taskField(schema: IFieldSchema, editable: boolean): IResolvedField {
 }
 
 const TaskDialog: React.FC<ITaskDialogProps> = (props) => {
-  const { listId, taskId, task } = props;
+  const { listId, taskId, task, readOnly } = props;
   const context: IFormContext = React.useContext(FormContext);
   const [schema, setSchema] = React.useState<IFieldSchema[] | undefined>();
   const [data, setData] = React.useState<RelatedListService.ITaskData | undefined>();
@@ -104,8 +107,8 @@ const TaskDialog: React.FC<ITaskDialogProps> = (props) => {
     name ? (schema ?? []).filter((field) => field.InternalName === name)[0] : undefined;
 
   const buttons: ITaskButton[] = React.useMemo(
-    () => (data ? pickTaskButtons(task, taskConditionValues(context.itemConditionValues, data.values)) : []),
-    [data, task, context.itemConditionValues]
+    () => (data && !readOnly ? pickTaskButtons(task, taskConditionValues(context.itemConditionValues, data.values)) : []),
+    [data, task, readOnly, context.itemConditionValues]
   );
 
   // A felugró ablak mezői a saját értékeikkel jelennek meg; a feladatnak nincsenek mellékletei és függő képei.
@@ -212,7 +215,7 @@ const TaskDialog: React.FC<ITaskDialogProps> = (props) => {
               if (!field) {
                 return undefined;
               }
-              const resolved: IResolvedField = taskField(field, !!item.editable && !taskSaved);
+              const resolved: IResolvedField = taskField(field, !!item.editable && !taskSaved && !readOnly);
               const value: string = values[item.field] ?? '';
               return (
                 <FieldRenderer
@@ -232,12 +235,13 @@ const TaskDialog: React.FC<ITaskDialogProps> = (props) => {
               autoAdjustHeight
               rows={4}
               disabled={busy || taskSaved}
+              readOnly={readOnly}
               value={comment}
               errorMessage={commentError}
               onChange={(_, v) => setComment(v ?? '')}
             />
           )}
-          {data && buttons.length === 0 && <div className={classes.hint}>{strings.TaskNoButtons}</div>}
+          {data && !readOnly && buttons.length === 0 && <div className={classes.hint}>{strings.TaskNoButtons}</div>}
         </div>
       </FormContext.Provider>
       <DialogFooter>
@@ -252,7 +256,7 @@ const TaskDialog: React.FC<ITaskDialogProps> = (props) => {
           <PrimaryButton text={strings.TaskRetry} disabled={busy} onClick={() => run(retryButton).catch(() => undefined)} />
         )}
         {busy && <Spinner size={SpinnerSize.small} />}
-        <DefaultButton text={taskSaved ? strings.Close : strings.Cancel} disabled={busy} onClick={props.onDismiss} />
+        <DefaultButton text={taskSaved || readOnly ? strings.Close : strings.Cancel} disabled={busy} onClick={props.onDismiss} />
       </DialogFooter>
     </Dialog>
   );

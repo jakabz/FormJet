@@ -9,6 +9,7 @@ import {
   isTaskEnabled,
   isTaskOpenable,
   normalizeMatchValue,
+  noteToPlainText,
   pickTaskButtons,
   taskConditionValues
 } from '../RelatedList';
@@ -31,6 +32,14 @@ function parseRelatedSection(config: unknown, fields: unknown[] = []): ReturnTyp
 }
 
 describe('RelatedList', () => {
+  it('noteToPlainText: a rich text HTML sima szöveggé válik, a sima szöveg változatlan', () => {
+    expect(noteToPlainText('Első sor\nMásodik <b nélkül')).toBe('Első sor\nMásodik <b nélkül');
+    expect(
+      noteToPlainText('<div class="ExternalClassA"><p>Szia&nbsp;&amp; üdv<br>két sor</p><p>&lt;tag&gt; &#233; &#x151;</p><script>x</script></div>')
+    ).toBe('Szia & üdv\nkét sor\n<tag> é ő\nx');
+    expect(noteToPlainText('<p></p>')).toBe('');
+  });
+
   describe('buildRelatedViewXml', () => {
     it('szöveges párosítás: az érték XML-ben biztonságosan szerepel', () => {
       const xml = buildRelatedViewXml(related, 'Text', "IG-2026/001 <A&B> 'x'") as string;
@@ -169,6 +178,7 @@ describe('RelatedList', () => {
     const task: IRelatedTaskConfig = {
       assignedField: 'AssignedTo',
       openWhen: { field: 'Status', op: 'ne', value: 'Elvégezve' },
+      allowView: true,
       commentField: 'Comment',
       fields: [{ field: 'DueDate' }, { field: 'Result', editable: true }],
       buttonRules: [
@@ -189,6 +199,7 @@ describe('RelatedList', () => {
         parseConfig(configJson({ schemaVersion: 5, texts: { 'related:1': { kind: 'related', name: 'x', related: { ...related, task: value } } } }));
       expect(parse(task).config?.texts?.['related:1'].related?.task).toEqual(task);
       expect(parse({}).config?.texts?.['related:1'].related?.task).toEqual({ assignedField: '' });
+      expect(parse({ assignedField: 'A', allowView: 'yes' }).config?.texts?.['related:1'].related?.task).toEqual({ assignedField: 'A' });
       expect(parse({ assignedField: 'A B' }).error).toContain('task.assignedField');
       expect(parse({ assignedField: 'A', openWhen: { field: 'X', op: 'between' } }).error).toBeDefined();
       expect(parse({ assignedField: 'A', buttonRules: [{ buttons: [{ label: 'x', taskValues: [{ field: "x'" }] }] }] }).error).toContain(

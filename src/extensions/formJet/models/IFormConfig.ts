@@ -150,6 +150,8 @@ export interface IRelatedTaskConfig {
   assignedField: string;
   /** A feladat mezőire (InternalName) vonatkozó feltétel: ha nem teljesül, a feladat nem nyitható meg (például elvégezve). */
   openWhen?: Condition;
+  /** Feladat megtekintése: a nem kitölthető sorok is megnyithatók, csak olvasható felugró ablakban (Bezárás gombbal). */
+  allowView?: boolean;
   /** A felugró ablak címe: a feladat ezen mezőjének értéke. Hiányában a `Title`. */
   titleField?: string;
   /** A felugró ablakban a cím alatt megjelenő leírás mezője. */

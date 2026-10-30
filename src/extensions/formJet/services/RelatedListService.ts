@@ -1,7 +1,7 @@
 // Kapcsolódó elemek: a webhely listái, egy lista mezői, és a párosított elemek lekérdezése.
 // Feladatkezelésnél a felhasználóhoz rendelt elemek, egy feladat betöltése és mentése (validateUpdateListItem).
 
-import { buildAssignedViewXml, buildRelatedViewXml, getRowLimit, ID_FIELD, isTaskEnabled } from '../engine/RelatedList';
+import { buildAssignedViewXml, buildRelatedViewXml, getRowLimit, ID_FIELD, isTaskEnabled, noteToPlainText } from '../engine/RelatedList';
 import { FormValues, IFieldSchema } from '../models/IFieldSchema';
 import { IRelatedListConfig } from '../models/IFormConfig';
 import * as ItemService from './ItemService';
@@ -190,7 +190,9 @@ export async function getRelatedItems(config: IRelatedListConfig, sourceValue: s
   const rows: IRelatedRow[] = rawRows.slice(0, limit).map((row) => {
     const values: Record<string, string> = {};
     columns.forEach((column) => {
-      values[column.name] = toText(row[column.name]);
+      const text: string = toText(row[column.name]);
+      // A többsoros (rich text) mező HTML-je sima szövegként kerül a táblázatba.
+      values[column.name] = column.type === 'Note' ? noteToPlainText(text) : text;
     });
     return { id: parseInt(toText(row[ID_FIELD]), 10), values };
   });

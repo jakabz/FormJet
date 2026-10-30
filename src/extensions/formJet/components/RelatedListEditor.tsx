@@ -27,8 +27,8 @@ const classes = mergeStyleSets({
   hint: { fontSize: 12, color: '#605e5c' }
 });
 
-/** A táblázat egyszerű szövegként jelenít meg, ezért a többsoros (HTML) mező nem választható oszlopnak. */
-const NON_COLUMN_TYPES: string[] = ['Note'];
+/** A többsoros szöveg mező oszlopnak választható (sima szövegként jelenik meg), de a CAML nem tud szerinte rendezni. */
+const NON_SORTABLE_TYPES: string[] = ['Note'];
 
 export interface IRelatedListEditorProps {
   value: IRelatedListConfig;
@@ -106,11 +106,11 @@ export const RelatedListEditor: React.FC<IRelatedListEditorProps> = (props) => {
       .filter((field) => isMatchableType(field.TypeAsString))
       .map((field) => fieldOption(field.InternalName, field.Title))
   ];
-  const columnFields: RelatedListService.IListFieldInfo[] = fields.filter(
-    (field) => NON_COLUMN_TYPES.indexOf(field.type) === -1
-  );
-  const columnOptions: IDropdownOption[] = columnFields.map((field) => fieldOption(field.name, field.title));
-  const sortOptions: IDropdownOption[] = [{ key: '', text: '' }, ...columnOptions];
+  const columnOptions: IDropdownOption[] = fields.map((field) => fieldOption(field.name, field.title));
+  const sortOptions: IDropdownOption[] = [
+    { key: '', text: '' },
+    ...fields.filter((field) => NON_SORTABLE_TYPES.indexOf(field.type) === -1).map((field) => fieldOption(field.name, field.title))
+  ];
 
   const onLimitChange = (text: string): void => {
     setLimitText(text);
