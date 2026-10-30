@@ -30,6 +30,15 @@ export function getSP(context?: SpfxContext): SPFI {
   return sp;
 }
 
+/**
+ * A mező neve a REST (OData) lekérdezésben (`$select`, `$expand`) és a válaszban: az aláhúzással kezdődő belső név
+ * (pl. számmal kezdődő megjelenítendő névből: `_x0030_9Member`) `OData_` előtagot kap. A mentés (validateUpdateListItem)
+ * és a CAML továbbra is a belső nevet használja.
+ */
+export function restFieldName(internalName: string): string {
+  return internalName.startsWith('_') ? `OData_${internalName}` : internalName;
+}
+
 /** A felhasználó hozzáférési tokenje egy Microsoft 365 erőforráshoz (nem SharePoint hívásokhoz). */
 export async function getAadToken(resource: string): Promise<string> {
   if (!spfxContext) {

@@ -776,6 +776,7 @@ Visszaállítás a gyári űrlapokra: ugyanez `-Unbind` kapcsolóval. A `FormCon
 | Mező nem jelenik meg | Nincs szekcióban, vagy a feltétel hamis | Tervezőben: "Nem elhelyezett mezők", illetve a feltétel ellenőrzése |
 | Konfiguráció mentésekor ütközés | Más admin közben mentett | Újratöltés, majd a módosítások újbóli elvégzése |
 | `_x005f_` a mezőnevekben | REST kódolás | A `decodeKeys` kezeli; új lekérdezésnél is használd |
+| 400-as hiba az elem lekérdezésénél, ha egy mező belső neve `_`-sal kezdődik (`_x0030_9Member`) | Az OData tulajdonságnév `OData_` előtagot kap | `$select` / `$expand` és a válasz kulcsa: `sp.restFieldName`; a `FieldValuesForEdit` / `FieldValuesAsText` kulcsairól a `decodeKeys` vágja le; a mentés és a CAML a belső nevet használja |
 
 ## 12. Biztonsági megfontolások
 

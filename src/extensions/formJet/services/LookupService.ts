@@ -1,6 +1,6 @@
 // A keresőmező (lookup) választható elemei a hivatkozott listából.
 
-import { getSP } from './sp';
+import { getSP, restFieldName } from './sp';
 
 /** Ennyi elemet töltünk be választhatónak; nagyobb listánál a többi nem jelenik meg a listában. */
 export const LOOKUP_OPTION_LIMIT: number = 2000;
@@ -24,17 +24,18 @@ function toText(value: unknown): string {
 
 async function query(listId: string, showField: string): Promise<ILookupOptions> {
   const items = getSP().web.lists.getById(listId).items;
-  const select: string[] = showField === 'Id' || showField === 'ID' ? ['Id'] : ['Id', showField];
+  const restField: string = restFieldName(showField);
+  const select: string[] = showField === 'Id' || showField === 'ID' ? ['Id'] : ['Id', restField];
   let rows: Array<Record<string, unknown>>;
   try {
-    rows = (await items.select(...select).orderBy(showField).top(LOOKUP_OPTION_LIMIT + 1)()) as Array<Record<string, unknown>>;
+    rows = (await items.select(...select).orderBy(restField).top(LOOKUP_OPTION_LIMIT + 1)()) as Array<Record<string, unknown>>;
   } catch {
     // Nem minden mezőtípus szerint lehet rendezni; ilyenkor rendezés nélkül kérdezünk, és itt rendezünk.
     rows = (await items.select(...select).top(LOOKUP_OPTION_LIMIT + 1)()) as Array<Record<string, unknown>>;
   }
   const options: ILookupOption[] = rows.slice(0, LOOKUP_OPTION_LIMIT).map((row) => {
     const id: number = Number(row.Id);
-    return { id, text: toText(row[showField]) || `#${id}` };
+    return { id, text: toText(row[restField]) || `#${id}` };
   });
   options.sort((a, b) => a.text.localeCompare(b.text));
   return { options, hasMore: rows.length > LOOKUP_OPTION_LIMIT };

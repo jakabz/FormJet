@@ -10,7 +10,7 @@ import { parseLocationValue, serializeLocationValue } from '../engine/LocationVa
 import { serializeTaxonomyValue } from '../engine/TaxonomyValue';
 import { serializeUrlValue } from '../engine/UrlValue';
 import { FieldErrors, FormValues, IFieldSchema } from '../models/IFieldSchema';
-import { getSP } from './sp';
+import { getSP, restFieldName } from './sp';
 
 export interface IItemData {
   /** FieldValuesForEdit: form-string értékek, ezeket írjuk vissza. */
@@ -48,7 +48,10 @@ export function decodeKeys(input: Record<string, unknown>): FormValues {
       return;
     }
     const value: unknown = input[key];
-    result[key.replace(/_x005f_/g, '_')] = value === null || value === undefined ? '' : String(value);
+    // Az aláhúzással kezdődő belső név OData_ előtaggal jön (OData__x005f_x0030_x005f_2Comment → OData__x0030_2Comment);
+    // az előtagot levágjuk, hogy a kulcs a belső név legyen (_x0030_2Comment).
+    const decoded: string = key.replace(/_x005f_/g, '_');
+    result[decoded.indexOf('OData__') === 0 ? decoded.substring('OData_'.length) : decoded] = value === null || value === undefined ? '' : String(value);
   });
   return result;
 }
@@ -101,15 +104,16 @@ export async function loadUserValues(listId: string, itemId: number, fieldNames:
   for (let start: number = 0; start < fieldNames.length; start += USER_FIELDS_PER_REQUEST) {
     const names: string[] = fieldNames.slice(start, start + USER_FIELDS_PER_REQUEST);
     const selects: string[] = [];
-    names.forEach((name) => selects.push(`${name}/Name`, `${name}/Title`, `${name}/EMail`));
+    const restNames: string[] = names.map(restFieldName);
+    restNames.forEach((name) => selects.push(`${name}/Name`, `${name}/Title`, `${name}/EMail`));
     // Minden kérés saját lekérdezés-objektumot kap: a PnPjs v4-ben ugyanaz az objektum nem futtatható egyszerre
     // többször (a párhuzamos futtatás összekeveri az állapotát, és a kérés válasz nélkül marad).
     const item = getSP().web.lists.getById(listId).items.getById(itemId);
     requests.push(
-      (item.select(...selects).expand(...names)() as Promise<Record<string, unknown>>)
+      (item.select(...selects).expand(...restNames)() as Promise<Record<string, unknown>>)
         .then((data) => {
           names.forEach((name) => {
-            result[name] = toUserFormString(data[name]);
+            result[name] = toUserFormString(data[restFieldName(name)]);
           });
         })
         .catch(() => undefined)
@@ -138,9 +142,9 @@ export async function loadLookupValues(listId: string, itemId: number, fields: I
   const item = getSP().web.lists.getById(listId).items.getById(itemId);
   const result: FormValues = {};
   try {
-    const data = (await item.select(...fields.map((field) => `${field.name}Id`))()) as Record<string, unknown>;
+    const data = (await item.select(...fields.map((field) => `${restFieldName(field.name)}Id`))()) as Record<string, unknown>;
     fields.forEach((field) => {
-      result[field.name] = serializeLookupValue(toLookupIds(data[`${field.name}Id`]), field.multiple);
+      result[field.name] = serializeLookupValue(toLookupIds(data[`${restFieldName(field.name)}Id`]), field.multiple);
     });
   } catch {
     // Marad a FieldValuesForEdit értéke.
@@ -156,9 +160,9 @@ export async function loadUrlValues(listId: string, itemId: number, fieldNames: 
   const item = getSP().web.lists.getById(listId).items.getById(itemId);
   const result: FormValues = {};
   try {
-    const data = (await item.select(...fieldNames)()) as Record<string, unknown>;
+    const data = (await item.select(...fieldNames.map(restFieldName))()) as Record<string, unknown>;
     fieldNames.forEach((name) => {
-      const value = data[name] as { Url?: string; Description?: string } | null | undefined;
+      const value = data[restFieldName(name)] as { Url?: string; Description?: string } | null | undefined;
       result[name] = serializeUrlValue({ url: value?.Url ?? '', description: value?.Description ?? '' });
     });
   } catch {
@@ -175,9 +179,9 @@ export async function loadLocationValues(listId: string, itemId: number, fieldNa
   const item = getSP().web.lists.getById(listId).items.getById(itemId);
   const result: FormValues = {};
   try {
-    const data = (await item.select(...fieldNames)()) as Record<string, unknown>;
+    const data = (await item.select(...fieldNames.map(restFieldName))()) as Record<string, unknown>;
     fieldNames.forEach((name) => {
-      const value: unknown = data[name];
+      const value: unknown = data[restFieldName(name)];
       // A REST a helyet JSON szövegként adja; objektumként érkező értéket is elfogadunk.
       const text: string = typeof value === 'string' ? value : value ? JSON.stringify(value) : '';
       result[name] = serializeLocationValue(parseLocationValue(text));
@@ -196,9 +200,9 @@ export async function loadImageValues(listId: string, itemId: number, fieldNames
   const item = getSP().web.lists.getById(listId).items.getById(itemId);
   const result: FormValues = {};
   try {
-    const data = (await item.select(...fieldNames)()) as Record<string, unknown>;
+    const data = (await item.select(...fieldNames.map(restFieldName))()) as Record<string, unknown>;
     fieldNames.forEach((name) => {
-      const value: unknown = data[name];
+      const value: unknown = data[restFieldName(name)];
       const text: string = typeof value === 'string' ? value : value ? JSON.stringify(value) : '';
       result[name] = parseImageValue(text) ? text : '';
     });
@@ -227,9 +231,10 @@ export async function loadTaxonomyValues(listId: string, itemId: number, fields:
   const item = getSP().web.lists.getById(listId).items.getById(itemId);
   const result: FormValues = {};
   try {
-    const data = (await item.select(...fields.map((field) => field.name))()) as Record<string, unknown>;
+    const data = (await item.select(...fields.map((field) => restFieldName(field.name)))()) as Record<string, unknown>;
     fields.forEach((field) => {
-      const raw: unknown = (data[field.name] as { results?: unknown } | undefined)?.results ?? data[field.name];
+      const value: unknown = data[restFieldName(field.name)];
+      const raw: unknown = (value as { results?: unknown } | undefined)?.results ?? value;
       const list: ITaxonomyRestValue[] = Array.isArray(raw) ? raw : raw ? [raw as ITaxonomyRestValue] : [];
       const terms = list
         .filter((value) => !!value && !!value.TermGuid)
