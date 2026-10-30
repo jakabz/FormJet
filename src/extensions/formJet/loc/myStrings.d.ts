@@ -442,6 +442,16 @@ declare interface IFormJetFormCustomizerStrings {
   TaskItemValueHint: string;
   TaskVarField: string;
   TaskOpen: string;
+  TaskJsonEnable: string;
+  TaskJsonRequestField: string;
+  TaskJsonResponseField: string;
+  TaskJsonHint: string;
+  TaskJsonPopupInactive: string;
+  TaskJsonButtonsHint: string;
+  TaskJsonSubmit: string;
+  TaskJsonInvalid: string;
+  TaskJsonInvalidNumber: string;
+  TaskJsonChoicePlaceholder: string;
   TaskAllowView: string;
   TaskAllowViewHint: string;
   TaskView: string;

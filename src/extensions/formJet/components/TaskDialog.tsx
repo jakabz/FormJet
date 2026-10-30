@@ -1,6 +1,7 @@
 // A kapcsolódó elemek feladatának felugró ablaka: cím, leírás, további mezők, megjegyzés és a gombszabályok szerinti
 // gombok. A gomb a feladat (és ha be van állítva, az eredeti elem) mezőit menti, form-stringekkel. Megtekintéskor
-// (readOnly) minden csak olvasható, és csak a Bezárás gomb látszik.
+// (readOnly) minden csak olvasható, és csak a Bezárás gomb látszik. JSON alapú feladatnál a mezőket a kérés (vagy a már
+// kitöltött válasz) JSON-ja adja, és egyetlen Beküldés gomb a kitöltött JSON-t a válasz oszlopba írja.
 // Külön csomagrészként töltődik be (a RelatedItems React.lazy-vel).
 
 import * as React from 'react';
@@ -17,12 +18,21 @@ import { ATTACHMENTS_FIELD } from '../engine/Attachments';
 import { format } from '../engine/EngineStrings';
 import { IResolvedField, isEditableField, resolveFieldValue } from '../engine/LayoutResolver';
 import { resolveTemplate } from '../engine/ListCommands';
-import { pickTaskButtons, taskConditionValues } from '../engine/RelatedList';
+import { isTaskJson, noteToPlainText, pickTaskButtons, taskConditionValues } from '../engine/RelatedList';
+import {
+  buildTaskJsonResponse,
+  ITaskJsonForm,
+  pickTaskJsonForm,
+  TaskJsonErrors,
+  taskJsonValues,
+  validateTaskJson
+} from '../engine/TaskJson';
 import { FormValues, IFieldSchema } from '../models/IFieldSchema';
 import { IRelatedTaskConfig, ITaskButton } from '../models/IFormConfig';
 import * as RelatedListService from '../services/RelatedListService';
 import { EMPTY_ATTACHMENTS, FormContext, IFormContext } from './FormContext';
 import { FieldRenderer } from './FieldRenderer';
+import { TaskJsonFields } from './TaskJsonFields';
 
 const DIALOG_WIDTH: number = 640;
 const DEFAULT_TITLE_FIELD: string = 'Title';
@@ -80,6 +90,9 @@ const TaskDialog: React.FC<ITaskDialogProps> = (props) => {
   const [taskSaved, setTaskSaved] = React.useState<boolean>(false);
   // Ilyenkor ugyanannak a gombnak az elemre vonatkozó része újrapróbálható.
   const [retryButton, setRetryButton] = React.useState<ITaskButton | undefined>();
+  const [jsonValues, setJsonValues] = React.useState<Record<string, string>>({});
+  const [jsonErrors, setJsonErrors] = React.useState<TaskJsonErrors>({});
+  const jsonConfig = isTaskJson(task) ? task.json : undefined;
 
   React.useEffect(() => {
     let cancelled: boolean = false;
@@ -106,10 +119,30 @@ const TaskDialog: React.FC<ITaskDialogProps> = (props) => {
   const byName = (name: string | undefined): IFieldSchema | undefined =>
     name ? (schema ?? []).filter((field) => field.InternalName === name)[0] : undefined;
 
-  const buttons: ITaskButton[] = React.useMemo(
-    () => (data && !readOnly ? pickTaskButtons(task, taskConditionValues(context.itemConditionValues, data.values)) : []),
-    [data, task, readOnly, context.itemConditionValues]
+  // JSON alapú feladat: a kitöltött válasz, ennek hiányában a kérés (a többsoros mező esetleges HTML-je nélkül).
+  const jsonForm: ITaskJsonForm | undefined = React.useMemo(
+    () =>
+      data && jsonConfig
+        ? pickTaskJsonForm(noteToPlainText(data.values[jsonConfig.requestField] ?? ''), noteToPlainText(data.values[jsonConfig.responseField] ?? ''))
+        : undefined,
+    [data, jsonConfig?.requestField, jsonConfig?.responseField]
   );
+  React.useEffect(() => {
+    setJsonValues(jsonForm ? taskJsonValues(jsonForm) : {});
+    setJsonErrors({});
+  }, [jsonForm]);
+
+  const buttons: ITaskButton[] = React.useMemo(() => {
+    if (!data || readOnly) {
+      return [];
+    }
+    if (jsonConfig) {
+      return jsonForm
+        ? [{ label: strings.TaskJsonSubmit, primary: true, taskValues: jsonConfig.taskValues, itemValues: jsonConfig.itemValues }]
+        : [];
+    }
+    return pickTaskButtons(task, taskConditionValues(context.itemConditionValues, data.values));
+  }, [data, task, readOnly, jsonConfig, jsonForm, context.itemConditionValues]);
 
   // A felugró ablak mezői a saját értékeikkel jelennek meg; a feladatnak nincsenek mellékletei és függő képei.
   const taskContext: IFormContext = React.useMemo(
@@ -132,7 +165,14 @@ const TaskDialog: React.FC<ITaskDialogProps> = (props) => {
     if (!data || !schema) {
       return;
     }
-    if (button.commentRequired && task.commentField && comment.trim() === '') {
+    if (jsonConfig && jsonForm && !taskSaved) {
+      const errors: TaskJsonErrors = validateTaskJson(jsonForm, jsonValues);
+      setJsonErrors(errors);
+      if (Object.keys(errors).length > 0) {
+        return;
+      }
+    }
+    if (!jsonConfig && button.commentRequired && task.commentField && comment.trim() === '') {
       setCommentError(strings.TaskCommentRequired);
       return;
     }
@@ -142,14 +182,18 @@ const TaskDialog: React.FC<ITaskDialogProps> = (props) => {
     try {
       if (!taskSaved) {
         const changed: FormValues = {};
-        // A kitölthető mezők közül a módosultak.
-        (task.fields ?? []).forEach((item) => {
+        if (jsonConfig && jsonForm) {
+          // JSON alapú feladat: a kitöltött JSON a válasz oszlopba.
+          changed[jsonConfig.responseField] = buildTaskJsonResponse(jsonForm, jsonValues);
+        }
+        // A kitölthető mezők közül a módosultak (JSON alapú feladatnál nincsenek).
+        (jsonConfig ? [] : task.fields ?? []).forEach((item) => {
           const field: IFieldSchema | undefined = byName(item.field);
           if (field && !taskField(field, !!item.editable).readOnly && (values[item.field] ?? '') !== (data.values[item.field] ?? '')) {
             changed[item.field] = values[item.field] ?? '';
           }
         });
-        if (task.commentField && comment !== (data.values[task.commentField] ?? '')) {
+        if (!jsonConfig && task.commentField && comment !== (data.values[task.commentField] ?? '')) {
           changed[task.commentField] = comment;
         }
         // A gomb által beállított értékek; a `{Mező}` az eredeti elem mentett értéke.
@@ -193,7 +237,7 @@ const TaskDialog: React.FC<ITaskDialogProps> = (props) => {
   const titleField: IFieldSchema | undefined = byName(task.titleField ?? DEFAULT_TITLE_FIELD);
   const title: string = data && titleField ? data.displayValues[titleField.InternalName] || data.values[titleField.InternalName] || '' : '';
   const description: string =
-    data && task.descriptionField ? data.displayValues[task.descriptionField] || data.values[task.descriptionField] || '' : '';
+    data && task.descriptionField && !jsonConfig ? data.displayValues[task.descriptionField] || data.values[task.descriptionField] || '' : '';
 
   return (
     <Dialog
@@ -209,7 +253,20 @@ const TaskDialog: React.FC<ITaskDialogProps> = (props) => {
           {error && <MessageBar messageBarType={MessageBarType.error}>{error}</MessageBar>}
           {!data && !error && <Spinner size={SpinnerSize.medium} label={strings.Loading} />}
           {data && description && <div className={classes.description}>{description}</div>}
+          {data && jsonConfig && !jsonForm && (
+            <MessageBar messageBarType={MessageBarType.warning}>{format(strings.TaskJsonInvalid, jsonConfig.requestField)}</MessageBar>
+          )}
+          {jsonForm && (
+            <TaskJsonFields
+              form={jsonForm}
+              values={jsonValues}
+              errors={jsonErrors}
+              readOnly={!!readOnly || busy || taskSaved}
+              onChange={(name, next) => setJsonValues((current) => ({ ...current, [name]: next }))}
+            />
+          )}
           {data &&
+            !jsonConfig &&
             (task.fields ?? []).map((item) => {
               const field: IFieldSchema | undefined = byName(item.field);
               if (!field) {
@@ -228,7 +285,7 @@ const TaskDialog: React.FC<ITaskDialogProps> = (props) => {
                 />
               );
             })}
-          {data && task.commentField && (
+          {data && !jsonConfig && task.commentField && (
             <TextField
               label={strings.TaskComment}
               multiline
@@ -241,7 +298,7 @@ const TaskDialog: React.FC<ITaskDialogProps> = (props) => {
               onChange={(_, v) => setComment(v ?? '')}
             />
           )}
-          {data && !readOnly && buttons.length === 0 && <div className={classes.hint}>{strings.TaskNoButtons}</div>}
+          {data && !readOnly && !jsonConfig && buttons.length === 0 && <div className={classes.hint}>{strings.TaskNoButtons}</div>}
         </div>
       </FormContext.Provider>
       <DialogFooter>

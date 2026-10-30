@@ -9,7 +9,8 @@ import {
   IRelatedTaskConfig,
   ITaskButton,
   ITaskButtonRule,
-  ITaskFieldConfig
+  ITaskFieldConfig,
+  ITaskJsonConfig
 } from '../models/IFormConfig';
 import { IFieldAssignment } from '../models/IListCommands';
 import { evaluate, parseNumber, validateCondition } from './ConditionEngine';
@@ -215,6 +216,20 @@ function parseTask(input: unknown, path: string): IRelatedTaskConfig | undefined
   const openWhen: Condition | undefined = parseCondition(input.openWhen, `${path}.openWhen`);
   if (openWhen) task.openWhen = openWhen;
   if (input.allowView === true) task.allowView = true;
+  if (input.json !== undefined) {
+    if (!isRecord(input.json)) {
+      throw new Error(format(engineStrings().MustBeObject, `${path}.json`));
+    }
+    const json: ITaskJsonConfig = {
+      requestField: parseFieldName(input.json.requestField, `${path}.json.requestField`),
+      responseField: parseFieldName(input.json.responseField, `${path}.json.responseField`)
+    };
+    const taskValues: IFieldAssignment[] | undefined = parseAssignments(input.json.taskValues, `${path}.json.taskValues`);
+    if (taskValues) json.taskValues = taskValues;
+    const itemValues: IFieldAssignment[] | undefined = parseAssignments(input.json.itemValues, `${path}.json.itemValues`);
+    if (itemValues) json.itemValues = itemValues;
+    task.json = json;
+  }
   const titleField: string = parseFieldName(input.titleField, `${path}.titleField`);
   if (titleField !== '') task.titleField = titleField;
   const descriptionField: string = parseFieldName(input.descriptionField, `${path}.descriptionField`);
@@ -264,6 +279,11 @@ function parseTask(input: unknown, path: string): IRelatedTaskConfig | undefined
 /** A feladat mezőjére hivatkozó változó a gombszabályok feltételeiben; a szögletes zárójel miatt nem ütközik mezőnévvel. */
 export function taskVariable(fieldName: string): string {
   return `[Task:${fieldName}]`;
+}
+
+/** JSON alapú-e a feladat (mindkét oszlop ki van választva). */
+export function isTaskJson(task: IRelatedTaskConfig): task is IRelatedTaskConfig & { json: ITaskJsonConfig } {
+  return !!task.json && task.json.requestField !== '' && task.json.responseField !== '';
 }
 
 /** Be van-e kapcsolva a feladatkezelés (ki van választva a hozzárendelés mezője). */

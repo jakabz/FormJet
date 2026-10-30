@@ -7,6 +7,7 @@ import {
   getRowLimit,
   isRelatedComplete,
   isTaskEnabled,
+  isTaskJson,
   isTaskOpenable,
   normalizeMatchValue,
   noteToPlainText,
@@ -199,6 +200,12 @@ describe('RelatedList', () => {
         parseConfig(configJson({ schemaVersion: 5, texts: { 'related:1': { kind: 'related', name: 'x', related: { ...related, task: value } } } }));
       expect(parse(task).config?.texts?.['related:1'].related?.task).toEqual(task);
       expect(parse({}).config?.texts?.['related:1'].related?.task).toEqual({ assignedField: '' });
+      const json = { requestField: 'RequestJSON', responseField: 'ResponseJSON', taskValues: [{ field: 'Status', value: 'Completed' }] };
+      expect(parse({ assignedField: 'A', json }).config?.texts?.['related:1'].related?.task?.json).toEqual(json);
+      expect(parse({ assignedField: 'A', json: { requestField: 'a b' } }).error).toContain('task.json.requestField');
+      expect(parse({ assignedField: 'A', json: 'x' }).error).toContain('task.json');
+      expect(isTaskJson({ assignedField: 'A', json: { requestField: 'R', responseField: '' } })).toBe(false);
+      expect(isTaskJson({ assignedField: 'A', json })).toBe(true);
       expect(parse({ assignedField: 'A', allowView: 'yes' }).config?.texts?.['related:1'].related?.task).toEqual({ assignedField: 'A' });
       expect(parse({ assignedField: 'A B' }).error).toContain('task.assignedField');
       expect(parse({ assignedField: 'A', openWhen: { field: 'X', op: 'between' } }).error).toBeDefined();

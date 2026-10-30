@@ -150,6 +150,12 @@ export interface IRelatedTaskConfig {
   assignedField: string;
   /** A feladat mezőire (InternalName) vonatkozó feltétel: ha nem teljesül, a feladat nem nyitható meg (például elvégezve). */
   openWhen?: Condition;
+  /**
+   * JSON alapú feladat: a felugró ablak mezőit a kérés-oszlop JSON-ja adja (engine/TaskJson.ts), a Beküldés gomb a
+   * kitöltött JSON-t a válasz-oszlopba írja. Ilyenkor a felugró ablak (`titleField` kivételével) és a gombszabályok
+   * beállításai nem érvényesek.
+   */
+  json?: ITaskJsonConfig;
   /** Feladat megtekintése: a nem kitölthető sorok is megnyithatók, csak olvasható felugró ablakban (Bezárás gombbal). */
   allowView?: boolean;
   /** A felugró ablak címe: a feladat ezen mezőjének értéke. Hiányában a `Title`. */
@@ -162,6 +168,17 @@ export interface IRelatedTaskConfig {
   fields?: ITaskFieldConfig[];
   /** A gombok szabályai: az első teljesülő szabály gombjai jelennek meg. */
   buttonRules?: ITaskButtonRule[];
+}
+
+export interface ITaskJsonConfig {
+  /** A kérés JSON-t tartalmazó többsoros szöveg mező (pl. RequestJSON). */
+  requestField: string;
+  /** A válasz JSON-t fogadó többsoros szöveg mező (pl. ResponseJSON). */
+  responseField: string;
+  /** A Beküldés gomb által a feladaton beállított további mezők (pl. Status = Completed). */
+  taskValues?: IFieldAssignment[];
+  /** A Beküldés gomb által az eredeti elemen beállított mezők. */
+  itemValues?: IFieldAssignment[];
 }
 
 export interface ITaskFieldConfig {

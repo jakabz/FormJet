@@ -1,6 +1,8 @@
 // A kapcsolódó elemek tulajdonságlapja a tervezőben, négy füllel: Lista (lista, párosítás, oszlopok, láthatóság),
 // Hozzárendelés (személy mező, megnyithatóság), Felugró ablak (cím, leírás, megjegyzés, további mezők) és Gombok
-// (szabályok, gombok, beállított értékek). Csak a kapott beállítást módosítja az onChange-en keresztül, immutábilisan.
+// (szabályok, gombok, beállított értékek). JSON alapú feladatnál a felugró ablak tartalmát a kérés oszlop adja, ezért a
+// Felugró ablak fülön csak a cím, a Gombok fülön csak a Beküldés gomb beállított értékei maradnak.
+// Csak a kapott beállítást módosítja az onChange-en keresztül, immutábilisan.
 
 import * as React from 'react';
 import { ActionButton, IconButton } from '@fluentui/react/lib/Button';
@@ -18,7 +20,14 @@ import { isButtonSettableField } from '../engine/ButtonAction';
 import { format } from '../engine/EngineStrings';
 import { taskVariable } from '../engine/RelatedList';
 import { IFieldSchema } from '../models/IFieldSchema';
-import { IRelatedListConfig, IRelatedTaskConfig, ITaskButton, ITaskButtonRule, ITaskFieldConfig } from '../models/IFormConfig';
+import {
+  IRelatedListConfig,
+  IRelatedTaskConfig,
+  ITaskButton,
+  ITaskButtonRule,
+  ITaskFieldConfig,
+  ITaskJsonConfig
+} from '../models/IFormConfig';
 import { IFieldAssignment } from '../models/IListCommands';
 import * as RelatedListService from '../services/RelatedListService';
 import { ActionValueEditor } from './ButtonActionsEditor';
@@ -28,6 +37,9 @@ import { RelatedListEditor } from './RelatedListEditor';
 type RelatedTab = 'list' | 'assignment' | 'popup' | 'buttons';
 
 const USER_TYPES: string[] = ['User', 'UserMulti'];
+/** A JSON oszlopok szokásos belső neve: bekapcsoláskor ezek választódnak ki, ha léteznek. */
+const DEFAULT_REQUEST_FIELD: string = 'RequestJSON';
+const DEFAULT_RESPONSE_FIELD: string = 'ResponseJSON';
 
 const classes = mergeStyleSets({
   tab: { paddingTop: 12, display: 'flex', flexDirection: 'column', gap: 12 },
@@ -81,6 +93,12 @@ function compactTask(task: IRelatedTaskConfig): IRelatedTaskConfig {
   if (task.commentField) result.commentField = task.commentField;
   if (task.fields && task.fields.length > 0) result.fields = task.fields;
   if (task.buttonRules && task.buttonRules.length > 0) result.buttonRules = task.buttonRules;
+  if (task.json) {
+    const json: ITaskJsonConfig = { requestField: task.json.requestField, responseField: task.json.responseField };
+    if (task.json.taskValues && task.json.taskValues.length > 0) json.taskValues = task.json.taskValues;
+    if (task.json.itemValues && task.json.itemValues.length > 0) json.itemValues = task.json.itemValues;
+    result.json = json;
+  }
   return result;
 }
 
@@ -196,6 +214,14 @@ export const RelatedElementEditor: React.FC<IRelatedElementEditorProps> = (props
 
   const taskFields: IFieldSchema[] = taskSchema.filter((field) => field.TypeAsString !== 'Attachments');
   const settableTaskFields: IFieldSchema[] = taskFields.filter(isButtonSettableField);
+  const noteFields: IFieldSchema[] = taskFields.filter((field) => field.TypeAsString === 'Note');
+  const defaultField = (fields: IFieldSchema[], name: string): string =>
+    fields.filter((field) => field.InternalName.toLowerCase() === name.toLowerCase())[0]?.InternalName ?? '';
+  const updateJson = (patch: Partial<ITaskJsonConfig>): void => {
+    if (task?.json) {
+      updateTask({ json: { ...task.json, ...patch } });
+    }
+  };
   // A gombszabályok feltételei az elem mezőit, a környezeti változókat és a feladat mezőit (előtaggal) látják.
   const ruleFields: IFieldSchema[] = React.useMemo(
     () =>
@@ -249,6 +275,44 @@ export const RelatedElementEditor: React.FC<IRelatedElementEditorProps> = (props
             onChange={(_, checked) => updateTask({ allowView: checked ? true : undefined })}
           />
           <div className={classes.hint}>{strings.TaskAllowViewHint}</div>
+          <Checkbox
+            label={strings.TaskJsonEnable}
+            checked={!!task.json}
+            onChange={(_, checked) =>
+              updateTask({
+                json: checked
+                  ? {
+                      requestField: defaultField(noteFields, DEFAULT_REQUEST_FIELD),
+                      responseField: defaultField(settableTaskFields.filter((field) => field.TypeAsString === 'Note'), DEFAULT_RESPONSE_FIELD)
+                    }
+                  : undefined
+              })
+            }
+          />
+          {task.json && (
+            <>
+              <Dropdown
+                label={strings.TaskJsonRequestField}
+                placeholder={strings.CommandValueFieldPlaceholder}
+                dropdownWidth="auto"
+                options={fieldOptions(noteFields, task.json.requestField)}
+                selectedKey={task.json.requestField || null}
+                onChange={(_, option) => option && updateJson({ requestField: String(option.key) })}
+              />
+              <Dropdown
+                label={strings.TaskJsonResponseField}
+                placeholder={strings.CommandValueFieldPlaceholder}
+                dropdownWidth="auto"
+                options={fieldOptions(
+                  settableTaskFields.filter((field) => field.TypeAsString === 'Note'),
+                  task.json.responseField
+                )}
+                selectedKey={task.json.responseField || null}
+                onChange={(_, option) => option && updateJson({ responseField: String(option.key) })}
+              />
+              <div className={classes.hint}>{strings.TaskJsonHint}</div>
+            </>
+          )}
         </>
       )}
     </div>
@@ -258,19 +322,30 @@ export const RelatedElementEditor: React.FC<IRelatedElementEditorProps> = (props
     if (!task) {
       return <div className={classes.tab}>{needsTask}</div>;
     }
+    const titleDropdown: JSX.Element = (
+      <Dropdown
+        label={strings.TaskTitleField}
+        dropdownWidth="auto"
+        options={fieldOptions(taskFields, task.titleField ?? 'Title')}
+        selectedKey={task.titleField ?? 'Title'}
+        onChange={(_, option) => option && updateTask({ titleField: option.key === 'Title' ? undefined : String(option.key) })}
+      />
+    );
+    if (task.json) {
+      return (
+        <div className={classes.tab}>
+          <MessageBar messageBarType={MessageBarType.info}>{strings.TaskJsonPopupInactive}</MessageBar>
+          {titleDropdown}
+        </div>
+      );
+    }
     const extra: ITaskFieldConfig[] = task.fields ?? [];
     const setExtra = (fields: ITaskFieldConfig[]): void => updateTask({ fields });
     const addable: IFieldSchema[] = taskFields.filter((field) => !extra.some((item) => item.field === field.InternalName));
     const titleOf = (name: string): string => taskFields.filter((field) => field.InternalName === name)[0]?.Title ?? name;
     return (
       <div className={classes.tab}>
-        <Dropdown
-          label={strings.TaskTitleField}
-          dropdownWidth="auto"
-          options={fieldOptions(taskFields, task.titleField ?? 'Title')}
-          selectedKey={task.titleField ?? 'Title'}
-          onChange={(_, option) => option && updateTask({ titleField: option.key === 'Title' ? undefined : String(option.key) })}
-        />
+        {titleDropdown}
         <Dropdown
           label={strings.TaskDescriptionField}
           dropdownWidth="auto"
@@ -341,6 +416,27 @@ export const RelatedElementEditor: React.FC<IRelatedElementEditorProps> = (props
   const renderButtons = (): JSX.Element => {
     if (!task) {
       return <div className={classes.tab}>{needsTask}</div>;
+    }
+    if (task.json) {
+      return (
+        <div className={classes.tab}>
+          <MessageBar messageBarType={MessageBarType.info}>{strings.TaskJsonButtonsHint}</MessageBar>
+          <Assignments
+            label={strings.TaskTaskValues}
+            values={task.json.taskValues ?? []}
+            fields={settableTaskFields}
+            hint={strings.TaskValueHint}
+            onChange={(taskValues) => updateJson({ taskValues })}
+          />
+          <Assignments
+            label={strings.TaskItemValues}
+            values={task.json.itemValues ?? []}
+            fields={props.itemFields}
+            hint={strings.TaskItemValueHint}
+            onChange={(itemValues) => updateJson({ itemValues })}
+          />
+        </div>
+      );
     }
     const rules: ITaskButtonRule[] = task.buttonRules ?? [];
     const setRules = (next: ITaskButtonRule[]): void => updateTask({ buttonRules: next });
