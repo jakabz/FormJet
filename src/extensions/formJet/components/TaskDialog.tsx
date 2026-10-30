@@ -237,7 +237,7 @@ const TaskDialog: React.FC<ITaskDialogProps> = (props) => {
   const titleField: IFieldSchema | undefined = byName(task.titleField ?? DEFAULT_TITLE_FIELD);
   const title: string = data && titleField ? data.displayValues[titleField.InternalName] || data.values[titleField.InternalName] || '' : '';
   const description: string =
-    data && task.descriptionField && !jsonConfig ? data.displayValues[task.descriptionField] || data.values[task.descriptionField] || '' : '';
+    data && task.descriptionField ? data.displayValues[task.descriptionField] || data.values[task.descriptionField] || '' : '';
 
   return (
     <Dialog

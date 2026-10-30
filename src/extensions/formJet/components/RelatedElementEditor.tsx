@@ -331,11 +331,21 @@ export const RelatedElementEditor: React.FC<IRelatedElementEditorProps> = (props
         onChange={(_, option) => option && updateTask({ titleField: option.key === 'Title' ? undefined : String(option.key) })}
       />
     );
+    const descriptionDropdown: JSX.Element = (
+      <Dropdown
+        label={strings.TaskDescriptionField}
+        dropdownWidth="auto"
+        options={[{ key: '', text: strings.TaskNone }, ...fieldOptions(taskFields, task.descriptionField)]}
+        selectedKey={task.descriptionField ?? ''}
+        onChange={(_, option) => option && updateTask({ descriptionField: String(option.key) || undefined })}
+      />
+    );
     if (task.json) {
       return (
         <div className={classes.tab}>
           <MessageBar messageBarType={MessageBarType.info}>{strings.TaskJsonPopupInactive}</MessageBar>
           {titleDropdown}
+          {descriptionDropdown}
         </div>
       );
     }
@@ -346,13 +356,7 @@ export const RelatedElementEditor: React.FC<IRelatedElementEditorProps> = (props
     return (
       <div className={classes.tab}>
         {titleDropdown}
-        <Dropdown
-          label={strings.TaskDescriptionField}
-          dropdownWidth="auto"
-          options={[{ key: '', text: strings.TaskNone }, ...fieldOptions(taskFields, task.descriptionField)]}
-          selectedKey={task.descriptionField ?? ''}
-          onChange={(_, option) => option && updateTask({ descriptionField: String(option.key) || undefined })}
-        />
+        {descriptionDropdown}
         <Dropdown
           label={strings.TaskCommentField}
           dropdownWidth="auto"

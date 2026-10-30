@@ -441,7 +441,7 @@ define([], function() {
     "TaskJsonRequestField": "Kérés oszlop (pl. RequestJSON)",
     "TaskJsonResponseField": "Válasz oszlop (pl. ResponseJSON)",
     "TaskJsonHint": "A kérés oszlop JSON-ja írja le a felugró ablak mezőit (fields: name, label, type, required, value; választásnál options). Típusok: yes/no, text, multiline, number, date, choice. Beküldéskor ugyanez a JSON, kitöltött value értékekkel kerül a válasz oszlopba; ha a válasz már ki van töltve, a felugró ablak azt mutatja.",
-    "TaskJsonPopupInactive": "JSON alapú feladatnál a felugró ablak mezőit a kérés oszlop adja, ezért az itteni beállítások (a cím kivételével) nem érvényesek.",
+    "TaskJsonPopupInactive": "JSON alapú feladatnál a felugró ablak mezőit a kérés oszlop adja, ezért az itteni beállítások (a cím és a leírás kivételével) nem érvényesek.",
     "TaskJsonButtonsHint": "JSON alapú feladatnál a felugró ablakban egyetlen Beküldés gomb van: kitölti a válasz oszlopot, és beállítja az alább megadott mezőket. A gombszabályok nem érvényesek.",
     "TaskJsonSubmit": "Beküldés",
     "TaskJsonInvalid": "A feladat kérése ({0}) hiányzik, vagy nem értelmezhető JSON.",

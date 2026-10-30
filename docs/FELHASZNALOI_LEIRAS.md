@@ -513,7 +513,7 @@ Ha a kapcsolódó lista feladatokat tartalmaz, a **Hozzárendelés** fülön kap
 - A **JSON alapú feladat** jelölővel a felugró ablak tartalmát maga a feladat írja le (lásd lent: [JSON alapú feladatok](#json-alapú-feladatok)).
 - A **Feladat megtekintése: a hozzárendelt elemek megtekintése** jelölővel minden olyan sornál, ahol nincs **Kitöltöm** gomb (más feladata, vagy már elvégzett), **Megtekintem** gomb jelenik meg. Ez ugyanazt a felugró ablakot nyitja meg, de minden csak olvasható, és az alján csak a **Bezárás** gomb van; semmit nem ment.
 
-A **Felugró ablak** fülön adhatod meg, mi jelenjen meg a feladat megnyitásakor (JSON alapú feladatnál ebből csak a cím érvényes):
+A **Felugró ablak** fülön adhatod meg, mi jelenjen meg a feladat megnyitásakor (JSON alapú feladatnál ebből csak a cím és a leírás érvényes):
 
 | Beállítás | Jelentés |
 | --- | --- |

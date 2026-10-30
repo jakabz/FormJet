@@ -441,7 +441,7 @@ define([], function() {
     "TaskJsonRequestField": "Request column (e.g. RequestJSON)",
     "TaskJsonResponseField": "Response column (e.g. ResponseJSON)",
     "TaskJsonHint": "The JSON in the request column describes the popup fields (fields: name, label, type, required, value; options for choices). Types: yes/no, text, multiline, number, date, choice. On submit, the same JSON with the filled-in values is written to the response column; if the response is already filled in, the popup shows it.",
-    "TaskJsonPopupInactive": "For a JSON-based task the popup fields come from the request column, so these settings (except the title) do not apply.",
+    "TaskJsonPopupInactive": "For a JSON-based task the popup fields come from the request column, so these settings (except the title and the description) do not apply.",
     "TaskJsonButtonsHint": "For a JSON-based task the popup has a single Submit button: it fills in the response column and sets the fields below. Button rules do not apply.",
     "TaskJsonSubmit": "Submit",
     "TaskJsonInvalid": "The task request ({0}) is missing or is not valid JSON.",
