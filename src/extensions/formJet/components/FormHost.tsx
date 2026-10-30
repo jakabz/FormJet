@@ -81,7 +81,7 @@ const DEFAULT_FORM_WIDTH: number = 960;
 const DESIGNER_MIN_HEIGHT: number = 480;
 /** Egy betöltési lépés legfeljebb ennyi ideig tarthat. */
 const LOAD_STEP_TIMEOUT_MS: number = 30000;
-const DESIGNER_PANEL_WIDTH: number = 420;
+const DESIGNER_PANEL_WIDTH: number = 430;
 /** Ennél keskenyebb ablakban a tervező panel nem rögzített, hanem a form alá kerül. */
 const DESIGNER_NARROW: string = '@media (max-width: 899px)';
 const DESIGNER_PANEL_TOP_VAR: string = '--formjet-panel-top';

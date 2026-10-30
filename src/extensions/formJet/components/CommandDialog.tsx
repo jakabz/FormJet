@@ -52,7 +52,7 @@ export const CommandDialog: React.FC<ICommandDialogProps> = ({ command, onRun, o
   return (
     <Dialog
       hidden={false}
-      minWidth={420}
+      minWidth={430}
       onDismiss={dismiss}
       dialogContentProps={{ type: DialogType.normal, title: command.title }}
       modalProps={{ isBlocking: true }}
