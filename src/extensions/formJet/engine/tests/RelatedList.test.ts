@@ -4,11 +4,17 @@ import { parseConfig, resolveForm } from '../LayoutResolver';
 import {
   buildAssignedViewXml,
   buildRelatedViewXml,
+  delegationChanges,
+  delegationStatusFilterField,
   getRowLimit,
+  isDelegationAllowedForStatus,
+  isDelegationEnabled,
   isRelatedComplete,
   isTaskEnabled,
+  isTaskFieldVisible,
   isTaskJson,
   isTaskOpenable,
+  matchesStatus,
   normalizeMatchValue,
   noteToPlainText,
   pickTaskButtons,
@@ -235,6 +241,37 @@ describe('RelatedList', () => {
       expect(buildAssignedViewXml({ ...related, task }, 'Text', '', 'User')).toBeUndefined();
     });
 
+    it('a további mezők állapot szerinti megjelenése', () => {
+      const parse = (value: unknown): ReturnType<typeof parseConfig> =>
+        parseConfig(configJson({ schemaVersion: 5, texts: { 'related:1': { kind: 'related', name: 'x', related: { ...related, task: value } } } }));
+      const withStatus: IRelatedTaskConfig = {
+        assignedField: 'A',
+        statusField: 'Status',
+        fields: [{ field: 'Result', editable: true, statuses: ['Folyamatban', 'Visszaküldve'] }, { field: 'DueDate' }]
+      };
+      expect(parse(withStatus).config?.texts?.['related:1'].related?.task).toEqual(withStatus);
+      expect(parse({ ...withStatus, fields: [{ field: 'Result', statuses: [''] }] }).config?.texts?.['related:1'].related?.task?.fields).toEqual([
+        { field: 'Result' }
+      ]);
+      expect(parse({ ...withStatus, fields: [{ field: 'Result', statuses: 'x' }] }).error).toContain('task.fields[0].statuses');
+      expect(parse({ ...withStatus, statusField: 'a b' }).error).toContain('task.statusField');
+
+      const [result, due] = withStatus.fields ?? [];
+      expect(isTaskFieldVisible(withStatus, result, { Status: 'folyamatban' })).toBe(true);
+      expect(isTaskFieldVisible(withStatus, result, { Status: 'Elvégezve' })).toBe(false);
+      expect(isTaskFieldVisible(withStatus, result, {})).toBe(false);
+      // Állapotlista nélküli mező, illetve állapot mező nélkül: mindig látszik.
+      expect(isTaskFieldVisible(withStatus, due, { Status: 'Elvégezve' })).toBe(true);
+      expect(isTaskFieldVisible({ ...withStatus, statusField: undefined }, result, { Status: 'Elvégezve' })).toBe(true);
+    });
+
+    it('matchesStatus: kis- és nagybetűtől független, több választásnál bármelyik érték', () => {
+      expect(matchesStatus(['Folyamatban'], ' FOLYAMATBAN ')).toBe(true);
+      expect(matchesStatus(['B'], ';#A;#B;#')).toBe(true);
+      expect(matchesStatus(['C'], ';#A;#B;#')).toBe(false);
+      expect(matchesStatus(['A'], undefined)).toBe(false);
+    });
+
     it('megnyithatóság: a feladat mezői szerint; feltétel nélkül mindig', () => {
       expect(isTaskOpenable(task, { Status: 'Folyamatban' })).toBe(true);
       expect(isTaskOpenable(task, { Status: 'Elvégezve' })).toBe(false);
@@ -265,6 +302,70 @@ describe('RelatedList', () => {
         })
       ).config as IFormConfig;
       expect(collectGroupIds(config)).toEqual([7]);
+    });
+
+    describe('delegálás', () => {
+      const delegation = { groupId: 9, delegatedToField: 'DelegatedTo', statusField: 'Status', statusValue: 'Delegálva', commentField: 'DelegationNote' };
+      const parse = (value: unknown): ReturnType<typeof parseConfig> =>
+        parseConfig(
+          configJson({
+            schemaVersion: 5,
+            texts: { 'related:1': { kind: 'related', name: 'x', related: { ...related, task: { assignedField: 'A', delegation: value } } } }
+          })
+        );
+
+      it('a beállítás ellenőrzése: félkész is menthető, a hibás csoport elhagyva, a hibás mezőnév elutasítva', () => {
+        expect(parse(delegation).config?.texts?.['related:1'].related?.task?.delegation).toEqual(delegation);
+        expect(parse({}).config?.texts?.['related:1'].related?.task?.delegation).toEqual({
+          delegatedToField: '',
+          statusField: '',
+          statusValue: ''
+        });
+        expect(parse({ ...delegation, groupId: -1 }).config?.texts?.['related:1'].related?.task?.delegation?.groupId).toBeUndefined();
+        expect(parse({ ...delegation, groupId: '9' }).config?.texts?.['related:1'].related?.task?.delegation?.groupId).toBeUndefined();
+        expect(parse({ ...delegation, delegatedToField: 'a b' }).error).toContain('task.delegation.delegatedToField');
+        expect(parse('x').error).toContain('task.delegation');
+      });
+
+      it('isDelegationEnabled: csak csoporttal és delegált személy mezővel', () => {
+        expect(isDelegationEnabled({ assignedField: 'A', delegation })).toBe(true);
+        expect(isDelegationEnabled({ assignedField: 'A', delegation: { ...delegation, groupId: undefined } })).toBe(false);
+        expect(isDelegationEnabled({ assignedField: 'A', delegation: { ...delegation, delegatedToField: '' } })).toBe(false);
+        expect(isDelegationEnabled({ assignedField: 'A' })).toBe(false);
+        expect(isDelegationEnabled(undefined)).toBe(false);
+      });
+
+      it('delegationChanges: a delegált személy, az állapot és az indoklás; a ki nem választott mező kimarad', () => {
+        expect(delegationChanges(delegation, '[{"Key":"i:0#.f|membership|b@x.hu"}]', 'Delegálva', 'Szabadságon vagyok')).toEqual({
+          DelegatedTo: '[{"Key":"i:0#.f|membership|b@x.hu"}]',
+          Status: 'Delegálva',
+          DelegationNote: 'Szabadságon vagyok'
+        });
+        expect(delegationChanges({ delegatedToField: 'DelegatedTo', statusField: '', statusValue: '' }, 'X', '', 'Y')).toEqual({ DelegatedTo: 'X' });
+      });
+
+      it('állapotszűrés: a statuses ellenőrzése és az állapot szerinti megjelenés', () => {
+        const parsed = parse({ ...delegation, statuses: ['Folyamatban', '', 5, 'Folyamatban', 'Nincs elkezdve'] }).config?.texts?.['related:1'].related
+          ?.task?.delegation;
+        expect(parsed?.statuses).toEqual(['Folyamatban', 'Nincs elkezdve']);
+        expect(parse({ ...delegation, statuses: [] }).config?.texts?.['related:1'].related?.task?.delegation?.statuses).toBeUndefined();
+        expect(parse({ ...delegation, statuses: 'Folyamatban' }).error).toContain('task.delegation.statuses');
+
+        const filtered = { ...delegation, statuses: ['Folyamatban', 'Nincs elkezdve'] };
+        expect(delegationStatusFilterField(filtered)).toBe('Status');
+        expect(isDelegationAllowedForStatus(filtered, 'folyamatban ')).toBe(true);
+        expect(isDelegationAllowedForStatus(filtered, 'Elvégezve')).toBe(false);
+        expect(isDelegationAllowedForStatus(filtered, undefined)).toBe(false);
+        // Állapotlista vagy állapot mező nélkül minden állapotban.
+        expect(delegationStatusFilterField(delegation)).toBeUndefined();
+        expect(isDelegationAllowedForStatus(delegation, 'Elvégezve')).toBe(true);
+        expect(delegationStatusFilterField({ ...filtered, statusField: '' })).toBeUndefined();
+        expect(isDelegationAllowedForStatus({ ...filtered, statusField: '' }, 'Elvégezve')).toBe(true);
+      });
+
+      it('a delegálás csoportjának tagságát is lekérdezzük', () => {
+        expect(collectGroupIds(parse(delegation).config as IFormConfig)).toEqual([9]);
+      });
     });
   });
 

@@ -8,25 +8,37 @@ import { DetailsList, DetailsListLayoutMode, IColumn, SelectionMode } from '@flu
 import { Link } from '@fluentui/react/lib/Link';
 import { MessageBar, MessageBarType } from '@fluentui/react/lib/MessageBar';
 import { Spinner, SpinnerSize } from '@fluentui/react/lib/Spinner';
+import { TooltipHost } from '@fluentui/react/lib/Tooltip';
 import { mergeStyleSets } from '@fluentui/react/lib/Styling';
 
 import * as strings from 'FormJetFormCustomizerStrings';
 
 import { format } from '../engine/EngineStrings';
 import { IResolvedField } from '../engine/LayoutResolver';
-import { getRowLimit, ID_FIELD, isRelatedComplete, isTaskEnabled, isTaskOpenable } from '../engine/RelatedList';
+import { groupVariable } from '../engine/ConditionContext';
+import {
+  getRowLimit,
+  ID_FIELD,
+  isDelegationAllowedForStatus,
+  isDelegationEnabled,
+  isRelatedComplete,
+  isTaskEnabled,
+  isTaskOpenable
+} from '../engine/RelatedList';
 import { IRelatedListConfig } from '../models/IFormConfig';
 import * as RelatedListService from '../services/RelatedListService';
 import { FormContext } from './FormContext';
 
 // A felugró ablak csak a feladat megnyitásakor kell; külön csomagrészként töltődik be.
 const TaskDialog = React.lazy(() => import(/* webpackChunkName: 'formjet-task' */ './TaskDialog'));
+const DelegateDialog = React.lazy(() => import(/* webpackChunkName: 'formjet-task' */ './DelegateDialog'));
 
 const ACTION_COLUMN: string = '__task';
-const ROW_BUTTON_STYLES: IButtonStyles = { root: { height: 24, padding: '0 8px', minWidth: 0 } };
+const ROW_BUTTON_STYLES: IButtonStyles = { root: { height: 24, width: 28 } };
 
 const classes = mergeStyleSets({
   toolbar: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 },
+  rowButtons: { display: 'flex', gap: 2 },
   spacer: { flex: 1 },
   hint: { fontSize: 12, color: '#605e5c', padding: '6px 0' },
   // Új elemnél a helye látszik: itt jelennek meg majd a kapcsolódó elemek.
@@ -66,6 +78,7 @@ export const RelatedItems: React.FC<IRelatedItemsProps> = (props) => {
   // A hozzárendelt sorok közül a megnyithatók (a feladat megnyithatóságának feltétele szerint).
   const [openable, setOpenable] = React.useState<number[]>([]);
   const [openTask, setOpenTask] = React.useState<{ id: number; readOnly: boolean } | undefined>();
+  const [delegateTask, setDelegateTask] = React.useState<number | undefined>();
 
   const complete: boolean = isRelatedComplete(config);
   // A párosítás a mentett elem értékével történik, nem a formon éppen szerkesztett értékkel.
@@ -125,6 +138,9 @@ export const RelatedItems: React.FC<IRelatedItemsProps> = (props) => {
   const canOpen: boolean = taskMode && !props.field.readOnly && !props.designing;
   // A megtekintés nem módosít semmit, ezért letiltott elemnél is elérhető (a tervezőben nem).
   const viewMode: boolean = taskMode && !!config.task?.allowView;
+  // Delegálás: a beállított csoport tagjai minden sornál (a tagságot a FormHost kérdezi le előre). Nem jogosultsági határ.
+  const delegation = taskMode && isDelegationEnabled(config.task) ? config.task?.delegation : undefined;
+  const delegateMode: boolean = !!delegation && itemConditionValues[groupVariable(delegation.groupId ?? 0)] === '1';
 
   const columns: IColumn[] = React.useMemo(() => {
     const result: IColumn[] = (data?.columns ?? []).map((column, index) => ({
@@ -150,34 +166,46 @@ export const RelatedItems: React.FC<IRelatedItemsProps> = (props) => {
       }
     }));
     if (taskMode) {
-      // Kitöltöm: a felhasználóhoz rendelt, megnyitható soroknál; Megtekintem: a többinél, ha a megtekintés be van kapcsolva.
+      // Kitöltöm: a felhasználóhoz rendelt, megnyitható soroknál; Megtekintem: a többinél, ha a megtekintés be van kapcsolva;
+      // Delegálom: minden sornál, a delegálás csoportjának tagjai számára.
+      // Csak ikon; a felirat a buborékban (és az akadálymentes névben) jelenik meg. Az allowDisabledFocus miatt a
+      // letiltott gomb is kap egéreseményt, így a buborék akkor is látszik.
+      const rowButton = (label: string, iconName: string, disabled: boolean | undefined, onClick: () => void): JSX.Element => (
+        <TooltipHost key={iconName} content={label}>
+          <IconButton
+            iconProps={{ iconName }}
+            ariaLabel={label}
+            disabled={disabled}
+            allowDisabledFocus
+            styles={ROW_BUTTON_STYLES}
+            onClick={onClick}
+          />
+        </TooltipHost>
+      );
+      const width: number = delegateMode ? 62 : 32;
       result.unshift({
         key: ACTION_COLUMN,
         name: '',
-        minWidth: viewMode ? 120 : 90,
-        maxWidth: viewMode ? 140 : 110,
-        onRender: (row: RelatedListService.IRelatedRow): React.ReactNode =>
-          openable.indexOf(row.id) !== -1 ? (
-            <DefaultButton
-              iconProps={{ iconName: 'TaskManager' }}
-              text={strings.TaskOpen}
-              disabled={!canOpen}
-              styles={ROW_BUTTON_STYLES}
-              onClick={() => setOpenTask({ id: row.id, readOnly: false })}
-            />
-          ) : viewMode ? (
-            <DefaultButton
-              iconProps={{ iconName: 'View' }}
-              text={strings.TaskView}
-              disabled={props.designing}
-              styles={ROW_BUTTON_STYLES}
-              onClick={() => setOpenTask({ id: row.id, readOnly: true })}
-            />
-          ) : null
+        minWidth: width,
+        maxWidth: width,
+        onRender: (row: RelatedListService.IRelatedRow): React.ReactNode => (
+          <div className={classes.rowButtons}>
+            {openable.indexOf(row.id) !== -1
+              ? rowButton(strings.TaskOpen, 'TaskManager', !canOpen, () => setOpenTask({ id: row.id, readOnly: false }))
+              : viewMode
+                ? rowButton(strings.TaskView, 'View', props.designing, () => setOpenTask({ id: row.id, readOnly: true }))
+                : undefined}
+            {delegateMode &&
+              delegation &&
+              // Csak a beállított állapotú feladatoknál (az állapot mezőt a lekérdezés ezért is lekéri).
+              isDelegationAllowedForStatus(delegation, row.values[delegation.statusField]) &&
+              rowButton(strings.TaskDelegate, 'PeopleRepeat', !canOpen, () => setDelegateTask(row.id))}
+          </div>
+        )
       });
     }
     return result;
-  }, [data, taskMode, viewMode, openable, canOpen, props.designing]);
+  }, [data, taskMode, viewMode, delegateMode, delegation, openable, canOpen, props.designing]);
 
   if (!complete) {
     return props.designing ? <div className={classes.hint}>{strings.RelatedIncomplete}</div> : <></>;
@@ -231,6 +259,18 @@ export const RelatedItems: React.FC<IRelatedItemsProps> = (props) => {
             task={config.task}
             readOnly={openTask.readOnly}
             onDismiss={() => setOpenTask(undefined)}
+            onCompleted={() => setReloadCount((count) => count + 1)}
+          />
+        </React.Suspense>
+      )}
+      {delegateTask !== undefined && config.task && delegation && (
+        <React.Suspense fallback={<Spinner size={SpinnerSize.small} />}>
+          <DelegateDialog
+            listId={config.listId}
+            taskId={delegateTask}
+            task={config.task}
+            delegation={delegation}
+            onDismiss={() => setDelegateTask(undefined)}
             onCompleted={() => setReloadCount((count) => count + 1)}
           />
         </React.Suspense>

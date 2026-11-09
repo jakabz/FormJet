@@ -76,18 +76,20 @@ export interface IActionValueEditorProps {
   onChange: (value: string) => void;
   /** A szövegmező súgója; hiányában a gomb lépésének súgója. */
   description?: string;
+  /** A vezérlő felirata; hiányában „Érték”. */
+  label?: string;
 }
 
 /**
  * A beállítandó érték vezérlője a mező típusához igazodik, mint a feltételszerkesztőben: választásnál a mező értékei
  * közül (több választásnál többet is), igen/nem mezőnél Igen / Nem; egyébként szövegmező a kezdőérték formátumában.
  */
-export const ActionValueEditor: React.FC<IActionValueEditorProps> = ({ field, value, onChange, description }) => {
+export const ActionValueEditor: React.FC<IActionValueEditorProps> = ({ field, value, onChange, description, label }) => {
   const type: string | undefined = field?.TypeAsString;
   if (field && type === 'Boolean') {
     return (
       <Dropdown
-        label={strings.ButtonActionValue}
+        label={label ?? strings.ButtonActionValue}
         options={[
           { key: '1', text: strings.Yes },
           { key: '0', text: strings.No }
@@ -101,7 +103,7 @@ export const ActionValueEditor: React.FC<IActionValueEditorProps> = ({ field, va
     const selected: string[] = splitMultiValue(value);
     return (
       <Dropdown
-        label={strings.ButtonActionValue}
+        label={label ?? strings.ButtonActionValue}
         placeholder={strings.ButtonActionValueEmpty}
         multiSelect
         options={choiceOptions(field, selected)}
@@ -120,7 +122,7 @@ export const ActionValueEditor: React.FC<IActionValueEditorProps> = ({ field, va
     const options: IDropdownOption[] = [{ key: '', text: strings.ButtonActionValueEmpty }, ...choiceOptions(field, [value])];
     return field.FillInChoice ? (
       <ComboBox
-        label={strings.ButtonActionValue}
+        label={label ?? strings.ButtonActionValue}
         allowFreeform
         autoComplete="on"
         text={value}
@@ -130,7 +132,7 @@ export const ActionValueEditor: React.FC<IActionValueEditorProps> = ({ field, va
       />
     ) : (
       <Dropdown
-        label={strings.ButtonActionValue}
+        label={label ?? strings.ButtonActionValue}
         options={options}
         selectedKey={value}
         onChange={(_, option) => option && onChange(String(option.key))}
@@ -139,7 +141,7 @@ export const ActionValueEditor: React.FC<IActionValueEditorProps> = ({ field, va
   }
   return (
     <TextField
-      label={strings.ButtonActionValue}
+      label={label ?? strings.ButtonActionValue}
       description={description ?? strings.ButtonActionSetValueHint}
       value={value}
       onChange={(_, v) => onChange(v ?? '')}

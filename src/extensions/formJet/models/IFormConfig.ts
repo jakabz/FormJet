@@ -164,10 +164,37 @@ export interface IRelatedTaskConfig {
   descriptionField?: string;
   /** Többsoros szöveg mező: a megjegyzés ebbe kerül (felülírja). Hiányában nincs megjegyzés. */
   commentField?: string;
+  /** A feladat állapot mezője: a további mezők ennek értéke szerint jelenhetnek meg (`ITaskFieldConfig.statuses`). */
+  statusField?: string;
   /** További mezők a felugró ablakban, sorrendben. */
   fields?: ITaskFieldConfig[];
   /** A gombok szabályai: az első teljesülő szabály gombjai jelennek meg. */
   buttonRules?: ITaskButtonRule[];
+  /** Delegálás: a megadott SharePoint csoport tagjai a feladatot másnak adhatják át. */
+  delegation?: ITaskDelegationConfig;
+}
+
+/**
+ * A feladat delegálása: a csoport tagjai minden feladatsornál Delegálom gombot kapnak. A felugró ablakban kiválasztott
+ * személy a `delegatedToField`-be, az indoklás a `commentField`-be kerül, az állapot mező a `statusValue` értéket kapja.
+ * A csoporttagság nem jogosultsági határ (4. kulcsdöntés).
+ */
+export interface ITaskDelegationConfig {
+  /** A delegálni jogosult SharePoint csoport azonosítója. Hiányában a delegálás nincs bekapcsolva. */
+  groupId?: number;
+  /** A feladat személy mezője (User / UserMulti), amely a delegált személyt kapja (pl. DelegatedTo). */
+  delegatedToField: string;
+  /** A feladat állapot mezője (pl. Status); üresen az állapot nem változik. */
+  statusField: string;
+  /** Az állapot mező értéke delegáláskor (a kezdőérték formátumában, pl. Delegálva). */
+  statusValue: string;
+  /**
+   * A Delegálom gomb csak azoknál a feladatoknál jelenik meg, amelyek állapot mezőjének értéke ezek egyike
+   * (kis- és nagybetűtől függetlenül). Hiányában (vagy állapot mező nélkül) minden feladatnál.
+   */
+  statuses?: string[];
+  /** Többsoros szöveg mező: az indoklás ebbe kerül (felülírja). Hiányában nincs indoklás. */
+  commentField?: string;
 }
 
 export interface ITaskJsonConfig {
@@ -186,6 +213,11 @@ export interface ITaskFieldConfig {
   field: string;
   /** Kitölthető a felugró ablakban (különben csak megjelenik). */
   editable?: boolean;
+  /**
+   * A mező csak akkor jelenik meg, ha a feladat állapot mezőjének (`IRelatedTaskConfig.statusField`) értéke ezek egyike
+   * (kis- és nagybetűtől függetlenül). Hiányában (vagy állapot mező nélkül) mindig.
+   */
+  statuses?: string[];
 }
 
 /**

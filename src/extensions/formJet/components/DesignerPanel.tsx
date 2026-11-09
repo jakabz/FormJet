@@ -820,6 +820,7 @@ export const DesignerPanel: React.FC<IDesignerPanelProps> = (props) => {
               schema={realFields}
               conditionFields={conditionFields}
               itemFields={actionFields}
+              siteGroups={props.siteGroups}
               onChange={(related) => updateText(selectedField, { related })}
               general={
                 <>

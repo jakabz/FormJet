@@ -1,7 +1,15 @@
 // Kapcsolódó elemek: a webhely listái, egy lista mezői, és a párosított elemek lekérdezése.
 // Feladatkezelésnél a felhasználóhoz rendelt elemek, egy feladat betöltése és mentése (validateUpdateListItem).
 
-import { buildAssignedViewXml, buildRelatedViewXml, getRowLimit, ID_FIELD, isTaskEnabled, noteToPlainText } from '../engine/RelatedList';
+import {
+  buildAssignedViewXml,
+  buildRelatedViewXml,
+  delegationStatusFilterField,
+  getRowLimit,
+  ID_FIELD,
+  isTaskEnabled,
+  noteToPlainText
+} from '../engine/RelatedList';
 import { FormValues, IFieldSchema } from '../models/IFieldSchema';
 import { IRelatedListConfig } from '../models/IFormConfig';
 import * as ItemService from './ItemService';
@@ -23,7 +31,10 @@ export interface IListFieldInfo {
 
 export interface IRelatedRow {
   id: number;
-  /** Megjelenítésre szánt szöveg oszloponként, InternalName szerint. */
+  /**
+   * Megjelenítésre szánt szöveg oszloponként, InternalName szerint. A delegálás állapotszűrésénél az állapot mező
+   * értéke is benne van, akkor is, ha nem a táblázat oszlopa.
+   */
   values: Record<string, string>;
 }
 
@@ -159,9 +170,14 @@ export async function getRelatedItems(config: IRelatedListConfig, sourceValue: s
   // A listából időközben törölt oszlop kimarad.
   const columns: IListFieldInfo[] = config.columns.map((name) => byName[name]).filter((field) => field !== undefined);
   const forms = { displayFormUrl: info.DefaultDisplayFormUrl, newFormUrl: info.DefaultNewFormUrl };
+  // A Delegálom gomb állapot szerinti megjelenítéséhez az állapot mező is kell (a táblázatban nem jelenik meg).
+  const statusName: string | undefined = isTaskEnabled(config) ? delegationStatusFilterField(config.task.delegation) : undefined;
+  const statusField: IListFieldInfo | undefined = statusName ? byName[statusName] : undefined;
+  const queried: IListFieldInfo[] =
+    statusField && !columns.some((column) => column.name === statusField.name) ? columns.concat([statusField]) : columns;
 
   const viewXml: string | undefined = buildRelatedViewXml(
-    { ...config, columns: columns.map((column) => column.name) },
+    { ...config, columns: queried.map((column) => column.name) },
     matchField.type,
     sourceValue
   );
@@ -189,7 +205,7 @@ export async function getRelatedItems(config: IRelatedListConfig, sourceValue: s
   const rawRows: Array<Record<string, unknown>> = data.Row ?? [];
   const rows: IRelatedRow[] = rawRows.slice(0, limit).map((row) => {
     const values: Record<string, string> = {};
-    columns.forEach((column) => {
+    queried.forEach((column) => {
       const text: string = toText(row[column.name]);
       // A többsoros (rich text) mező HTML-je sima szövegként kerül a táblázatba.
       values[column.name] = column.type === 'Note' ? noteToPlainText(text) : text;

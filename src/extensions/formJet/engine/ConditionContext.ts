@@ -73,6 +73,11 @@ export function collectGroupIds(config: IFormConfig): number[] {
     const task = config.texts?.[id].related?.task;
     collectFromCondition(task?.openWhen, found);
     (task?.buttonRules ?? []).forEach((rule) => collectFromCondition(rule.when, found));
+    // A delegálás gombja a csoport tagjainak jelenik meg.
+    const delegationGroup: number | undefined = task?.delegation?.groupId;
+    if (delegationGroup !== undefined && found.indexOf(delegationGroup) === -1) {
+      found.push(delegationGroup);
+    }
   });
   Object.keys(config.fields).forEach((name) => {
     collectFromCondition(config.fields[name].visibleWhen, found);

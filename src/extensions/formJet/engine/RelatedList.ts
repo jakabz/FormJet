@@ -9,6 +9,7 @@ import {
   IRelatedTaskConfig,
   ITaskButton,
   ITaskButtonRule,
+  ITaskDelegationConfig,
   ITaskFieldConfig,
   ITaskJsonConfig
 } from '../models/IFormConfig';
@@ -236,6 +237,8 @@ function parseTask(input: unknown, path: string): IRelatedTaskConfig | undefined
   if (descriptionField !== '') task.descriptionField = descriptionField;
   const commentField: string = parseFieldName(input.commentField, `${path}.commentField`);
   if (commentField !== '') task.commentField = commentField;
+  const statusField: string = parseFieldName(input.statusField, `${path}.statusField`);
+  if (statusField !== '') task.statusField = statusField;
   if (input.fields !== undefined) {
     if (!Array.isArray(input.fields)) {
       throw new Error(format(engineStrings().MustBeArray, `${path}.fields`));
@@ -247,7 +250,11 @@ function parseTask(input: unknown, path: string): IRelatedTaskConfig | undefined
       }
       const name: string = parseFieldName(item.field, `${path}.fields[${i}].field`);
       if (name !== '' && !fields.some((field) => field.field === name)) {
-        fields.push(item.editable === true ? { field: name, editable: true } : { field: name });
+        const field: ITaskFieldConfig = { field: name };
+        if (item.editable === true) field.editable = true;
+        const statuses: string[] | undefined = parseStatuses(item.statuses, `${path}.fields[${i}].statuses`);
+        if (statuses) field.statuses = statuses;
+        fields.push(field);
       }
     });
     if (fields.length > 0) task.fields = fields;
@@ -273,7 +280,116 @@ function parseTask(input: unknown, path: string): IRelatedTaskConfig | undefined
     });
     if (rules.length > 0) task.buttonRules = rules;
   }
+  const delegation: ITaskDelegationConfig | undefined = parseDelegation(input.delegation, `${path}.delegation`);
+  if (delegation) task.delegation = delegation;
   return task;
+}
+
+/** A delegálás beállításának ellenőrzése. A félkész beállítás (még nincs csoport vagy mező) is menthető. */
+function parseDelegation(input: unknown, path: string): ITaskDelegationConfig | undefined {
+  if (input === undefined) {
+    return undefined;
+  }
+  if (!isRecord(input)) {
+    throw new Error(format(engineStrings().MustBeObject, path));
+  }
+  const delegation: ITaskDelegationConfig = {
+    delegatedToField: parseFieldName(input.delegatedToField, `${path}.delegatedToField`),
+    statusField: parseFieldName(input.statusField, `${path}.statusField`),
+    statusValue: typeof input.statusValue === 'string' ? input.statusValue : ''
+  };
+  // A csoport azonosítója pozitív egész; más érték kiválasztatlan csoportnak számít.
+  const groupId: unknown = input.groupId;
+  if (typeof groupId === 'number' && isFinite(groupId) && groupId > 0 && Math.floor(groupId) === groupId) {
+    delegation.groupId = groupId;
+  }
+  const statuses: string[] | undefined = parseStatuses(input.statuses, `${path}.statuses`);
+  if (statuses) delegation.statuses = statuses;
+  const commentField: string = parseFieldName(input.commentField, `${path}.commentField`);
+  if (commentField !== '') delegation.commentField = commentField;
+  return delegation;
+}
+
+/** Állapotértékek listája: a nem szöveges és az üres elem kimarad, az ismétlődés is; üres listából `undefined`. */
+function parseStatuses(input: unknown, path: string): string[] | undefined {
+  if (input === undefined) {
+    return undefined;
+  }
+  if (!Array.isArray(input)) {
+    throw new Error(format(engineStrings().MustBeArray, path));
+  }
+  const statuses: string[] = [];
+  input.forEach((item: unknown) => {
+    if (typeof item === 'string' && item.trim() !== '' && statuses.indexOf(item) === -1) {
+      statuses.push(item);
+    }
+  });
+  return statuses.length > 0 ? statuses : undefined;
+}
+
+/**
+ * Az állapot a megadottak egyike-e (kis- és nagybetűtől függetlenül). Több választásnál (`;#A;#B;#`) elég, ha
+ * bármelyik érték egyezik.
+ */
+export function matchesStatus(statuses: string[], status: string | undefined): boolean {
+  const normalize = (value: string): string => value.trim().toLowerCase();
+  const raw: string = status ?? '';
+  const current: string[] = raw.indexOf(';#') !== -1 ? raw.split(';#').filter((item) => item !== '').map(normalize) : [normalize(raw)];
+  return statuses.some((item) => current.indexOf(normalize(item)) !== -1);
+}
+
+/**
+ * Megjelenik-e a felugró ablak további mezője: ha a mezőhöz állapotok tartoznak, és a feladatnak van állapot mezője,
+ * csak az ilyen állapotú (a `values` szerinti) feladatnál.
+ */
+export function isTaskFieldVisible(task: IRelatedTaskConfig, item: ITaskFieldConfig, values: FormValues): boolean {
+  if (!task.statusField || (item.statuses ?? []).length === 0) {
+    return true;
+  }
+  return matchesStatus(item.statuses ?? [], values[task.statusField]);
+}
+
+/** Az a mező, amelynek az értékét a Delegálom gomb megjelenéséhez a felsorolásnak is le kell kérdeznie. */
+export function delegationStatusFilterField(delegation: ITaskDelegationConfig | undefined): string | undefined {
+  return delegation && delegation.statusField !== '' && (delegation.statuses ?? []).length > 0 ? delegation.statusField : undefined;
+}
+
+/**
+ * Delegálható-e a feladat az állapota szerint: a `statuses` valamelyikével egyező (kis- és nagybetűtől független)
+ * állapotnál igen. Állapotlista vagy állapot mező nélkül mindig.
+ */
+export function isDelegationAllowedForStatus(delegation: ITaskDelegationConfig, status: string | undefined): boolean {
+  if (delegationStatusFilterField(delegation) === undefined) {
+    return true;
+  }
+  return matchesStatus(delegation.statuses ?? [], status);
+}
+
+/** Be van-e kapcsolva a delegálás (ki van választva a csoport és a delegált személy mezője). */
+export function isDelegationEnabled(
+  task: IRelatedTaskConfig | undefined
+): task is IRelatedTaskConfig & { delegation: ITaskDelegationConfig & { groupId: number } } {
+  return !!task?.delegation && task.delegation.groupId !== undefined && task.delegation.delegatedToField !== '';
+}
+
+/**
+ * A delegáláskor a feladaton mentendő értékek (form-stringek): a delegált személy, az állapot (ha van állapot mező)
+ * és az indoklás (ha van indoklás mező). Az állapot értékét a hívó alakítja form-stringgé a mező típusa szerint.
+ */
+export function delegationChanges(
+  delegation: ITaskDelegationConfig,
+  delegatedTo: string,
+  statusFormValue: string,
+  comment: string
+): FormValues {
+  const changed: FormValues = { [delegation.delegatedToField]: delegatedTo };
+  if (delegation.statusField !== '') {
+    changed[delegation.statusField] = statusFormValue;
+  }
+  if (delegation.commentField) {
+    changed[delegation.commentField] = comment;
+  }
+  return changed;
 }
 
 /** A feladat mezőjére hivatkozó változó a gombszabályok feltételeiben; a szögletes zárójel miatt nem ütközik mezőnévvel. */

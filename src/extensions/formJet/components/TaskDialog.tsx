@@ -18,7 +18,7 @@ import { ATTACHMENTS_FIELD } from '../engine/Attachments';
 import { format } from '../engine/EngineStrings';
 import { IResolvedField, isEditableField, resolveFieldValue } from '../engine/LayoutResolver';
 import { resolveTemplate } from '../engine/ListCommands';
-import { isTaskJson, noteToPlainText, pickTaskButtons, taskConditionValues } from '../engine/RelatedList';
+import { isTaskFieldVisible, isTaskJson, noteToPlainText, pickTaskButtons, taskConditionValues } from '../engine/RelatedList';
 import {
   buildTaskJsonResponse,
   ITaskJsonForm,
@@ -186,8 +186,9 @@ const TaskDialog: React.FC<ITaskDialogProps> = (props) => {
           // JSON alapú feladat: a kitöltött JSON a válasz oszlopba.
           changed[jsonConfig.responseField] = buildTaskJsonResponse(jsonForm, jsonValues);
         }
-        // A kitölthető mezők közül a módosultak (JSON alapú feladatnál nincsenek).
-        (jsonConfig ? [] : task.fields ?? []).forEach((item) => {
+        // A kitölthető, látható mezők közül a módosultak (JSON alapú feladatnál nincsenek). Az állapot miatt rejtett mező
+        // értéke nem mentődik, akkor sem, ha korábban módosították.
+        (jsonConfig ? [] : task.fields ?? []).filter((item) => isTaskFieldVisible(task, item, values)).forEach((item) => {
           const field: IFieldSchema | undefined = byName(item.field);
           if (field && !taskField(field, !!item.editable).readOnly && (values[item.field] ?? '') !== (data.values[item.field] ?? '')) {
             changed[item.field] = values[item.field] ?? '';
@@ -269,7 +270,8 @@ const TaskDialog: React.FC<ITaskDialogProps> = (props) => {
             !jsonConfig &&
             (task.fields ?? []).map((item) => {
               const field: IFieldSchema | undefined = byName(item.field);
-              if (!field) {
+              // Az állapot szerinti megjelenés a felugró ablakban szerkesztett értéket követi.
+              if (!field || !isTaskFieldVisible(task, item, values)) {
                 return undefined;
               }
               const resolved: IResolvedField = taskField(field, !!item.editable && !taskSaved && !readOnly);

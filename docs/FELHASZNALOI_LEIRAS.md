@@ -45,10 +45,11 @@ A csillaggal (`*`) jelölt mezők kitöltése kötelező.
 
 Az űrlapon táblázat is megjelenhet, amely egy másik lista ehhez az elemhez tartozó elemeit sorolja fel (például a kérelem feladatait). A táblázat első oszlopára kattintva az elem új lapon nyílik meg, a **Frissítés** gombbal (körkörös nyíl) a táblázat újratölthető.
 
-Ha a táblázat feladatokat tartalmaz:
+Ha a táblázat feladatokat tartalmaz, a sorok elején egy kis ikonos gomb látszik. A gombon nincs felirat: ha föléviszed az egeret, egy buborék mutatja, mire való (**Kitöltöm** vagy **Megtekintem**).
 
-- A **Kitöltöm** gomb annál a sornál jelenik meg, amelyik neked szól (a feladat hozzád vagy egy csoportodhoz van rendelve, és még elvégezhető). Rákattintva felugró ablakban látod a feladatot: kitöltöd a kért mezőket, szükség esetén megjegyzést írsz, majd az alján lévő gombok egyikével (például **Jóváhagyom**, **Elutasítom** vagy **Beküldés**) elvégzed. A kötelező mezőket csillag jelöli; ha valamelyik üres, a gomb nem menti el a feladatot, hanem jelzi a hiányt.
-- A **Megtekintem** gomb (ha az adminisztrátor bekapcsolta) a többi sornál látszik: ugyanazt a felugró ablakot nyitja meg, de csak olvasásra, a **Bezárás** gombbal.
+- A **Kitöltöm** gomb (feladatlista ikon) annál a sornál jelenik meg, amelyik neked szól (a feladat hozzád vagy egy csoportodhoz van rendelve, és még elvégezhető). Rákattintva felugró ablakban látod a feladatot: kitöltöd a kért mezőket, szükség esetén megjegyzést írsz, majd az alján lévő gombok egyikével (például **Jóváhagyom**, **Elutasítom** vagy **Beküldés**) elvégzed. A kötelező mezőket csillag jelöli; ha valamelyik üres, a gomb nem menti el a feladatot, hanem jelzi a hiányt.
+- A **Delegálom** gomb (személyek ikon) annak látszik minden feladatnál, akit az adminisztrátor erre feljogosított. Rákattintva felugró ablakban kiválasztod, ki kapja meg a feladatot, és megírod, miért adod át. Az **OK** gombra a feladat állapota „Delegálva” lesz, és a kiválasztott személy bekerül a feladatba. Az elvégzett (már meg nem nyitható) feladat nem delegálható, és ha az adminisztrátor megadta, a gomb csak bizonyos állapotú feladatoknál látszik.
+- A **Megtekintem** gomb (szem ikon; ha az adminisztrátor bekapcsolta) a többi sornál látszik: ugyanazt a felugró ablakot nyitja meg, de csak olvasásra, a **Bezárás** gombbal.
 - A gomb a feladatot menti el, és ha így van beállítva, az űrlapon megnyitott elem néhány mezőjét is (például az állapotát). Az űrlapon közben átírt, de még nem mentett mezőidet nem menti el; azokat a szokásos **Mentés** gombbal mentheted.
 - Új elem felvételekor még nincs táblázat, csak egy keretes jelzés mutatja a helyét: az elemhez tartozó elemek a mentés után jelennek meg.
 
@@ -511,6 +512,14 @@ Ha a kapcsolódó lista feladatokat tartalmaz, a **Hozzárendelés** fülön kap
 - **Látni mindenki látja** a felsorolást, de a **Kitöltöm** gomb csak annál a sornál jelenik meg, amelyik neked szól: a személy mezőben te szerepelsz, vagy egy SharePoint csoport, amelynek tagja vagy. Ha a mező több személyt tartalmaz, bármelyikük megnyithatja.
 - A **Megnyitható, ha** feltétellel a feladat mezői alapján szűkítheted, mikor nyitható meg (például: Állapot nem egyenlő Elvégezve). Így az elvégzett feladatot már nem lehet újra megnyitni.
 - A **JSON alapú feladat** jelölővel a felugró ablak tartalmát maga a feladat írja le (lásd lent: [JSON alapú feladatok](#json-alapú-feladatok)).
+- A **Delegálás** jelölővel egy SharePoint csoport tagjai a feladatokat másnak adhatják át: minden feladatsoron **Delegálom** gombot látnak. Beállítandó:
+  - **Delegálhatja (SharePoint csoport)**: kik láthatják a gombot;
+  - **Delegált személy mezője**: a feladat személy mezője, amely a kiválasztott személyt kapja (alapból DelegatedTo);
+  - **Állapot mező** és **Állapot delegálás után**: melyik mező milyen értéket kapjon (alapból Status = Delegálva);
+  - **A Delegálom gomb ezekben az állapotokban látszik**: ha kiválasztasz állapotokat (például Nincs elkezdve, Folyamatban), a gomb csak az ilyen állapotú feladatoknál jelenik meg. Választás mezőnél a mező értékei közül jelölheted be őket, más mezőnél pontosvesszővel elválasztva írhatod be. Üresen a gomb minden feladatnál látszik;
+  - **Indoklás mezője**: a feladat többsoros szöveg mezője, ide kerül az indoklás. Ha ki van választva, az indoklás kötelező.
+
+  A delegálás a hozzárendelést (a feladatkezelés személy mezőjét) nem írja át. Ha meg van adva a **Megnyitható, ha** feltétel, az azt nem teljesítő feladat (például elvégzett) nem delegálható. Ez sem jogosultsági beállítás.
 - A **Feladat megtekintése: a hozzárendelt elemek megtekintése** jelölővel minden olyan sornál, ahol nincs **Kitöltöm** gomb (más feladata, vagy már elvégzett), **Megtekintem** gomb jelenik meg. Ez ugyanazt a felugró ablakot nyitja meg, de minden csak olvasható, és az alján csak a **Bezárás** gomb van; semmit nem ment.
 
 A **Felugró ablak** fülön adhatod meg, mi jelenjen meg a feladat megnyitásakor (JSON alapú feladatnál ebből csak a cím és a leírás érvényes):
@@ -520,7 +529,8 @@ A **Felugró ablak** fülön adhatod meg, mi jelenjen meg a feladat megnyitásak
 | Cím | A feladat melyik mezője legyen az ablak címe (alapból a Cím). |
 | Leírás | A cím alatt megjelenő szöveg mezője. |
 | Megjegyzés mezője | A feladatlista többsoros szöveg mezője; ide kerül a beírt megjegyzés (felülírja a korábbit). Ha nincs megadva, nincs megjegyzés. |
-| További mezők | További mezők, sorrendben; a **Kitölthető** jelölővel a felugró ablakban ki is tölthetők. |
+| Állapot mező (a mezők megjelenéséhez) | A feladat állapotát tartalmazó mező (például Status). Ha kiválasztod, a további mezőknél megadhatod, mely állapotokban látszanak. |
+| További mezők | További mezők, sorrendben; a **Kitölthető** jelölővel a felugró ablakban ki is tölthetők. Ha van állapot mező, mezőnként kiválaszthatod, mely állapotokban jelenjen meg (üresen mindig látszik); választás mezőnél a lehetőségek közül, más mezőnél pontosvesszővel elválasztva. Ha az állapot is kitölthető a felugró ablakban, a mezők a beállított értékhez igazodnak. A rejtett mező nem mentődik. |
 
 A **Gombok** fülön szabályokat adsz meg (JSON alapú feladatnál nem; ott csak a Beküldés gomb beállított mezői adhatók meg). Minden szabálynak van egy feltétele és néhány gombja; **az első teljesülő szabály gombjai** jelennek meg a felugró ablakban. A feltétel az elem (mentett) mezőit és a feladat mezőit („Feladat: …”) is látja. A feltétel nélküli szabály mindig teljesül, ezért a lista végére téve alapértelmezésként működik.
 
