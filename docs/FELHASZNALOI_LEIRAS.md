@@ -41,6 +41,8 @@ Az űrlap csoportokra (szekciókra) tagolódik. A lefelé mutató nyíllal jelö
 
 A csillaggal (`*`) jelölt mezők kitöltése kötelező.
 
+Új elem felvételekor és szerkesztéskor a gombok felett piros keretes, halványpiros mező sorolja fel azokat a kötelező mezőket, amelyek még nincsenek kitöltve. A lista kitöltés közben frissül, és eltűnik, amint minden kötelező mező ki van töltve. Megtekintéskor nem jelenik meg.
+
 ### Kapcsolódó elemek és feladatok az űrlapon
 
 Az űrlapon táblázat is megjelenhet, amely egy másik lista ehhez az elemhez tartozó elemeit sorolja fel (például a kérelem feladatait). A táblázat első oszlopára kattintva az elem új lapon nyílik meg, a **Frissítés** gombbal (körkörös nyíl) a táblázat újratölthető.

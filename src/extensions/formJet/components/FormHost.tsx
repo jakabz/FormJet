@@ -153,8 +153,37 @@ const classes = mergeStyleSets({
   },
   panelScroll: { flex: 1, minHeight: 0, overflowY: 'auto', paddingRight: 8 },
   panelActions: { display: 'flex', gap: 8, paddingTop: 12, borderTop: '1px solid #edebe9' },
-  actions: { display: 'flex', gap: 8, marginTop: 8, justifyContent: 'center' }
+  actions: { display: 'flex', gap: 8, marginTop: 8, justifyContent: 'center' },
+  missingRequired: {
+    marginTop: 16,
+    padding: '8px 12px',
+    border: '1px solid #a4262c',
+    borderRadius: 2,
+    background: '#fde7e9',
+    color: '#a4262c'
+  },
+  missingRequiredList: { margin: '4px 0 0', paddingLeft: 20 }
 });
+
+/** A mentés utáni mellékletek száma (a meglévők, a törlésre jelöltek nélkül, és az újak). */
+function attachmentCount(state: IAttachmentsState): number {
+  return state.existing.length - state.removed.length + state.added.length;
+}
+
+/**
+ * A látható, szerkeszthető, kötelező és üres mezők (a mező nélküli elemek kivételével).
+ * Ugyanez a mentés előtti ellenőrzés és a gombsor feletti „kitöltetlen kötelező mezők” lista alapja.
+ */
+function missingRequiredFields(form: IResolvedForm, values: FormValues, attachmentCount: number): IResolvedField[] {
+  return flattenFields(form).filter(
+    (field) =>
+      field.visible &&
+      !field.readOnly &&
+      field.required &&
+      !isLayoutElement(field.schema) &&
+      (field.schema.TypeAsString === ATTACHMENTS_FIELD ? attachmentCount === 0 : isEmptyValue(values[field.name]))
+  );
+}
 
 export interface IFormHostProps {
   mode: FormMode;
@@ -622,14 +651,8 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
 
     // 1. Kliens oldali ellenőrzés: a látható, kötelező mezők nem lehetnek üresek.
     const validationErrors: FieldErrors = {};
-    editableFields.forEach((field) => {
-      const empty: boolean =
-        field.schema.TypeAsString === ATTACHMENTS_FIELD
-          ? attachments.existing.length - attachments.removed.length + attachments.added.length === 0
-          : isEmptyValue(currentValues[field.name]);
-      if (field.required && empty) {
-        validationErrors[field.name] = TEXT.required;
-      }
+    missingRequiredFields(currentResolved, currentValues, attachmentCount(attachments)).forEach((field) => {
+      validationErrors[field.name] = TEXT.required;
     });
     setTopErrors([]);
     setErrors(validationErrors);
@@ -922,6 +945,8 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
   const designing: boolean = draft !== undefined;
   // A mentett elrendezés mentési típusa (a tervezés közbeni piszkozat nem számít, ott nincs mentés gomb).
   const extendedSave: boolean = loaded.config.saveMode === 'extended';
+  const missingRequired: IResolvedField[] =
+    mode === 'display' || designing ? [] : missingRequiredFields(resolved, values, attachmentCount(attachments));
 
   const rendererProps: IFormRendererProps = {
     form: resolved,
@@ -1081,6 +1106,17 @@ export const FormHost: React.FC<IFormHostProps> = (props) => {
       ) : (
         <>
           {renderer}
+          {/* A kitöltetlen kötelező mezők listája a gombsor felett; csak New / Edit módban és csak ha van ilyen mező. */}
+          {missingRequired.length > 0 && (
+            <div className={classes.missingRequired} role="status">
+              {strings.MissingRequiredFields}
+              <ul className={classes.missingRequiredList}>
+                {missingRequired.map((field) => (
+                  <li key={field.name}>{field.label || field.schema.Title || field.name}</li>
+                ))}
+              </ul>
+            </div>
+          )}
           {resolved.footer ? (
             // Testreszabott alsó gombsor: a gombok a saját láthatóságuk, letiltásuk és műveleteik szerint.
             <FormContext.Provider value={formContext}>

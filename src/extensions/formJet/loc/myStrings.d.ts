@@ -7,6 +7,7 @@ declare interface IFormJetFormCustomizerStrings {
   Cancel: string;
   Close: string;
   RequiredField: string;
+  MissingRequiredFields: string;
   SaveFailed: string;
   UnknownError: string;
   Yes: string;

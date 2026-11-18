@@ -7,6 +7,7 @@ define([], function() {
     "Cancel": "Cancel",
     "Close": "Close",
     "RequiredField": "This field is required.",
+    "MissingRequiredFields": "The following required fields are not filled in yet:",
     "SaveFailed": "The item could not be saved.",
     "UnknownError": "Unknown error.",
     "Yes": "Yes",

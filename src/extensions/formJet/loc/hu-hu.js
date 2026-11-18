@@ -7,6 +7,7 @@ define([], function() {
     "Cancel": "Mégse",
     "Close": "Bezárás",
     "RequiredField": "A mező kitöltése kötelező.",
+    "MissingRequiredFields": "Az alábbi kötelező mezők még nincsenek kitöltve:",
     "SaveFailed": "A mentés nem sikerült.",
     "UnknownError": "Ismeretlen hiba.",
     "Yes": "Igen",
